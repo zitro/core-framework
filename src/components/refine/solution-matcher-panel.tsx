@@ -78,7 +78,6 @@ export function SolutionMatcherPanel({
                     <p className="text-xs uppercase tracking-wider text-muted-foreground">Confidence</p>
                     <div className="flex items-center gap-2">
                       <div className="flex-1 h-2 rounded-full bg-muted overflow-hidden">
-                        {/* eslint-disable-next-line react/forbid-dom-props */}
                         <div className="h-full bg-emerald-500 rounded-full transition-all" style={{ width: `${m.confidence}%` }} />
                       </div>
                       <span className="text-xs font-medium">{m.confidence}%</span>

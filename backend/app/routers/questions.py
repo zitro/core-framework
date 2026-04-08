@@ -145,12 +145,14 @@ async def solution_match(request: SolutionMatchRequest):
     matches = []
     for m in raw_matches:
         try:
-            matches.append(SolutionMatch(
-                problem=m.get("problem", request.problem),
-                capabilities=m.get("capabilities", []),
-                gap=m.get("gap", ""),
-                confidence=max(0, min(100, int(m.get("confidence", 50)))),
-            ))
+            matches.append(
+                SolutionMatch(
+                    problem=m.get("problem", request.problem),
+                    capabilities=m.get("capabilities", []),
+                    gap=m.get("gap", ""),
+                    confidence=max(0, min(100, int(m.get("confidence", 50)))),
+                )
+            )
         except (ValueError, TypeError):
             continue
 

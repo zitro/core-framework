@@ -13,7 +13,6 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
-import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import type { Evidence, CorePhase, ConfidenceLevel } from "@/types/core";
 import { api } from "@/lib/api";
