@@ -35,12 +35,14 @@ class Settings(BaseSettings):
     local_db_path: str = "./data/core.db"
 
     # Azure Blob Storage
+    azure_storage_account: str = ""
     azure_storage_connection_string: str = ""
-    azure_storage_container: str = "core-discovery"
+    azure_storage_container: str = "transcripts"
 
     # Azure Speech
     azure_speech_key: str = ""
     azure_speech_region: str = ""
+    azure_speech_resource_id: str = ""
 
     # Azure Entra ID
     azure_tenant_id: str = ""

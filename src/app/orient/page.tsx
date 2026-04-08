@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Compass, Network, FileText } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
-import { PHASE_CONFIG } from "@/types/core";
+import { PHASE_CONFIG, type Evidence } from "@/types/core";
 import { api } from "@/lib/api";
 import { useDiscovery } from "@/stores/discovery-store";
 
@@ -16,11 +16,13 @@ const config = PHASE_CONFIG.orient;
 
 export default function OrientPage() {
   const { activeDiscovery } = useDiscovery();
+  const discoveryId = activeDiscovery?.id || "";
   const [questions, setQuestions] = useState<{ text: string; purpose: string; follow_ups: string[] }[]>([]);
   const [context, setContext] = useState("");
   const [generating, setGenerating] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [captureEvidence, setCaptureEvidence] = useState<Evidence[]>([]);
 
   // Problem Statement Builder state
   const [who, setWho] = useState("");
@@ -39,12 +41,29 @@ export default function OrientPage() {
     }
   }, [activeDiscovery?.id, activeDiscovery?.problem_statement]);
 
+  // Auto-load capture evidence as context
+  const loadCaptureEvidence = useCallback(async () => {
+    if (!discoveryId) return;
+    try {
+      const items = await api.evidence.list(discoveryId, "capture");
+      setCaptureEvidence(items);
+      if (items.length > 0 && !context) {
+        const summary = items.map((e) => `- ${e.content}`).join("\n");
+        setContext(`Evidence from Capture phase:\n${summary}`);
+      }
+    } catch { /* non-critical */ }
+  }, [discoveryId, context]);
+
+  useEffect(() => {
+    loadCaptureEvidence();
+  }, [loadCaptureEvidence]);
+
   const generateQuestions = async () => {
     setGenerating(true);
     setError(null);
     try {
       const result = await api.questions.generate({
-        discovery_id: "demo",
+        discovery_id: discoveryId,
         phase: "orient",
         context,
       });
@@ -83,6 +102,15 @@ export default function OrientPage() {
     }
   };
 
+  if (!activeDiscovery) {
+    return (
+      <div className="p-6 max-w-6xl mx-auto flex flex-col items-center justify-center py-20 text-center">
+        <Compass className="h-8 w-8 text-muted-foreground mb-2" />
+        <p className="text-muted-foreground text-sm">Select or create a discovery from the Dashboard to start orienting.</p>
+      </div>
+    );
+  }
+
   return (
     <div className="p-6 max-w-6xl mx-auto space-y-6">
       <div className="flex items-center gap-3">
@@ -108,6 +136,21 @@ export default function OrientPage() {
         </TabsList>
 
         <TabsContent value="sensemaking" className="space-y-4">
+          {captureEvidence.length > 0 && (
+            <Card className="border-blue-500/20 bg-blue-500/5">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm text-blue-700">
+                  Capture Evidence Loaded
+                  <Badge variant="secondary" className="ml-2">{captureEvidence.length}</Badge>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-xs text-muted-foreground">
+                  Evidence from the Capture phase has been loaded into context below.
+                </p>
+              </CardContent>
+            </Card>
+          )}
           <Card>
             <CardHeader>
               <CardTitle className="text-base">Orient Context</CardTitle>
@@ -119,7 +162,7 @@ export default function OrientPage() {
               <Textarea
                 value={context}
                 onChange={(e) => setContext(e.target.value)}
-                placeholder="e.g., We interviewed 5 clinical staff. Common themes: slow system, duplicate data entry, workarounds for scheduling. But the IT team says the system is fine."
+                placeholder="e.g., We interviewed 5 portfolio managers. Common themes: slow trade execution, duplicate reconciliation, workarounds for compliance reporting. But the ops team says the system is fine."
                 rows={4}
               />
               <Button onClick={generateQuestions} disabled={generating}>
@@ -171,25 +214,25 @@ export default function OrientPage() {
               <div>
                 <label className="text-sm font-medium">Who is affected?</label>
                 <Textarea value={who} onChange={(e) => setWho(e.target.value)}
-                  placeholder="e.g., Clinical staff who manage patient scheduling across 3 departments"
+                  placeholder="e.g., Portfolio managers who execute trades across 3 asset classes"
                   rows={2} />
               </div>
               <div>
                 <label className="text-sm font-medium">What do they need?</label>
                 <Textarea value={what} onChange={(e) => setWhat(e.target.value)}
-                  placeholder="e.g., see real-time schedule availability without switching between systems"
+                  placeholder="e.g., see real-time portfolio exposure without switching between systems"
                   rows={2} />
               </div>
               <div>
                 <label className="text-sm font-medium">Why? (root cause)</label>
                 <Textarea value={why} onChange={(e) => setWhy(e.target.value)}
-                  placeholder="e.g., the current system requires manual cross-referencing of 3 separate calendars"
+                  placeholder="e.g., the current system requires manual cross-referencing of 3 separate ledgers"
                   rows={2} />
               </div>
               <div>
                 <label className="text-sm font-medium">Impact if solved</label>
                 <Textarea value={impact} onChange={(e) => setImpact(e.target.value)}
-                  placeholder="e.g., scheduling errors drop by 60% and staff saves 2 hours per day"
+                  placeholder="e.g., reconciliation errors drop by 60% and analysts save 2 hours per day"
                   rows={2} />
               </div>
 

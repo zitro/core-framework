@@ -67,7 +67,7 @@ export default function DashboardPage() {
               <Plus className="h-4 w-4 mr-2" />
               New Discovery
           </DialogTrigger>
-          <DialogContent>
+          <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-lg">
             <DialogHeader>
               <DialogTitle>Start a New Discovery</DialogTitle>
               <DialogDescription>
@@ -80,7 +80,7 @@ export default function DashboardPage() {
                 <Input
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  placeholder="e.g., Patient Portal Discovery"
+                  placeholder="e.g., Trading Platform Discovery"
                 />
               </div>
               <div>
@@ -90,6 +90,7 @@ export default function DashboardPage() {
                   onChange={(e) => setDescription(e.target.value)}
                   placeholder="What are you trying to discover?"
                   rows={3}
+                  className="max-h-40 resize-y"
                 />
               </div>
               <div>

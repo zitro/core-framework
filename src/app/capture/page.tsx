@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Search, MessageSquare, Plus, Upload } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -9,18 +9,23 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
-import { PHASE_CONFIG, type Question } from "@/types/core";
+import { PHASE_CONFIG, type Question, type Evidence } from "@/types/core";
 import { api } from "@/lib/api";
+import { useDiscovery } from "@/stores/discovery-store";
 
 const config = PHASE_CONFIG.capture;
 
 export default function CapturePage() {
+  const { activeDiscovery } = useDiscovery();
+  const discoveryId = activeDiscovery?.id || "";
+
   const [questions, setQuestions] = useState<Question[]>([]);
   const [context, setContext] = useState("");
   const [transcript, setTranscript] = useState("");
   const [generating, setGenerating] = useState(false);
   const [analyzing, setAnalyzing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [extractedEvidence, setExtractedEvidence] = useState<Evidence[]>([]);
   const [analysisResult, setAnalysisResult] = useState<{
     insights: { text: string; confidence: string }[];
     key_themes: string[];
@@ -32,7 +37,7 @@ export default function CapturePage() {
     setError(null);
     try {
       const result = await api.questions.generate({
-        discovery_id: "demo",
+        discovery_id: discoveryId,
         phase: "capture",
         context,
         num_questions: 8,
@@ -51,7 +56,7 @@ export default function CapturePage() {
     setError(null);
     try {
       const result = await api.transcripts.analyze({
-        discovery_id: "demo",
+        discovery_id: discoveryId,
         transcript_text: transcript,
       });
       setAnalysisResult({
@@ -62,6 +67,24 @@ export default function CapturePage() {
         key_themes: result.key_themes,
         sentiment: result.sentiment,
       });
+      // Auto-import extracted evidence
+      if (result.evidence_extracted?.length && discoveryId) {
+        const saved: Evidence[] = [];
+        for (const ev of result.evidence_extracted) {
+          try {
+            const created = await api.evidence.create({
+              discovery_id: discoveryId,
+              phase: "capture",
+              content: ev.content,
+              source: ev.source || "Transcript analysis",
+              confidence: ev.confidence || "unknown",
+              tags: ev.tags || [],
+            });
+            saved.push(created);
+          } catch { /* skip individual failures */ }
+        }
+        setExtractedEvidence(saved);
+      }
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to analyze transcript — is the backend running?");
     } finally {
@@ -77,6 +100,15 @@ export default function CapturePage() {
       default: return "bg-zinc-500/10 text-zinc-600 border-zinc-500/30";
     }
   };
+
+  if (!activeDiscovery) {
+    return (
+      <div className="p-6 max-w-6xl mx-auto flex flex-col items-center justify-center py-20 text-center">
+        <Search className="h-8 w-8 text-muted-foreground mb-2" />
+        <p className="text-muted-foreground text-sm">Select or create a discovery from the Dashboard to start capturing.</p>
+      </div>
+    );
+  }
 
   return (
     <div className="p-6 max-w-6xl mx-auto space-y-6">
@@ -114,7 +146,7 @@ export default function CapturePage() {
               <Textarea
                 value={context}
                 onChange={(e) => setContext(e.target.value)}
-                placeholder="e.g., We're working with a healthcare org that has a legacy patient portal. They want to modernize but aren't sure what the real problems are. Meeting with the clinical staff tomorrow."
+                placeholder="e.g., We're working with a fintech firm that has a legacy trading platform. They want to modernize but aren't sure what the real pain points are. Meeting with the portfolio management team tomorrow."
                 rows={4}
               />
               <Button onClick={generateQuestions} disabled={generating}>
@@ -195,6 +227,7 @@ export default function CapturePage() {
               <Button onClick={analyzeTranscript} disabled={analyzing || !transcript.trim()}>
                 {analyzing ? "Analyzing..." : "Analyze Transcript"}
               </Button>
+              {error && <p className="text-sm text-red-500 mt-2">{error}</p>}
             </CardContent>
           </Card>
 
@@ -234,6 +267,27 @@ export default function CapturePage() {
                     ))}
                   </div>
                 </div>
+                {extractedEvidence.length > 0 && (
+                  <>
+                    <Separator />
+                    <div>
+                      <h4 className="text-sm font-medium mb-2">
+                        Evidence Saved
+                        <Badge variant="secondary" className="ml-2">{extractedEvidence.length}</Badge>
+                      </h4>
+                      <p className="text-xs text-muted-foreground mb-2">
+                        Auto-extracted from transcript and saved to the Evidence Board.
+                      </p>
+                      <div className="space-y-1">
+                        {extractedEvidence.map((ev) => (
+                          <div key={ev.id} className="text-xs p-2 rounded border bg-blue-500/5">
+                            {ev.content}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </>
+                )}
               </CardContent>
             </Card>
           )}

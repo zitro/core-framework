@@ -1,8 +1,9 @@
 "use client";
 
+import { useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Search, Compass, Lightbulb, Rocket, Home, BookOpen } from "lucide-react";
+import { Search, Compass, Lightbulb, Rocket, Home, BookOpen, FolderOpen } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -16,6 +17,7 @@ import {
   SidebarFooter,
 } from "@/components/ui/sidebar";
 import { Badge } from "@/components/ui/badge";
+import { useDiscovery } from "@/stores/discovery-store";
 
 const PHASE_NAV = [
   {
@@ -54,6 +56,17 @@ const PHASE_NAV = [
 
 export function AppSidebar() {
   const pathname = usePathname();
+  const { discoveries, activeDiscovery, setActiveDiscovery, loadDiscoveries } = useDiscovery();
+
+  useEffect(() => {
+    if (discoveries.length === 0) {
+      loadDiscoveries().catch(() => {});
+    }
+  }, [discoveries.length, loadDiscoveries]);
+
+  const recentDiscoveries = [...discoveries]
+    .sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime())
+    .slice(0, 5);
 
   return (
     <Sidebar>
@@ -117,9 +130,39 @@ export function AppSidebar() {
                   <span>Evidence Board</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton render={<Link href="/discoveries" />} isActive={pathname === "/discoveries"}>
+                  <FolderOpen className="h-4 w-4 text-indigo-500" />
+                  <span>All Discoveries</span>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
+
+        {recentDiscoveries.length > 0 && (
+          <SidebarGroup>
+            <SidebarGroupLabel>Recent Discoveries</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {recentDiscoveries.map((d) => (
+                  <SidebarMenuItem key={d.id}>
+                    <SidebarMenuButton
+                      render={<Link href="/" />}
+                      isActive={activeDiscovery?.id === d.id}
+                      onClick={() => setActiveDiscovery(d)}
+                    >
+                      <span className="truncate text-xs">{d.name}</span>
+                      <Badge variant="outline" className="ml-auto text-[9px] shrink-0">
+                        {d.current_phase}
+                      </Badge>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
       </SidebarContent>
 
       <SidebarFooter className="border-t p-4">

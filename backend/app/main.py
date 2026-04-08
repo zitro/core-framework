@@ -32,6 +32,7 @@ def create_app() -> FastAPI:
             "providers": {
                 "llm": settings.llm_provider,
                 "storage": settings.storage_provider,
+                "speech": settings.speech_provider,
                 "auth": settings.auth_provider,
             },
         }

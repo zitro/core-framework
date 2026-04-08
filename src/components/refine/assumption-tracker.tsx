@@ -8,18 +8,14 @@ import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
-
-interface Assumption {
-  id: string;
-  text: string;
-  risk: "high" | "medium" | "low";
-  status: "untested" | "validated" | "invalidated";
-}
+import type { Assumption } from "@/types/core";
 
 const riskColor = { high: "text-red-500", medium: "text-amber-500", low: "text-emerald-500" };
 const riskBg = { high: "bg-red-500/10", medium: "bg-amber-500/10", low: "bg-emerald-500/10" };
 
 interface AssumptionTrackerProps {
+  assumptions: Assumption[];
+  onAssumptionsChange: (assumptions: Assumption[]) => void;
   context: string;
   onContextChange: (value: string) => void;
   generating: boolean;
@@ -29,6 +25,8 @@ interface AssumptionTrackerProps {
 }
 
 export function AssumptionTracker({
+  assumptions,
+  onAssumptionsChange,
   context,
   onContextChange,
   generating,
@@ -36,21 +34,22 @@ export function AssumptionTracker({
   error,
   questions,
 }: AssumptionTrackerProps) {
-  const [assumptions, setAssumptions] = useState<Assumption[]>([]);
   const [newAssumption, setNewAssumption] = useState("");
   const [newRisk, setNewRisk] = useState<"high" | "medium" | "low">("medium");
 
   const addAssumption = () => {
     if (!newAssumption.trim()) return;
-    setAssumptions((prev) => [
-      ...prev,
-      { id: crypto.randomUUID(), text: newAssumption, risk: newRisk, status: "untested" },
-    ]);
+    const updated = [
+      ...assumptions,
+      { id: crypto.randomUUID(), text: newAssumption, risk: newRisk, status: "untested" as const },
+    ];
+    onAssumptionsChange(updated);
     setNewAssumption("");
   };
 
   const updateAssumption = (id: string, status: Assumption["status"]) => {
-    setAssumptions((prev) => prev.map((a) => (a.id === id ? { ...a, status } : a)));
+    const updated = assumptions.map((a) => (a.id === id ? { ...a, status } : a));
+    onAssumptionsChange(updated);
   };
 
   return (
@@ -66,7 +65,7 @@ export function AssumptionTracker({
           <Input
             value={newAssumption}
             onChange={(e) => setNewAssumption(e.target.value)}
-            placeholder="e.g., Users will adopt a unified calendar view"
+            placeholder="e.g., Traders will adopt a unified portfolio dashboard"
             className="flex-1"
             onKeyDown={(e) => e.key === "Enter" && addAssumption()}
           />

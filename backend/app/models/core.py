@@ -78,6 +78,20 @@ class ExecuteData(BaseModel):
     handoff_notes: str = ""
 
 
+class Assumption(BaseModel):
+    id: str = ""
+    text: str
+    risk: str = "medium"  # high, medium, low
+    status: str = "untested"  # untested, validated, invalidated
+
+
+class SolutionMatchData(BaseModel):
+    problem: str = ""
+    capabilities: list[str] = Field(default_factory=list)
+    gap: str = ""
+    confidence: float = 0
+
+
 class DiscoveryUpdate(BaseModel):
     """Typed update payload — prevents arbitrary field injection."""
     name: str | None = None
@@ -86,6 +100,8 @@ class DiscoveryUpdate(BaseModel):
     current_phase: CorePhase | None = None
     problem_statement: ProblemStatement | None = None
     execute_data: ExecuteData | None = None
+    assumptions: list[Assumption] | None = None
+    solution_matches: list[SolutionMatchData] | None = None
 
 
 class Discovery(BaseModel):
@@ -97,6 +113,8 @@ class Discovery(BaseModel):
     stakeholders: list[Stakeholder] = Field(default_factory=list)
     problem_statement: ProblemStatement | None = None
     execute_data: ExecuteData | None = None
+    assumptions: list[Assumption] = Field(default_factory=list)
+    solution_matches: list[SolutionMatchData] = Field(default_factory=list)
     evidence: list[Evidence] = Field(default_factory=list)
     created_at: datetime = Field(default_factory=_utcnow)
     updated_at: datetime = Field(default_factory=_utcnow)
