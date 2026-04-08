@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Compass, Network, FileText } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -10,13 +10,17 @@ import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
 import { PHASE_CONFIG } from "@/types/core";
 import { api } from "@/lib/api";
+import { useDiscovery } from "@/stores/discovery-store";
 
 const config = PHASE_CONFIG.orient;
 
 export default function OrientPage() {
+  const { activeDiscovery } = useDiscovery();
   const [questions, setQuestions] = useState<{ text: string; purpose: string; follow_ups: string[] }[]>([]);
   const [context, setContext] = useState("");
   const [generating, setGenerating] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   // Problem Statement Builder state
   const [who, setWho] = useState("");
@@ -24,8 +28,20 @@ export default function OrientPage() {
   const [why, setWhy] = useState("");
   const [impact, setImpact] = useState("");
 
+  // Load persisted problem statement on mount
+  useEffect(() => {
+    const ps = activeDiscovery?.problem_statement;
+    if (ps) {
+      setWho(ps.who || "");
+      setWhat(ps.what || "");
+      setWhy(ps.why || "");
+      setImpact(ps.impact || "");
+    }
+  }, [activeDiscovery?.id, activeDiscovery?.problem_statement]);
+
   const generateQuestions = async () => {
     setGenerating(true);
+    setError(null);
     try {
       const result = await api.questions.generate({
         discovery_id: "demo",
@@ -33,15 +49,8 @@ export default function OrientPage() {
         context,
       });
       setQuestions(result.questions);
-    } catch {
-      setQuestions([
-        { text: "What patterns are you seeing across the interviews?", purpose: "Cross-reference evidence", follow_ups: ["Are there contradictions?"] },
-        { text: "Is the stated problem the real problem, or a symptom?", purpose: "Root cause analysis", follow_ups: ["What evidence supports each interpretation?"] },
-        { text: "Who benefits from the current broken process?", purpose: "Systems thinking — find resistance", follow_ups: ["What would they lose if we fix it?"] },
-        { text: "What assumptions are we making that we haven't validated?", purpose: "Surface blind spots", follow_ups: ["How could we test each one cheaply?"] },
-        { text: "If we mapped cause and effect, where is the leverage point?", purpose: "Systems map identification", follow_ups: ["What's the smallest change with biggest impact?"] },
-        { text: "What are three different ways to frame this problem?", purpose: "Divergent framing", follow_ups: ["Which framing changes what we'd build?"] },
-      ]);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to generate questions — is the backend running?");
     } finally {
       setGenerating(false);
     }
@@ -51,6 +60,28 @@ export default function OrientPage() {
     who && what
       ? `${who} need a way to ${what}${why ? ` because ${why}` : ""}${impact ? `. If solved, ${impact}` : ""}.`
       : "";
+
+  const saveProblemStatement = async () => {
+    const id = activeDiscovery?.id;
+    if (!id) return;
+    setSaving(true);
+    try {
+      await api.discoveries.update(id, {
+        problem_statement: {
+          who,
+          what,
+          why,
+          impact,
+          statement: problemStatement,
+          confidence: "assumed",
+        },
+      } as Partial<import("@/types/core").Discovery>);
+    } catch {
+      // silent — local state retained
+    } finally {
+      setSaving(false);
+    }
+  };
 
   return (
     <div className="p-6 max-w-6xl mx-auto space-y-6">
@@ -94,6 +125,7 @@ export default function OrientPage() {
               <Button onClick={generateQuestions} disabled={generating}>
                 {generating ? "Generating..." : "Generate Orient Questions"}
               </Button>
+              {error && <p className="text-sm text-red-500 mt-2">{error}</p>}
             </CardContent>
           </Card>
 
@@ -170,6 +202,9 @@ export default function OrientPage() {
                     </p>
                     <p className="text-sm font-medium leading-relaxed">{problemStatement}</p>
                   </div>
+                  <Button onClick={saveProblemStatement} disabled={saving} variant="outline">
+                    {saving ? "Saving..." : "Save Problem Statement"}
+                  </Button>
                 </>
               )}
             </CardContent>

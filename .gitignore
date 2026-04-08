@@ -49,4 +49,4 @@ __pycache__/
 *.egg
 dist/
 backend/.venv/
-backend/.data/
+backend/data/

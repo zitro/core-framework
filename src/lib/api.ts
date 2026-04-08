@@ -4,6 +4,7 @@ import type {
   QuestionSet,
   TranscriptAnalysis,
   CorePhase,
+  SolutionMatchResult,
 } from "@/types/core";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
@@ -51,6 +52,15 @@ export const api = {
       num_questions?: number;
     }) =>
       request<QuestionSet>("/api/questions/generate", {
+        method: "POST",
+        body: JSON.stringify(data),
+      }),
+    solutionMatch: (data: {
+      discovery_id: string;
+      problem: string;
+      capabilities: string[];
+    }) =>
+      request<SolutionMatchResult>("/api/questions/solution-match", {
         method: "POST",
         body: JSON.stringify(data),
       }),

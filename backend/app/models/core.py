@@ -1,23 +1,27 @@
-from datetime import datetime
-from enum import Enum
+from datetime import UTC, datetime
+from enum import StrEnum
 
 from pydantic import BaseModel, Field
 
 
-class CorePhase(str, Enum):
+def _utcnow() -> datetime:
+    return datetime.now(UTC)
+
+
+class CorePhase(StrEnum):
     CAPTURE = "capture"
     ORIENT = "orient"
     REFINE = "refine"
     EXECUTE = "execute"
 
 
-class DiscoveryMode(str, Enum):
+class DiscoveryMode(StrEnum):
     STANDARD = "standard"
     FDE = "fde"
     WORKSHOP_SPRINT = "workshop_sprint"
 
 
-class ConfidenceLevel(str, Enum):
+class ConfidenceLevel(StrEnum):
     VALIDATED = "validated"
     ASSUMED = "assumed"
     UNKNOWN = "unknown"
@@ -32,7 +36,7 @@ class Evidence(BaseModel):
     source: str = ""
     confidence: ConfidenceLevel = ConfidenceLevel.UNKNOWN
     tags: list[str] = Field(default_factory=list)
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=_utcnow)
 
 
 class Stakeholder(BaseModel):
@@ -51,6 +55,39 @@ class ProblemStatement(BaseModel):
     confidence: ConfidenceLevel = ConfidenceLevel.UNKNOWN
 
 
+class QuickWin(BaseModel):
+    id: str = ""
+    title: str
+    effort: str = "low"
+    impact: str = "high"
+    owner: str = ""
+    done: bool = False
+
+
+class Blocker(BaseModel):
+    id: str = ""
+    description: str
+    severity: str = "major"
+    mitigation: str = ""
+    resolved: bool = False
+
+
+class ExecuteData(BaseModel):
+    quick_wins: list[QuickWin] = Field(default_factory=list)
+    blockers: list[Blocker] = Field(default_factory=list)
+    handoff_notes: str = ""
+
+
+class DiscoveryUpdate(BaseModel):
+    """Typed update payload — prevents arbitrary field injection."""
+    name: str | None = None
+    description: str | None = None
+    mode: DiscoveryMode | None = None
+    current_phase: CorePhase | None = None
+    problem_statement: ProblemStatement | None = None
+    execute_data: ExecuteData | None = None
+
+
 class Discovery(BaseModel):
     id: str = ""
     name: str
@@ -59,9 +96,16 @@ class Discovery(BaseModel):
     current_phase: CorePhase = CorePhase.CAPTURE
     stakeholders: list[Stakeholder] = Field(default_factory=list)
     problem_statement: ProblemStatement | None = None
+    execute_data: ExecuteData | None = None
     evidence: list[Evidence] = Field(default_factory=list)
-    created_at: datetime = Field(default_factory=datetime.utcnow)
-    updated_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=_utcnow)
+    updated_at: datetime = Field(default_factory=_utcnow)
+
+
+class Question(BaseModel):
+    text: str
+    purpose: str = ""
+    follow_ups: list[str] = Field(default_factory=list)
 
 
 class QuestionSet(BaseModel):
@@ -69,16 +113,30 @@ class QuestionSet(BaseModel):
     discovery_id: str
     phase: CorePhase
     context: str = ""
-    questions: list[dict] = Field(default_factory=list)
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    questions: list[Question] = Field(default_factory=list)
+    created_at: datetime = Field(default_factory=_utcnow)
+
+
+class TranscriptInsight(BaseModel):
+    text: str
+    confidence: ConfidenceLevel = ConfidenceLevel.UNKNOWN
+    phase: CorePhase = CorePhase.CAPTURE
 
 
 class TranscriptAnalysis(BaseModel):
     id: str = ""
     discovery_id: str
     transcript_text: str
-    insights: list[dict] = Field(default_factory=list)
+    insights: list[TranscriptInsight] = Field(default_factory=list)
     evidence_extracted: list[Evidence] = Field(default_factory=list)
     sentiment: str = ""
     key_themes: list[str] = Field(default_factory=list)
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=_utcnow)
+
+
+class EvidenceUpdate(BaseModel):
+    """Typed update payload for evidence items."""
+    content: str | None = None
+    source: str | None = None
+    confidence: ConfidenceLevel | None = None
+    tags: list[str] | None = None

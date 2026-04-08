@@ -92,10 +92,11 @@ export function DiscoveryProvider({ children }: { children: ReactNode }) {
   );
 
   const refreshActive = useCallback(async () => {
-    if (!state.activeDiscovery) return;
-    const updated = await api.discoveries.get(state.activeDiscovery.id);
+    const activeId = state.activeDiscovery?.id;
+    if (!activeId) return;
+    const updated = await api.discoveries.get(activeId);
     setState((s) => ({ ...s, activeDiscovery: updated }));
-  }, [state.activeDiscovery]);
+  }, [state.activeDiscovery?.id]);
 
   return (
     <DiscoveryContext.Provider

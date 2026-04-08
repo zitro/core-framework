@@ -1,9 +1,12 @@
+from functools import lru_cache
+
 from app.config import settings
 from app.providers.llm.base import LLMProvider
 
 
+@lru_cache(maxsize=1)
 def get_llm_provider() -> LLMProvider:
-    """Factory that returns the configured LLM provider."""
+    """Factory that returns the configured LLM provider (cached singleton)."""
     match settings.llm_provider:
         case "azure":
             from app.providers.llm.azure_openai import AzureOpenAIProvider

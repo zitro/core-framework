@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
-from app.routers import discovery, questions, transcripts, evidence
+from app.routers import discovery, evidence, questions, transcripts
 
 
 def create_app() -> FastAPI:
