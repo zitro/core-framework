@@ -13,8 +13,6 @@ def get_speech_provider() -> SpeechProvider:
 
             return AzureSpeechProvider()
         case "none":
-            raise RuntimeError(
-                "No speech provider configured. Set SPEECH_PROVIDER=azure in .env"
-            )
+            raise RuntimeError("No speech provider configured. Set SPEECH_PROVIDER=azure in .env")
         case _:
             raise ValueError(f"Unknown speech provider: {settings.speech_provider}")

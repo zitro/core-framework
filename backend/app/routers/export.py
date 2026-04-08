@@ -60,14 +60,16 @@ def _export_csv(discovery: dict, evidence: list[dict]) -> StreamingResponse:
     # Evidence table
     writer.writerow(["Phase", "Content", "Source", "Confidence", "Tags", "Created"])
     for e in evidence:
-        writer.writerow([
-            e.get("phase", ""),
-            e.get("content", ""),
-            e.get("source", ""),
-            e.get("confidence", ""),
-            "; ".join(e.get("tags", [])),
-            e.get("created_at", ""),
-        ])
+        writer.writerow(
+            [
+                e.get("phase", ""),
+                e.get("content", ""),
+                e.get("source", ""),
+                e.get("confidence", ""),
+                "; ".join(e.get("tags", [])),
+                e.get("created_at", ""),
+            ]
+        )
 
     name = discovery.get("name", "discovery").replace(" ", "-").lower()
     output.seek(0)

@@ -94,6 +94,7 @@ class SolutionMatchData(BaseModel):
 
 class DiscoveryUpdate(BaseModel):
     """Typed update payload — prevents arbitrary field injection."""
+
     name: str | None = None
     description: str | None = None
     mode: DiscoveryMode | None = None
@@ -154,6 +155,7 @@ class TranscriptAnalysis(BaseModel):
 
 class EvidenceUpdate(BaseModel):
     """Typed update payload for evidence items."""
+
     content: str | None = None
     source: str | None = None
     confidence: ConfidenceLevel | None = None

@@ -56,6 +56,8 @@ The backend uses a provider abstraction pattern. Swap between local development 
 | Blobs    | Azure Blob Storage or local filesystem  |
 | Speech   | Azure Speech Services (optional)        |
 | Auth     | Azure Entra ID or none (local)          |
+| Realtime | WebSocket hub for live collaboration    |
+| CI/CD    | GitHub Actions (lint, test, build)      |
 
 ## Prerequisites
 
@@ -390,24 +392,28 @@ core-framework/
 │   │   ├── discoveries/page.tsx  # Browse all past discoveries
 │   │   └── evidence/page.tsx     # Cross-phase evidence board
 │   ├── components/               # Shared and feature components
-│   │   ├── layout/               # Sidebar, app shell
+│   │   ├── layout/               # Sidebar, theme toggle, app shell
 │   │   ├── execute/              # QuickWinTracker, BlockerList, HandoffPanel
 │   │   ├── refine/               # AssumptionTracker, SolutionMatcherPanel
 │   │   └── ui/                   # shadcn/ui primitives
 │   ├── stores/                   # React context stores
 │   │   └── discovery-store.tsx   # Active discovery state management
-│   ├── lib/                      # API client, utilities
+│   ├── lib/                      # API client, utilities, realtime hook
+│   ├── __tests__/                # Frontend tests (vitest)
 │   └── types/                    # TypeScript type definitions
 ├── backend/                      # FastAPI backend
 │   ├── app/
-│   │   ├── main.py               # App factory, CORS, router registration
-│   │   ├── config.py             # Settings from environment variables
+│   │   ├── main.py               # App factory, middleware, router registration
+│   │   ├── config.py             # Settings and startup validation
+│   │   ├── dependencies.py       # Auth dependency for route protection
 │   │   ├── models/               # Pydantic models (Discovery, Evidence, etc.)
 │   │   ├── routers/              # API endpoints
 │   │   │   ├── discovery.py      # CRUD for discovery sessions
 │   │   │   ├── questions.py      # Question generation + solution matching
 │   │   │   ├── transcripts.py    # Transcript analysis + audio upload
-│   │   │   └── evidence.py       # Evidence CRUD scoped by discovery
+│   │   │   ├── evidence.py       # Evidence CRUD scoped by discovery
+│   │   │   ├── export.py         # JSON/CSV export downloads
+│   │   │   └── realtime.py       # WebSocket hub for live collaboration
 │   │   └── providers/            # Pluggable service providers
 │   │       ├── llm/              # Azure OpenAI, OpenAI, Ollama
 │   │       ├── storage/          # Cosmos DB, local JSON
@@ -415,12 +421,16 @@ core-framework/
 │   │       ├── speech/           # Azure Speech Services
 │   │       └── auth/             # Azure Entra ID, no-auth
 │   ├── .env.example              # Template for backend environment
+│   ├── tests/                    # Backend tests (pytest)
 │   └── pyproject.toml            # Python dependencies and project metadata
+├── .github/
+│   └── workflows/ci.yml          # CI pipeline: lint, test, build
 ├── docs/                         # Documentation
 │   ├── BRD/                      # Business Requirements Document
 │   ├── TRD/                      # Technical Requirements Document
 │   └── ADR/                      # Architecture Decision Records
 ├── .env.local.example            # Template for frontend environment
+├── vitest.config.ts              # Frontend test configuration
 └── package.json                  # Frontend dependencies and scripts
 ```
 
@@ -444,6 +454,9 @@ All endpoints are prefixed with `/api`.
 | POST   | `/api/evidence/`                | Create an evidence item           |
 | PATCH  | `/api/evidence/{id}`            | Update an evidence item           |
 | DELETE | `/api/evidence/{id}`            | Delete an evidence item           |
+| GET    | `/api/export/{id}?format=json`  | Export discovery as JSON          |
+| GET    | `/api/export/{id}?format=csv`   | Export discovery as CSV           |
+| WS     | `/ws/{discoveryId}`             | Real-time collaboration channel   |
 
 Interactive API documentation is available at [http://localhost:8000/docs](http://localhost:8000/docs)
 when the backend is running.
@@ -504,7 +517,47 @@ possible.
 
 ### Running Tests
 
+Backend (27 tests):
+
 ```bash
 cd backend
-pytest
+pytest tests/ -v
 ```
+
+Frontend (7 tests):
+
+```bash
+pnpm test
+```
+
+## Security
+
+All API routes (except `/api/health`) require authentication. The auth dependency uses the configured
+provider:
+
+- `AUTH_PROVIDER=none`: All requests pass through with a local-dev user (development only).
+- `AUTH_PROVIDER=azure`: Validates Entra ID JWT bearer tokens. Requires `AZURE_TENANT_ID` and
+  `AZURE_CLIENT_ID`.
+
+Rate limiting is enforced globally at 100 requests per minute per IP address. Configure via the
+`RATE_LIMIT` environment variable (default: `100/minute`).
+
+Startup validation checks that required environment variables are set for the selected providers and
+logs warnings if any are missing.
+
+## Real-Time Collaboration
+
+The WebSocket endpoint at `/ws/{discoveryId}` enables live multi-user collaboration on discovery
+sessions. Connected clients receive:
+
+- Presence updates when users join or leave.
+- Phase change notifications.
+- Evidence additions relayed to all participants.
+
+The frontend `useRealtime` hook manages the connection lifecycle and exposes `send`, `activeUsers`,
+and `connected` state.
+
+## Dark Mode
+
+The application supports light and dark themes. Toggle via the sun/moon button in the sidebar footer.
+Theme preference persists in `localStorage` and respects the system setting by default.

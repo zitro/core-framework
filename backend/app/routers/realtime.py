@@ -22,10 +22,13 @@ class ConnectionManager:
         self.rooms[discovery_id].append(websocket)
         count = len(self.rooms[discovery_id])
         logger.info("WS connect: discovery=%s connections=%d", discovery_id, count)
-        await self.broadcast(discovery_id, {
-            "type": "presence",
-            "active_users": count,
-        })
+        await self.broadcast(
+            discovery_id,
+            {
+                "type": "presence",
+                "active_users": count,
+            },
+        )
 
     def disconnect(self, discovery_id: str, websocket: WebSocket):
         self.rooms[discovery_id].remove(websocket)
@@ -80,7 +83,10 @@ async def discovery_websocket(websocket: WebSocket, discovery_id: str):
         # Notify remaining users of updated presence
         count = len(manager.rooms.get(discovery_id, []))
         if count > 0:
-            await manager.broadcast(discovery_id, {
-                "type": "presence",
-                "active_users": count,
-            })
+            await manager.broadcast(
+                discovery_id,
+                {
+                    "type": "presence",
+                    "active_users": count,
+                },
+            )
