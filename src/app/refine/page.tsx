@@ -1,16 +1,20 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { FlaskConical, Target, Lightbulb } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { PHASE_CONFIG, type SolutionMatch } from "@/types/core";
+import { PHASE_CONFIG, type SolutionMatch, type Assumption } from "@/types/core";
 import { api } from "@/lib/api";
+import { useDiscovery } from "@/stores/discovery-store";
 import { AssumptionTracker } from "@/components/refine/assumption-tracker";
 import { SolutionMatcherPanel } from "@/components/refine/solution-matcher-panel";
 
 const config = PHASE_CONFIG.refine;
 
 export default function RefinePage() {
+  const { activeDiscovery } = useDiscovery();
+  const discoveryId = activeDiscovery?.id || "";
+
   const [questions, setQuestions] = useState<{ text: string; purpose: string; follow_ups: string[] }[]>([]);
   const [context, setContext] = useState("");
   const [generating, setGenerating] = useState(false);
@@ -22,12 +26,56 @@ export default function RefinePage() {
   const [matches, setMatches] = useState<SolutionMatch[]>([]);
   const [matching, setMatching] = useState(false);
 
+  // Assumptions
+  const [assumptions, setAssumptions] = useState<Assumption[]>([]);
+
+  // Load problem statement from Orient and persisted assumptions
+  useEffect(() => {
+    const ps = activeDiscovery?.problem_statement;
+    if (ps?.statement && !problemInput) {
+      setProblemInput(ps.statement);
+    }
+    if (activeDiscovery?.assumptions?.length) {
+      setAssumptions(activeDiscovery.assumptions);
+    }
+    if (activeDiscovery?.solution_matches?.length) {
+      setMatches(activeDiscovery.solution_matches);
+    }
+  }, [activeDiscovery?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Persist assumptions to backend
+  const persistAssumptions = useCallback(
+    async (updated: Assumption[]) => {
+      if (!discoveryId) return;
+      try {
+        await api.discoveries.update(discoveryId, { assumptions: updated } as Partial<import("@/types/core").Discovery>);
+      } catch { /* non-critical */ }
+    },
+    [discoveryId]
+  );
+
+  // Persist solution matches to backend
+  const persistMatches = useCallback(
+    async (updated: SolutionMatch[]) => {
+      if (!discoveryId) return;
+      try {
+        await api.discoveries.update(discoveryId, { solution_matches: updated } as Partial<import("@/types/core").Discovery>);
+      } catch { /* non-critical */ }
+    },
+    [discoveryId]
+  );
+
+  const handleAssumptionsChange = (updated: Assumption[]) => {
+    setAssumptions(updated);
+    persistAssumptions(updated);
+  };
+
   const generateQuestions = async () => {
     setGenerating(true);
     setError(null);
     try {
       const result = await api.questions.generate({
-        discovery_id: "demo",
+        discovery_id: discoveryId,
         phase: "refine",
         context,
       });
@@ -47,11 +95,12 @@ export default function RefinePage() {
         .map((s) => s.trim())
         .filter(Boolean);
       const result = await api.questions.solutionMatch({
-        discovery_id: "active",
+        discovery_id: discoveryId,
         problem: problemInput,
         capabilities,
       });
       setMatches(result.matches);
+      persistMatches(result.matches);
     } catch (e) {
       setMatches([
         {
@@ -65,6 +114,15 @@ export default function RefinePage() {
       setMatching(false);
     }
   };
+
+  if (!activeDiscovery) {
+    return (
+      <div className="p-6 max-w-6xl mx-auto flex flex-col items-center justify-center py-20 text-center">
+        <FlaskConical className="h-8 w-8 text-muted-foreground mb-2" />
+        <p className="text-muted-foreground text-sm">Select or create a discovery from the Dashboard to start refining.</p>
+      </div>
+    );
+  }
 
   return (
     <div className="p-6 max-w-6xl mx-auto space-y-6">
@@ -92,6 +150,8 @@ export default function RefinePage() {
 
         <TabsContent value="assumptions" className="space-y-4">
           <AssumptionTracker
+            assumptions={assumptions}
+            onAssumptionsChange={handleAssumptionsChange}
             context={context}
             onContextChange={setContext}
             generating={generating}

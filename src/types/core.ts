@@ -52,6 +52,13 @@ export interface Evidence {
   created_at: string;
 }
 
+export interface Assumption {
+  id: string;
+  text: string;
+  risk: "high" | "medium" | "low";
+  status: "untested" | "validated" | "invalidated";
+}
+
 export interface Discovery {
   id: string;
   name: string;
@@ -61,6 +68,8 @@ export interface Discovery {
   stakeholders: Stakeholder[];
   problem_statement: ProblemStatement | null;
   execute_data: ExecuteData | null;
+  assumptions: Assumption[];
+  solution_matches: SolutionMatch[];
   evidence: Evidence[];
   created_at: string;
   updated_at: string;

@@ -149,7 +149,7 @@ export function EvidenceBoard() {
               <Input
                 value={source}
                 onChange={(e) => setSource(e.target.value)}
-                placeholder="e.g., Interview with Dr. Smith"
+                placeholder="e.g., Interview with CFO Sarah Chen"
               />
             </div>
             <div>
@@ -157,7 +157,7 @@ export function EvidenceBoard() {
               <Input
                 value={tags}
                 onChange={(e) => setTags(e.target.value)}
-                placeholder="e.g., scheduling, pain-point"
+                placeholder="e.g., reconciliation, pain-point"
               />
             </div>
           </div>

@@ -80,6 +80,16 @@ export default function ExecutePage() {
   const completedWins = wins.filter((w) => w.done).length;
   const resolvedBlockers = blockers.filter((b) => b.resolved).length;
   const hasCriticalBlockers = blockers.some((b) => !b.resolved && b.severity === "critical");
+  const validatedAssumptions = (activeDiscovery?.assumptions ?? []).filter((a) => a.status === "validated");
+
+  if (!activeDiscovery) {
+    return (
+      <div className="p-6 max-w-6xl mx-auto flex flex-col items-center justify-center py-20 text-center">
+        <Rocket className="h-8 w-8 text-muted-foreground mb-2" />
+        <p className="text-muted-foreground text-sm">Select or create a discovery from the Dashboard to start executing.</p>
+      </div>
+    );
+  }
 
   return (
     <div className="p-6 max-w-6xl mx-auto space-y-6">
@@ -113,6 +123,31 @@ export default function ExecutePage() {
           </CardContent>
         </Card>
       </div>
+
+      {(activeDiscovery?.problem_statement?.statement || validatedAssumptions.length > 0) && (
+        <Card className="border-amber-500/20 bg-amber-500/5">
+          <CardContent className="pt-4 space-y-2">
+            {activeDiscovery?.problem_statement?.statement && (
+              <div>
+                <p className="text-xs uppercase tracking-wider text-amber-600 font-medium">Problem Statement</p>
+                <p className="text-sm mt-1">{activeDiscovery.problem_statement.statement}</p>
+              </div>
+            )}
+            {validatedAssumptions.length > 0 && (
+              <div>
+                <p className="text-xs uppercase tracking-wider text-emerald-600 font-medium mt-2">
+                  Validated Assumptions ({validatedAssumptions.length})
+                </p>
+                <ul className="text-sm mt-1 space-y-1">
+                  {validatedAssumptions.map((a) => (
+                    <li key={a.id} className="text-xs text-muted-foreground">• {a.text}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       <Tabs defaultValue="wins" className="space-y-4">
         <TabsList>

@@ -9,10 +9,9 @@ def get_storage_provider() -> StorageProvider:
     """Factory that returns the configured storage provider (cached singleton)."""
     match settings.storage_provider:
         case "azure" | "cosmos":
-            raise NotImplementedError(
-                "Cosmos DB storage provider is not yet implemented. "
-                "Set STORAGE_PROVIDER=local to use file-based storage."
-            )
+            from app.providers.storage.cosmos import CosmosStorageProvider
+
+            return CosmosStorageProvider()
         case "local":
             from app.providers.storage.local import LocalStorageProvider
 

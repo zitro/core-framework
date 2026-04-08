@@ -39,13 +39,13 @@ export function SolutionMatcherPanel({
         <div>
           <label className="text-sm font-medium">Problem to solve</label>
           <Textarea value={problemInput} onChange={(e) => onProblemChange(e.target.value)}
-            placeholder="e.g., Clinical staff need real-time visibility into scheduling across 3 departments"
+            placeholder="e.g., Portfolio managers need real-time visibility into exposure across 3 asset classes"
             rows={2} />
         </div>
         <div>
           <label className="text-sm font-medium">Known capabilities (comma-separated)</label>
           <Textarea value={capabilitiesInput} onChange={(e) => onCapabilitiesChange(e.target.value)}
-            placeholder="e.g., Epic scheduling module, Teams integration, Power Automate flows, custom SharePoint dashboard"
+            placeholder="e.g., Bloomberg terminal, Refinitiv feeds, Power BI dashboards, custom risk engine"
             rows={2} />
         </div>
         <Button onClick={onMatch} disabled={matching}>

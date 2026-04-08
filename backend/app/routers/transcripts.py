@@ -1,6 +1,7 @@
 import logging
+import uuid
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, UploadFile
 from pydantic import BaseModel, Field
 
 from app.models.core import (
@@ -101,3 +102,42 @@ async def analyze_transcript(request: TranscriptRequest):
 
     saved = await storage.create("transcript_analyses", analysis.model_dump(mode="json"))
     return TranscriptAnalysis(**saved)
+
+
+MAX_AUDIO_SIZE = 25 * 1024 * 1024  # 25 MB
+
+
+@router.post("/upload-audio")
+async def upload_and_transcribe(discovery_id: str, file: UploadFile):
+    """Upload an audio file, store in blob, transcribe via Speech, then analyze."""
+    if not file.content_type or not file.content_type.startswith("audio/"):
+        raise HTTPException(status_code=400, detail="File must be an audio type")
+
+    audio_data = await file.read()
+    if len(audio_data) > MAX_AUDIO_SIZE:
+        raise HTTPException(status_code=413, detail="Audio file exceeds 25 MB limit")
+
+    from app.providers.blob import get_blob_provider
+    from app.providers.speech import get_speech_provider
+
+    blob = get_blob_provider()
+    speech = get_speech_provider()
+
+    blob_name = f"{discovery_id}/{uuid.uuid4()}-{file.filename}"
+    try:
+        await blob.upload("transcripts", blob_name, audio_data, file.content_type)
+    except Exception:
+        logger.exception("Failed to upload audio to blob storage")
+        raise HTTPException(status_code=502, detail="File storage unavailable")
+
+    try:
+        transcript_text = await speech.transcribe(audio_data)
+    except Exception:
+        logger.exception("Speech transcription failed")
+        raise HTTPException(status_code=502, detail="Speech service unavailable")
+
+    if not transcript_text.strip():
+        raise HTTPException(status_code=422, detail="No speech detected in audio")
+
+    request = TranscriptRequest(discovery_id=discovery_id, transcript_text=transcript_text)
+    return await analyze_transcript(request)

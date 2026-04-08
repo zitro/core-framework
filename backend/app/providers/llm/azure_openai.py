@@ -8,11 +8,24 @@ from app.providers.llm.base import LLMProvider
 
 class AzureOpenAIProvider(LLMProvider):
     def __init__(self):
-        self.client = AsyncAzureOpenAI(
-            azure_endpoint=settings.azure_openai_endpoint,
-            api_key=settings.azure_openai_api_key,
-            api_version=settings.azure_openai_api_version,
-        )
+        if settings.azure_openai_api_key:
+            self.client = AsyncAzureOpenAI(
+                azure_endpoint=settings.azure_openai_endpoint,
+                api_key=settings.azure_openai_api_key,
+                api_version=settings.azure_openai_api_version,
+            )
+        else:
+            from azure.identity import DefaultAzureCredential, get_bearer_token_provider
+
+            credential = DefaultAzureCredential()
+            token_provider = get_bearer_token_provider(
+                credential, "https://cognitiveservices.azure.com/.default"
+            )
+            self.client = AsyncAzureOpenAI(
+                azure_endpoint=settings.azure_openai_endpoint,
+                azure_ad_token_provider=token_provider,
+                api_version=settings.azure_openai_api_version,
+            )
         self.deployment = settings.azure_openai_deployment
 
     async def complete(self, system_prompt: str, user_prompt: str, **kwargs) -> str:
