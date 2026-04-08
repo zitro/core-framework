@@ -9,6 +9,7 @@ import {
 } from "react";
 import type { Discovery, CorePhase } from "@/types/core";
 import { api } from "@/lib/api";
+import { toast } from "sonner";
 
 interface DiscoveryState {
   discoveries: Discovery[];
@@ -61,6 +62,7 @@ export function DiscoveryProvider({ children }: { children: ReactNode }) {
         activeDiscovery: created,
         loading: false,
       }));
+      toast.success(`Discovery "${created.name}" created`);
       return created;
     } catch (e) {
       setState((s) => ({

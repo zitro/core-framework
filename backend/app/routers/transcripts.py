@@ -1,9 +1,10 @@
 import logging
 import uuid
 
-from fastapi import APIRouter, HTTPException, UploadFile
+from fastapi import APIRouter, Depends, HTTPException, UploadFile
 from pydantic import BaseModel, Field
 
+from app.dependencies import get_current_user
 from app.models.core import (
     ConfidenceLevel,
     CorePhase,
@@ -16,7 +17,7 @@ from app.providers.storage import get_storage_provider
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter()
+router = APIRouter(dependencies=[Depends(get_current_user)])
 
 TRANSCRIPT_SYSTEM_PROMPT = """You are an expert product discovery analyst using the CORE framework.
 Analyze this meeting transcript and extract:

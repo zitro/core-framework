@@ -6,6 +6,7 @@ import type {
   CorePhase,
   SolutionMatchResult,
 } from "@/types/core";
+import { toast } from "sonner";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
@@ -16,7 +17,9 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
   });
   if (!res.ok) {
     const error = await res.json().catch(() => ({ detail: res.statusText }));
-    throw new Error(error.detail || "API request failed");
+    const message = error.detail || "API request failed";
+    toast.error(message);
+    throw new Error(message);
   }
   return res.json();
 }
@@ -93,5 +96,13 @@ export const api = {
       }),
     delete: (id: string) =>
       request<{ deleted: boolean }>(`/api/evidence/${id}`, { method: "DELETE" }),
+  },
+
+  // Export
+  export: {
+    download: (discoveryId: string, format: "json" | "csv" = "json") => {
+      const url = `${API_URL}/api/export/${discoveryId}?format=${format}`;
+      window.open(url, "_blank");
+    },
   },
 };

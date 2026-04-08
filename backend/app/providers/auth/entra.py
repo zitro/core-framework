@@ -1,6 +1,5 @@
 import logging
 
-import httpx
 import jwt
 from fastapi import Request
 

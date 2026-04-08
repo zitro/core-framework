@@ -1,15 +1,16 @@
 import logging
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 
+from app.dependencies import get_current_user
 from app.models.core import CorePhase, Question, QuestionSet
 from app.providers.llm import get_llm_provider
 from app.providers.storage import get_storage_provider
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter()
+router = APIRouter(dependencies=[Depends(get_current_user)])
 
 PHASE_PROMPTS = {
     CorePhase.CAPTURE: (
