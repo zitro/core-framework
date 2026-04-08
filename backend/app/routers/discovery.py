@@ -1,9 +1,10 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 
+from app.dependencies import get_current_user
 from app.models.core import Discovery, DiscoveryUpdate
 from app.providers.storage import get_storage_provider
 
-router = APIRouter()
+router = APIRouter(dependencies=[Depends(get_current_user)])
 COLLECTION = "discoveries"
 
 

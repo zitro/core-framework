@@ -48,10 +48,32 @@ class Settings(BaseSettings):
     azure_tenant_id: str = ""
     azure_client_id: str = ""
 
+    # Rate limiting
+    rate_limit: str = "100/minute"
+
     # CORS
     cors_origins: list[str] = ["http://localhost:3000"]
 
     model_config = {"env_file": ".env", "env_file_encoding": "utf-8"}
+
+    def validate_providers(self) -> list[str]:
+        """Check required env vars are set for the selected providers. Returns warnings."""
+        warnings: list[str] = []
+        if self.llm_provider == "azure" and not self.azure_openai_endpoint:
+            warnings.append("AZURE_OPENAI_ENDPOINT required when LLM_PROVIDER=azure")
+        if self.llm_provider == "openai" and not self.openai_api_key:
+            warnings.append("OPENAI_API_KEY required when LLM_PROVIDER=openai")
+        if self.storage_provider in ("azure", "cosmos") and not self.cosmos_endpoint:
+            warnings.append("COSMOS_ENDPOINT required when STORAGE_PROVIDER=azure")
+        if self.auth_provider in ("azure", "entra"):
+            if not self.azure_tenant_id:
+                warnings.append("AZURE_TENANT_ID required when AUTH_PROVIDER=azure")
+            if not self.azure_client_id:
+                warnings.append("AZURE_CLIENT_ID required when AUTH_PROVIDER=azure")
+        if self.speech_provider == "azure":
+            if not self.azure_speech_region:
+                warnings.append("AZURE_SPEECH_REGION required when SPEECH_PROVIDER=azure")
+        return warnings
 
 
 settings = Settings()

@@ -17,6 +17,7 @@ import {
   SidebarFooter,
 } from "@/components/ui/sidebar";
 import { Badge } from "@/components/ui/badge";
+import { ThemeToggle } from "@/components/layout/theme-toggle";
 import { useDiscovery } from "@/stores/discovery-store";
 
 const PHASE_NAV = [
@@ -166,11 +167,14 @@ export function AppSidebar() {
       </SidebarContent>
 
       <SidebarFooter className="border-t p-4">
-        <div className="flex items-center gap-2 text-xs text-muted-foreground">
-          <Badge variant="outline" className="text-[10px]">
-            v0.1.0
-          </Badge>
-          <span>CORE Framework</span>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            <Badge variant="outline" className="text-[10px]">
+              v0.1.0
+            </Badge>
+            <span>CORE Framework</span>
+          </div>
+          <ThemeToggle />
         </div>
       </SidebarFooter>
     </Sidebar>

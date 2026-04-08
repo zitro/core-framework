@@ -5,7 +5,13 @@ class BlobProvider(ABC):
     """Abstract base for binary/file storage (transcripts, exports, attachments)."""
 
     @abstractmethod
-    async def upload(self, container: str, blob_name: str, data: bytes, content_type: str = "application/octet-stream") -> str:
+    async def upload(
+        self,
+        container: str,
+        blob_name: str,
+        data: bytes,
+        content_type: str = "application/octet-stream",
+    ) -> str:
         """Upload a blob and return its URL."""
 
     @abstractmethod
