@@ -32,7 +32,8 @@ class OllamaProvider(LLMProvider):
 
     async def complete_json(self, system_prompt: str, user_prompt: str, **kwargs) -> dict:
         enhanced_prompt = (
-            f"{system_prompt}\n\nYou MUST respond with valid JSON only. No markdown, no explanation."
+            f"{system_prompt}\n\n"
+            "You MUST respond with valid JSON only. No markdown, no explanation."
         )
         result = await self.complete(enhanced_prompt, user_prompt, **kwargs)
         # Strip markdown fences if present

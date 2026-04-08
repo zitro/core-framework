@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Search, Compass, Lightbulb, Rocket, Home, Plus } from "lucide-react";
+import { Search, Compass, Lightbulb, Rocket, Home, BookOpen } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -103,6 +103,20 @@ export function AppSidebar() {
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        <SidebarGroup>
+          <SidebarGroupLabel>Tools</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              <SidebarMenuItem>
+                <SidebarMenuButton render={<Link href="/evidence" />} isActive={pathname === "/evidence"}>
+                  <BookOpen className="h-4 w-4 text-orange-500" />
+                  <span>Evidence Board</span>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>

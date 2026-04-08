@@ -20,6 +20,7 @@ export default function CapturePage() {
   const [transcript, setTranscript] = useState("");
   const [generating, setGenerating] = useState(false);
   const [analyzing, setAnalyzing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [analysisResult, setAnalysisResult] = useState<{
     insights: { text: string; confidence: string }[];
     key_themes: string[];
@@ -28,6 +29,7 @@ export default function CapturePage() {
 
   const generateQuestions = async () => {
     setGenerating(true);
+    setError(null);
     try {
       const result = await api.questions.generate({
         discovery_id: "demo",
@@ -36,50 +38,8 @@ export default function CapturePage() {
         num_questions: 8,
       });
       setQuestions(result.questions);
-    } catch {
-      // Backend not running — show demo data
-      setQuestions([
-        {
-          text: "Who are the primary end users of this system today?",
-          purpose: "Map the stakeholder ecosystem",
-          follow_ups: ["How do they currently accomplish this task?", "What workarounds exist?"],
-        },
-        {
-          text: "Walk me through a typical day — where do you spend the most time?",
-          purpose: "Understand current workflows and pain points",
-          follow_ups: ["What feels unnecessarily manual?", "Where do things break down?"],
-        },
-        {
-          text: "What problem were you trying to solve when this system was first built?",
-          purpose: "Uncover original intent vs current reality",
-          follow_ups: ["How has that problem evolved?", "Is the original problem still the main one?"],
-        },
-        {
-          text: "If you could fix one thing tomorrow with no constraints, what would it be?",
-          purpose: "Identify the highest-pain quick win",
-          follow_ups: ["Why hasn't that been fixed yet?", "Who else would benefit?"],
-        },
-        {
-          text: "Who else should we be talking to that we haven't yet?",
-          purpose: "Discover hidden stakeholders",
-          follow_ups: ["What perspective would they add?", "What department are they in?"],
-        },
-        {
-          text: "What data are you not seeing that you wish you had?",
-          purpose: "Identify information gaps",
-          follow_ups: ["Where does that data exist today?", "What decisions would it change?"],
-        },
-        {
-          text: "When was the last time something went really wrong? What happened?",
-          purpose: "Surface systemic failures and edge cases",
-          follow_ups: ["How was it resolved?", "Has it happened again?"],
-        },
-        {
-          text: "What's one thing everyone complains about but has accepted as 'just the way it is'?",
-          purpose: "Uncover normalized pain",
-          follow_ups: ["How long has this been the case?", "What would change if it was fixed?"],
-        },
-      ]);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to generate questions — is the backend running?");
     } finally {
       setGenerating(false);
     }
@@ -88,6 +48,7 @@ export default function CapturePage() {
   const analyzeTranscript = async () => {
     if (!transcript.trim()) return;
     setAnalyzing(true);
+    setError(null);
     try {
       const result = await api.transcripts.analyze({
         discovery_id: "demo",
@@ -101,14 +62,8 @@ export default function CapturePage() {
         key_themes: result.key_themes,
         sentiment: result.sentiment,
       });
-    } catch {
-      setAnalysisResult({
-        insights: [
-          { text: "Connect to the backend API to analyze transcripts with AI", confidence: "unknown" },
-        ],
-        key_themes: ["Start the backend with: cd backend && uvicorn app.main:app --reload"],
-        sentiment: "neutral",
-      });
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to analyze transcript — is the backend running?");
     } finally {
       setAnalyzing(false);
     }
@@ -165,6 +120,7 @@ export default function CapturePage() {
               <Button onClick={generateQuestions} disabled={generating}>
                 {generating ? "Generating..." : "Generate Capture Questions"}
               </Button>
+              {error && <p className="text-sm text-red-500 mt-2">{error}</p>}
             </CardContent>
           </Card>
 

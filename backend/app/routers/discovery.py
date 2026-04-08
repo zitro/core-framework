@@ -1,13 +1,13 @@
 from fastapi import APIRouter, HTTPException
 
-from app.models.core import Discovery
+from app.models.core import Discovery, DiscoveryUpdate
 from app.providers.storage import get_storage_provider
 
 router = APIRouter()
 COLLECTION = "discoveries"
 
 
-@router.post("/", response_model=Discovery)
+@router.post("/", response_model=Discovery, status_code=201)
 async def create_discovery(discovery: Discovery):
     storage = get_storage_provider()
     item = await storage.create(COLLECTION, discovery.model_dump(mode="json"))
@@ -31,9 +31,16 @@ async def get_discovery(discovery_id: str):
 
 
 @router.patch("/{discovery_id}", response_model=Discovery)
-async def update_discovery(discovery_id: str, updates: dict):
+async def update_discovery(discovery_id: str, updates: DiscoveryUpdate):
     storage = get_storage_provider()
-    item = await storage.update(COLLECTION, discovery_id, updates)
+    # Only send fields that were explicitly set (exclude None values)
+    update_data = updates.model_dump(exclude_none=True)
+    if not update_data:
+        raise HTTPException(status_code=422, detail="No valid fields to update")
+    try:
+        item = await storage.update(COLLECTION, discovery_id, update_data)
+    except ValueError:
+        raise HTTPException(status_code=404, detail="Discovery not found")
     return Discovery(**item)
 
 

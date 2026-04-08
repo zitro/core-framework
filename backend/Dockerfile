@@ -6,12 +6,13 @@ RUN addgroup --system --gid 1001 appuser && \
     adduser --system --uid 1001 --ingroup appuser appuser
 
 COPY pyproject.toml ./
-RUN pip install --no-cache-dir . && \
+RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir . && \
     pip install --no-cache-dir ".[local]"
 
 COPY app ./app
 
-RUN mkdir -p /app/data && chown -R appuser:appuser /app/data
+RUN mkdir -p /app/data && chown -R appuser:appuser /app
 
 USER appuser
 

@@ -18,6 +18,29 @@ export interface ProblemStatement {
   confidence: ConfidenceLevel;
 }
 
+export interface QuickWin {
+  id: string;
+  title: string;
+  effort: "low" | "medium" | "high";
+  impact: "low" | "medium" | "high";
+  owner: string;
+  done: boolean;
+}
+
+export interface Blocker {
+  id: string;
+  description: string;
+  severity: "critical" | "major" | "minor";
+  mitigation: string;
+  resolved: boolean;
+}
+
+export interface ExecuteData {
+  quick_wins: QuickWin[];
+  blockers: Blocker[];
+  handoff_notes: string;
+}
+
 export interface Evidence {
   id: string;
   discovery_id: string;
@@ -37,6 +60,7 @@ export interface Discovery {
   current_phase: CorePhase;
   stakeholders: Stakeholder[];
   problem_statement: ProblemStatement | null;
+  execute_data: ExecuteData | null;
   evidence: Evidence[];
   created_at: string;
   updated_at: string;
@@ -72,6 +96,17 @@ export interface TranscriptAnalysis {
   sentiment: string;
   key_themes: string[];
   created_at: string;
+}
+
+export interface SolutionMatch {
+  problem: string;
+  capabilities: string[];
+  gap: string;
+  confidence: number;
+}
+
+export interface SolutionMatchResult {
+  matches: SolutionMatch[];
 }
 
 export const PHASE_CONFIG: Record<
