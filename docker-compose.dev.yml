@@ -1,0 +1,38 @@
+services:
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: deps
+    command: sh -c "corepack enable && pnpm dev"
+    ports:
+      - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:8000
+    volumes:
+      - .:/app
+      - /app/node_modules
+    depends_on:
+      - backend
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    ports:
+      - "8000:8000"
+    environment:
+      - LLM_PROVIDER=${LLM_PROVIDER:-local}
+      - STORAGE_PROVIDER=${STORAGE_PROVIDER:-local}
+      - AUTH_PROVIDER=${AUTH_PROVIDER:-none}
+      - OLLAMA_BASE_URL=${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
+      - OLLAMA_MODEL=${OLLAMA_MODEL:-llama3.1}
+      - CORS_ORIGINS=["http://localhost:3000"]
+      - DEBUG=true
+    volumes:
+      - ./backend/app:/app/app
+      - backend-data:/app/data
+
+volumes:
+  backend-data:

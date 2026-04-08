@@ -1,65 +1,214 @@
-import Image from "next/image";
+"use client";
 
-export default function Home() {
+import { useEffect, useState } from "react";
+import { Search, Compass, Lightbulb, Rocket, Plus } from "lucide-react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { useDiscovery } from "@/stores/discovery-store";
+import type { DiscoveryMode } from "@/types/core";
+import { MODE_CONFIG, PHASE_CONFIG } from "@/types/core";
+import Link from "next/link";
+
+const PHASE_ICONS = {
+  capture: Search,
+  orient: Compass,
+  refine: Lightbulb,
+  execute: Rocket,
+} as const;
+
+const PHASE_COLORS = {
+  capture: "border-blue-500/30 bg-blue-500/5",
+  orient: "border-amber-500/30 bg-amber-500/5",
+  refine: "border-emerald-500/30 bg-emerald-500/5",
+  execute: "border-violet-500/30 bg-violet-500/5",
+} as const;
+
+export default function DashboardPage() {
+  const { discoveries, loadDiscoveries, createDiscovery, loading } = useDiscovery();
+  const [open, setOpen] = useState(false);
+  const [name, setName] = useState("");
+  const [description, setDescription] = useState("");
+  const [mode, setMode] = useState<DiscoveryMode>("standard");
+
+  useEffect(() => {
+    loadDiscoveries().catch(() => {});
+  }, [loadDiscoveries]);
+
+  const handleCreate = async () => {
+    if (!name.trim()) return;
+    await createDiscovery({ name, description, mode });
+    setName("");
+    setDescription("");
+    setOpen(false);
+  };
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
+    <div className="p-6 max-w-6xl mx-auto space-y-8">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">CORE Discovery</h1>
+          <p className="text-muted-foreground text-sm mt-1">
+            AI-powered product discovery coaching
           </p>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
+        <Dialog open={open} onOpenChange={setOpen}>
+          <DialogTrigger render={<Button />}>
+              <Plus className="h-4 w-4 mr-2" />
+              New Discovery
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Start a New Discovery</DialogTitle>
+              <DialogDescription>
+                Choose a discovery mode and describe the engagement.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 pt-2">
+              <div>
+                <label className="text-sm font-medium">Name</label>
+                <Input
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="e.g., Patient Portal Discovery"
+                />
+              </div>
+              <div>
+                <label className="text-sm font-medium">Description</label>
+                <Textarea
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  placeholder="What are you trying to discover?"
+                  rows={3}
+                />
+              </div>
+              <div>
+                <label className="text-sm font-medium">Discovery Mode</label>
+                <div className="grid grid-cols-1 gap-2 mt-2">
+                  {(Object.entries(MODE_CONFIG) as [DiscoveryMode, typeof MODE_CONFIG.standard][]).map(
+                    ([key, config]) => (
+                      <button
+                        key={key}
+                        onClick={() => setMode(key)}
+                        className={`text-left p-3 rounded-lg border transition-colors ${
+                          mode === key
+                            ? "border-primary bg-primary/5"
+                            : "border-border hover:border-primary/50"
+                        }`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className="font-medium text-sm">{config.label}</span>
+                          <Badge variant="outline" className="text-[10px]">
+                            {config.duration}
+                          </Badge>
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          {config.description}
+                        </p>
+                      </button>
+                    )
+                  )}
+                </div>
+              </div>
+              <Button onClick={handleCreate} disabled={!name.trim() || loading} className="w-full">
+                {loading ? "Creating..." : "Start Discovery"}
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+      </div>
+
+      {/* CORE Phase Overview */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        {(["capture", "orient", "refine", "execute"] as const).map((phase) => {
+          const config = PHASE_CONFIG[phase];
+          const Icon = PHASE_ICONS[phase];
+          return (
+            <Link key={phase} href={`/${phase}`}>
+              <Card
+                className={`cursor-pointer hover:shadow-md transition-shadow border ${PHASE_COLORS[phase]}`}
+              >
+                <CardHeader className="pb-2">
+                  <div className="flex items-center gap-2">
+                    <Icon className="h-5 w-5" />
+                    <CardTitle className="text-base">{config.label}</CardTitle>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <CardDescription className="text-xs">
+                    {config.description}
+                  </CardDescription>
+                </CardContent>
+              </Card>
+            </Link>
+          );
+        })}
+      </div>
+
+      {/* Active Discoveries */}
+      <div>
+        <h2 className="text-lg font-semibold mb-3">Active Discoveries</h2>
+        {discoveries.length === 0 ? (
+          <Card className="border-dashed">
+            <CardContent className="flex flex-col items-center justify-center py-10 text-center">
+              <p className="text-muted-foreground text-sm">
+                No discoveries yet. Start one to begin your CORE journey.
+              </p>
+              <Button
+                variant="outline"
+                className="mt-4"
+                onClick={() => setOpen(true)}
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Create First Discovery
+              </Button>
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {discoveries.map((d) => {
+              const phaseConfig = PHASE_CONFIG[d.current_phase];
+              const PhaseIcon = PHASE_ICONS[d.current_phase];
+              return (
+                <Card key={d.id} className="hover:shadow-md transition-shadow">
+                  <CardHeader className="pb-2">
+                    <div className="flex items-center justify-between">
+                      <CardTitle className="text-base">{d.name}</CardTitle>
+                      <Badge variant="outline" className="flex items-center gap-1">
+                        <PhaseIcon className="h-3 w-3" />
+                        {phaseConfig.label}
+                      </Badge>
+                    </div>
+                    <CardDescription className="text-xs">
+                      {d.description}
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <Badge variant="secondary" className="text-[10px]">
+                        {MODE_CONFIG[d.mode].label}
+                      </Badge>
+                      <span>
+                        {d.evidence?.length || 0} evidence items
+                      </span>
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
