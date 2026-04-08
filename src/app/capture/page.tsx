@@ -1,0 +1,288 @@
+"use client";
+
+import { useState } from "react";
+import { Search, MessageSquare, Plus, Upload } from "lucide-react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Textarea } from "@/components/ui/textarea";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Separator } from "@/components/ui/separator";
+import { PHASE_CONFIG, type Question } from "@/types/core";
+import { api } from "@/lib/api";
+
+const config = PHASE_CONFIG.capture;
+
+export default function CapturePage() {
+  const [questions, setQuestions] = useState<Question[]>([]);
+  const [context, setContext] = useState("");
+  const [transcript, setTranscript] = useState("");
+  const [generating, setGenerating] = useState(false);
+  const [analyzing, setAnalyzing] = useState(false);
+  const [analysisResult, setAnalysisResult] = useState<{
+    insights: { text: string; confidence: string }[];
+    key_themes: string[];
+    sentiment: string;
+  } | null>(null);
+
+  const generateQuestions = async () => {
+    setGenerating(true);
+    try {
+      const result = await api.questions.generate({
+        discovery_id: "demo",
+        phase: "capture",
+        context,
+        num_questions: 8,
+      });
+      setQuestions(result.questions);
+    } catch {
+      // Backend not running — show demo data
+      setQuestions([
+        {
+          text: "Who are the primary end users of this system today?",
+          purpose: "Map the stakeholder ecosystem",
+          follow_ups: ["How do they currently accomplish this task?", "What workarounds exist?"],
+        },
+        {
+          text: "Walk me through a typical day — where do you spend the most time?",
+          purpose: "Understand current workflows and pain points",
+          follow_ups: ["What feels unnecessarily manual?", "Where do things break down?"],
+        },
+        {
+          text: "What problem were you trying to solve when this system was first built?",
+          purpose: "Uncover original intent vs current reality",
+          follow_ups: ["How has that problem evolved?", "Is the original problem still the main one?"],
+        },
+        {
+          text: "If you could fix one thing tomorrow with no constraints, what would it be?",
+          purpose: "Identify the highest-pain quick win",
+          follow_ups: ["Why hasn't that been fixed yet?", "Who else would benefit?"],
+        },
+        {
+          text: "Who else should we be talking to that we haven't yet?",
+          purpose: "Discover hidden stakeholders",
+          follow_ups: ["What perspective would they add?", "What department are they in?"],
+        },
+        {
+          text: "What data are you not seeing that you wish you had?",
+          purpose: "Identify information gaps",
+          follow_ups: ["Where does that data exist today?", "What decisions would it change?"],
+        },
+        {
+          text: "When was the last time something went really wrong? What happened?",
+          purpose: "Surface systemic failures and edge cases",
+          follow_ups: ["How was it resolved?", "Has it happened again?"],
+        },
+        {
+          text: "What's one thing everyone complains about but has accepted as 'just the way it is'?",
+          purpose: "Uncover normalized pain",
+          follow_ups: ["How long has this been the case?", "What would change if it was fixed?"],
+        },
+      ]);
+    } finally {
+      setGenerating(false);
+    }
+  };
+
+  const analyzeTranscript = async () => {
+    if (!transcript.trim()) return;
+    setAnalyzing(true);
+    try {
+      const result = await api.transcripts.analyze({
+        discovery_id: "demo",
+        transcript_text: transcript,
+      });
+      setAnalysisResult({
+        insights: result.insights.map((i) => ({
+          text: typeof i === "string" ? i : i.text,
+          confidence: typeof i === "string" ? "unknown" : i.confidence,
+        })),
+        key_themes: result.key_themes,
+        sentiment: result.sentiment,
+      });
+    } catch {
+      setAnalysisResult({
+        insights: [
+          { text: "Connect to the backend API to analyze transcripts with AI", confidence: "unknown" },
+        ],
+        key_themes: ["Start the backend with: cd backend && uvicorn app.main:app --reload"],
+        sentiment: "neutral",
+      });
+    } finally {
+      setAnalyzing(false);
+    }
+  };
+
+  const confidenceColor = (c: string) => {
+    switch (c) {
+      case "validated": return "bg-emerald-500/10 text-emerald-700 border-emerald-500/30";
+      case "assumed": return "bg-amber-500/10 text-amber-700 border-amber-500/30";
+      case "conflicting": return "bg-red-500/10 text-red-700 border-red-500/30";
+      default: return "bg-zinc-500/10 text-zinc-600 border-zinc-500/30";
+    }
+  };
+
+  return (
+    <div className="p-6 max-w-6xl mx-auto space-y-6">
+      <div className="flex items-center gap-3">
+        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-500/10">
+          <Search className="h-5 w-5 text-blue-500" />
+        </div>
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">{config.label}</h1>
+          <p className="text-muted-foreground text-sm">{config.description}</p>
+        </div>
+      </div>
+
+      <Tabs defaultValue="questions" className="space-y-4">
+        <TabsList>
+          <TabsTrigger value="questions" className="gap-1.5">
+            <MessageSquare className="h-3.5 w-3.5" />
+            Question Generator
+          </TabsTrigger>
+          <TabsTrigger value="transcript" className="gap-1.5">
+            <Upload className="h-3.5 w-3.5" />
+            Transcript Analyzer
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="questions" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Discovery Context</CardTitle>
+              <CardDescription>
+                Describe the engagement so the AI can tailor questions to your situation.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <Textarea
+                value={context}
+                onChange={(e) => setContext(e.target.value)}
+                placeholder="e.g., We're working with a healthcare org that has a legacy patient portal. They want to modernize but aren't sure what the real problems are. Meeting with the clinical staff tomorrow."
+                rows={4}
+              />
+              <Button onClick={generateQuestions} disabled={generating}>
+                {generating ? "Generating..." : "Generate Capture Questions"}
+              </Button>
+            </CardContent>
+          </Card>
+
+          {questions.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">
+                  Generated Questions
+                  <Badge variant="secondary" className="ml-2">
+                    {questions.length}
+                  </Badge>
+                </CardTitle>
+                <CardDescription>
+                  Use these in your next stakeholder session. Click to copy.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ScrollArea className="h-[500px]">
+                  <div className="space-y-4">
+                    {questions.map((q, i) => (
+                      <div key={i} className="group">
+                        <div className="flex items-start gap-3 p-3 rounded-lg border hover:bg-muted/50 transition-colors cursor-pointer"
+                          onClick={() => navigator.clipboard.writeText(q.text)}
+                        >
+                          <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-blue-500/10 text-blue-600 text-xs font-medium">
+                            {i + 1}
+                          </span>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium">{q.text}</p>
+                            <p className="text-xs text-muted-foreground mt-1">
+                              Purpose: {q.purpose}
+                            </p>
+                            {q.follow_ups?.length > 0 && (
+                              <div className="mt-2 space-y-1">
+                                <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">
+                                  Follow-ups
+                                </p>
+                                {q.follow_ups.map((f, j) => (
+                                  <p key={j} className="text-xs text-muted-foreground pl-3 border-l">
+                                    {f}
+                                  </p>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                        {i < questions.length - 1 && <Separator className="mt-2" />}
+                      </div>
+                    ))}
+                  </div>
+                </ScrollArea>
+              </CardContent>
+            </Card>
+          )}
+        </TabsContent>
+
+        <TabsContent value="transcript" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Paste Transcript</CardTitle>
+              <CardDescription>
+                Paste a meeting transcript and the AI will extract evidence, insights, and themes.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <Textarea
+                value={transcript}
+                onChange={(e) => setTranscript(e.target.value)}
+                placeholder="Paste your meeting transcript here..."
+                rows={8}
+              />
+              <Button onClick={analyzeTranscript} disabled={analyzing || !transcript.trim()}>
+                {analyzing ? "Analyzing..." : "Analyze Transcript"}
+              </Button>
+            </CardContent>
+          </Card>
+
+          {analysisResult && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Analysis Results</CardTitle>
+                <div className="flex gap-2 mt-1">
+                  <Badge variant="outline">Sentiment: {analysisResult.sentiment}</Badge>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div>
+                  <h4 className="text-sm font-medium mb-2">Key Themes</h4>
+                  <div className="flex flex-wrap gap-1.5">
+                    {analysisResult.key_themes.map((theme, i) => (
+                      <Badge key={i} variant="secondary" className="text-xs">
+                        {theme}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+                <Separator />
+                <div>
+                  <h4 className="text-sm font-medium mb-2">Insights</h4>
+                  <div className="space-y-2">
+                    {analysisResult.insights.map((insight, i) => (
+                      <div key={i} className="flex items-start gap-2 p-2 rounded border">
+                        <Badge
+                          variant="outline"
+                          className={`text-[10px] shrink-0 ${confidenceColor(insight.confidence)}`}
+                        >
+                          {insight.confidence}
+                        </Badge>
+                        <p className="text-sm">{insight.text}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </TabsContent>
+      </Tabs>
+    </div>
+  );
+}
