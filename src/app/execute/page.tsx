@@ -4,15 +4,13 @@ import { useCallback, useEffect, useState } from "react";
 import { Rocket, Zap, AlertTriangle, CheckCircle2 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { PHASE_CONFIG } from "@/types/core";
 import type { QuickWin, Blocker, ExecuteData } from "@/types/core";
 import { useDiscovery } from "@/stores/discovery-store";
 import { api } from "@/lib/api";
 import { QuickWinTracker } from "@/components/execute/quick-win-tracker";
 import { BlockerList } from "@/components/execute/blocker-list";
 import { HandoffPanel } from "@/components/execute/handoff-panel";
-
-const config = PHASE_CONFIG.execute;
+import { PhaseShell } from "@/components/layout/phase-shell";
 
 export default function ExecutePage() {
   const { activeDiscovery } = useDiscovery();
@@ -92,17 +90,7 @@ export default function ExecutePage() {
   }
 
   return (
-    <div className="p-6 max-w-6xl mx-auto space-y-6">
-      <div className="flex items-center gap-3">
-        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-violet-500/10">
-          <Rocket className="h-5 w-5 text-violet-500" />
-        </div>
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">{config.label}</h1>
-          <p className="text-muted-foreground text-sm">{config.description}</p>
-        </div>
-      </div>
-
+    <PhaseShell phase="execute" discoveryId={activeDiscovery.id}>
       <div className="grid grid-cols-3 gap-4">
         <Card>
           <CardContent className="pt-4 text-center">
@@ -184,6 +172,6 @@ export default function ExecutePage() {
           />
         </TabsContent>
       </Tabs>
-    </div>
+    </PhaseShell>
   );
 }

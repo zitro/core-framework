@@ -1,10 +1,15 @@
 import type {
   Discovery,
   Evidence,
+  ProblemStatementVersion,
   QuestionSet,
   TranscriptAnalysis,
   CorePhase,
   SolutionMatchResult,
+  UseCaseVersion,
+  SolutionBlueprint,
+  EngagementScanResult,
+  EngagementExportResult,
 } from "@/types/core";
 import { toast } from "sonner";
 
@@ -48,6 +53,10 @@ export const api = {
 
   // Questions
   questions: {
+    list: (discoveryId: string, phase?: CorePhase) =>
+      request<QuestionSet[]>(
+        `/api/questions/${discoveryId}${phase ? `?phase=${phase}` : ""}`
+      ),
     generate: (data: {
       discovery_id: string;
       phase: CorePhase;
@@ -71,6 +80,8 @@ export const api = {
 
   // Transcripts
   transcripts: {
+    list: (discoveryId: string) =>
+      request<TranscriptAnalysis[]>(`/api/transcripts/${discoveryId}`),
     analyze: (data: { discovery_id: string; transcript_text: string }) =>
       request<TranscriptAnalysis>("/api/transcripts/analyze", {
         method: "POST",
@@ -98,11 +109,71 @@ export const api = {
       request<{ deleted: boolean }>(`/api/evidence/${id}`, { method: "DELETE" }),
   },
 
+  // Problem Statements
+  problemStatements: {
+    list: (discoveryId: string) =>
+      request<ProblemStatementVersion[]>(`/api/problem-statements/${discoveryId}`),
+    generate: (data: { discovery_id: string; user_instructions?: string }) =>
+      request<ProblemStatementVersion>("/api/problem-statements/generate", {
+        method: "POST",
+        body: JSON.stringify(data),
+      }),
+  },
+
   // Export
   export: {
     download: (discoveryId: string, format: "json" | "csv" = "json") => {
       const url = `${API_URL}/api/export/${discoveryId}?format=${format}`;
       window.open(url, "_blank");
     },
+  },
+
+  // Docs
+  docs: {
+    scan: (path: string) =>
+      request<{ path: string; files: { name: string; size: number; extension: string }[]; total_size: number }>(
+        "/api/docs/scan",
+        { method: "POST", body: JSON.stringify({ path }) }
+      ),
+  },
+
+  // Use Cases (Advisor)
+  useCases: {
+    list: (discoveryId: string) =>
+      request<UseCaseVersion[]>(`/api/advisor/use-cases/${discoveryId}`),
+    generate: (data: { discovery_id: string; user_instructions?: string }) =>
+      request<UseCaseVersion>("/api/advisor/use-cases/generate", {
+        method: "POST",
+        body: JSON.stringify(data),
+      }),
+  },
+
+  // Solution Blueprints
+  blueprints: {
+    list: (discoveryId: string) =>
+      request<SolutionBlueprint[]>(`/api/blueprints/${discoveryId}`),
+    generate: (data: { discovery_id: string; user_instructions?: string }) =>
+      request<SolutionBlueprint>("/api/blueprints/generate", {
+        method: "POST",
+        body: JSON.stringify(data),
+      }),
+  },
+
+  // Engagement Repo Integration
+  vertex: {
+    scan: (path: string) =>
+      request<EngagementScanResult>("/api/engagement/scan", {
+        method: "POST",
+        body: JSON.stringify({ path }),
+      }),
+    export: (data: {
+      discovery_id: string;
+      engagement_repo_path: string;
+      initiative_dir?: string;
+    }) =>
+      request<EngagementExportResult>("/api/engagement/export", {
+        method: "POST",
+        body: JSON.stringify(data),
+      }),
   },
 };

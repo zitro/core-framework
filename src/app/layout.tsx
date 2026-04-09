@@ -6,6 +6,7 @@ import { SidebarProvider } from "@/components/ui/sidebar";
 import { DiscoveryProvider } from "@/stores/discovery-store";
 import { ThemeProvider } from "@/components/layout/theme-provider";
 import { AppSidebar } from "@/components/layout/app-sidebar";
+import { AppHeader } from "@/components/layout/app-header";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -40,9 +41,12 @@ export default function RootLayout({
             <TooltipProvider>
               <SidebarProvider>
                 <AppSidebar />
-                <main className="flex-1 overflow-auto">
-                  {children}
-                </main>
+                <div className="flex-1 flex flex-col overflow-hidden">
+                  <AppHeader />
+                  <main className="flex-1 overflow-auto">
+                    {children}
+                  </main>
+                </div>
               </SidebarProvider>
             </TooltipProvider>
             <Toaster richColors position="bottom-right" />

@@ -19,10 +19,12 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { ThemeToggle } from "@/components/layout/theme-toggle";
 import { useDiscovery } from "@/stores/discovery-store";
+import { PHASE_CONFIG } from "@/types/core";
 
 const PHASE_NAV = [
   {
     phase: "capture",
+    step: 1,
     label: "Capture",
     icon: Search,
     href: "/capture",
@@ -31,6 +33,7 @@ const PHASE_NAV = [
   },
   {
     phase: "orient",
+    step: 2,
     label: "Orient",
     icon: Compass,
     href: "/orient",
@@ -39,6 +42,7 @@ const PHASE_NAV = [
   },
   {
     phase: "refine",
+    step: 3,
     label: "Refine",
     icon: Lightbulb,
     href: "/refine",
@@ -47,6 +51,7 @@ const PHASE_NAV = [
   },
   {
     phase: "execute",
+    step: 4,
     label: "Execute",
     icon: Rocket,
     href: "/execute",
@@ -112,7 +117,13 @@ export function AppSidebar() {
                     render={<Link href={item.href} />}
                     isActive={pathname.startsWith(item.href)}
                   >
-                    <item.icon className={`h-4 w-4 ${item.color}`} />
+                    <span className={`flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-bold ${
+                      pathname.startsWith(item.href)
+                        ? `${item.bgColor} ${item.color}`
+                        : "bg-muted text-muted-foreground"
+                    }`}>
+                      {item.step}
+                    </span>
                     <span>{item.label}</span>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -128,7 +139,7 @@ export function AppSidebar() {
               <SidebarMenuItem>
                 <SidebarMenuButton render={<Link href="/evidence" />} isActive={pathname === "/evidence"}>
                   <BookOpen className="h-4 w-4 text-orange-500" />
-                  <span>Evidence Board</span>
+                  <span>All Evidence</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
               <SidebarMenuItem>
@@ -149,7 +160,6 @@ export function AppSidebar() {
                 {recentDiscoveries.map((d) => (
                   <SidebarMenuItem key={d.id}>
                     <SidebarMenuButton
-                      render={<Link href="/" />}
                       isActive={activeDiscovery?.id === d.id}
                       onClick={() => setActiveDiscovery(d)}
                     >

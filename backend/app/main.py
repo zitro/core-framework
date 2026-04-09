@@ -33,7 +33,19 @@ def create_app() -> FastAPI:
     for w in warnings:
         logger.warning("Config: %s", w)
 
-    from app.routers import discovery, evidence, export, questions, realtime, transcripts
+    from app.routers import (
+        advisor,
+        blueprints,
+        discovery,
+        docs,
+        evidence,
+        export,
+        problem_statements,
+        questions,
+        realtime,
+        transcripts,
+        vertex,
+    )
 
     app = FastAPI(
         title=settings.app_name,
@@ -57,7 +69,12 @@ def create_app() -> FastAPI:
     @app.middleware("http")
     async def log_requests(request: Request, call_next):
         start = time.perf_counter()
-        response = await call_next(request)
+        try:
+            response = await call_next(request)
+        except Exception:
+            duration_ms = (time.perf_counter() - start) * 1000
+            logger.exception("%s %s 500 %.1fms", request.method, request.url.path, duration_ms)
+            raise
         duration_ms = (time.perf_counter() - start) * 1000
         logger.info(
             "%s %s %d %.1fms",
@@ -72,8 +89,25 @@ def create_app() -> FastAPI:
     app.include_router(questions.router, prefix="/api/questions", tags=["questions"])
     app.include_router(transcripts.router, prefix="/api/transcripts", tags=["transcripts"])
     app.include_router(evidence.router, prefix="/api/evidence", tags=["evidence"])
+    app.include_router(
+        problem_statements.router,
+        prefix="/api/problem-statements",
+        tags=["problem-statements"],
+    )
     app.include_router(export.router, prefix="/api/export", tags=["export"])
+    app.include_router(docs.router, prefix="/api/docs", tags=["docs"])
+    app.include_router(
+        advisor.router,
+        prefix="/api/advisor",
+        tags=["advisor"],
+    )
+    app.include_router(
+        blueprints.router,
+        prefix="/api/blueprints",
+        tags=["blueprints"],
+    )
     app.include_router(realtime.router, tags=["realtime"])
+    app.include_router(engagement.router, prefix="/api/engagement", tags=["engagement"])
 
     @app.get("/api/health")
     async def health():

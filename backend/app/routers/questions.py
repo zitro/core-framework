@@ -7,6 +7,7 @@ from app.dependencies import get_current_user
 from app.models.core import CorePhase, Question, QuestionSet
 from app.providers.llm import get_llm_provider
 from app.providers.storage import get_storage_provider
+from app.utils.local_docs import read_docs_content
 
 logger = logging.getLogger(__name__)
 
@@ -57,14 +58,41 @@ class QuestionRequest(BaseModel):
     num_questions: int = Field(default=8, ge=1, le=20)
 
 
+@router.get("/{discovery_id}", response_model=list[QuestionSet])
+async def list_question_sets(discovery_id: str, phase: str | None = None):
+    storage = get_storage_provider()
+    filters: dict = {"discoveryId": discovery_id}
+    if phase:
+        filters["phase"] = phase
+    items = await storage.list("question_sets", filters)
+    if not items:
+        filters_alt: dict = {"discovery_id": discovery_id}
+        if phase:
+            filters_alt["phase"] = phase
+        items = await storage.list("question_sets", filters_alt)
+    return [QuestionSet(**item) for item in items]
+
+
 @router.post("/generate", response_model=QuestionSet)
 async def generate_questions(request: QuestionRequest):
     llm = get_llm_provider()
     storage = get_storage_provider()
 
+    # Include local docs if configured on the discovery
+    docs_context = ""
+    try:
+        disc = await storage.get("discoveries", request.discovery_id)
+        docs_path = (disc or {}).get("docs_path", "")
+        if docs_path:
+            content = read_docs_content(docs_path)
+            if content:
+                docs_context = f"\n\nProject documents:\n{content}"
+    except Exception:
+        pass  # non-critical
+
     system_prompt = PHASE_PROMPTS[request.phase]
     user_prompt = f"""Context about this discovery engagement:
-{request.context}
+{request.context}{docs_context}
 
 Generate {request.num_questions} questions for the {request.phase.value} phase.
 Return JSON with format:
@@ -94,7 +122,11 @@ Return JSON with format:
         questions=questions,
     )
 
-    saved = await storage.create("question_sets", question_set.model_dump(mode="json"))
+    try:
+        saved = await storage.create("question_sets", question_set.model_dump(mode="json"))
+    except Exception:
+        logger.exception("Failed to save question set")
+        raise HTTPException(status_code=500, detail="Failed to save questions")
     return QuestionSet(**saved)
 
 

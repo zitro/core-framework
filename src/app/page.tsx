@@ -19,6 +19,10 @@ import { useDiscovery } from "@/stores/discovery-store";
 import type { DiscoveryMode } from "@/types/core";
 import { MODE_CONFIG, PHASE_CONFIG } from "@/types/core";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { DocsPathConfig } from "@/components/settings/docs-path-config";
+import { EngagementConfig } from "@/components/settings/engagement-config";
+import { api } from "@/lib/api";
 
 const PHASE_ICONS = {
   capture: Search,
@@ -35,11 +39,14 @@ const PHASE_COLORS = {
 } as const;
 
 export default function DashboardPage() {
-  const { discoveries, loadDiscoveries, createDiscovery, loading } = useDiscovery();
+  const { discoveries, loadDiscoveries, createDiscovery, setActiveDiscovery, activeDiscovery, loading } = useDiscovery();
+  const router = useRouter();
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [mode, setMode] = useState<DiscoveryMode>("standard");
+  const [docsPath, setDocsPath] = useState("");
+  const [engagementPath, setengagementPath] = useState("");
 
   useEffect(() => {
     loadDiscoveries().catch(() => {});
@@ -47,9 +54,11 @@ export default function DashboardPage() {
 
   const handleCreate = async () => {
     if (!name.trim()) return;
-    await createDiscovery({ name, description, mode });
+    await createDiscovery({ name, description, mode, docs_path: docsPath, engagement_repo_path: engagementPath });
     setName("");
     setDescription("");
+    setDocsPath("");
+    setengagementPath("");
     setOpen(false);
   };
 
@@ -121,6 +130,19 @@ export default function DashboardPage() {
                   )}
                 </div>
               </div>
+              <DocsPathConfig value={docsPath} onChange={setDocsPath} />
+              <div>
+                <label className="text-sm font-medium">engagement Repo (optional)</label>
+                <Input
+                  value={engagementPath}
+                  onChange={(e) => setengagementPath(e.target.value)}
+                  placeholder="C:\Users\...\/path/to/engagement-repo"
+                  className="mt-1"
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  Path to a cloned engagement repo for note ingestion
+                </p>
+              </div>
               <Button onClick={handleCreate} disabled={!name.trim() || loading} className="w-full">
                 {loading ? "Creating..." : "Start Discovery"}
               </Button>
@@ -180,8 +202,16 @@ export default function DashboardPage() {
             {discoveries.map((d) => {
               const phaseConfig = PHASE_CONFIG[d.current_phase];
               const PhaseIcon = PHASE_ICONS[d.current_phase];
+              const isActive = activeDiscovery?.id === d.id;
               return (
-                <Card key={d.id} className="hover:shadow-md transition-shadow">
+                <Card
+                  key={d.id}
+                  className={`hover:shadow-md transition-shadow cursor-pointer ${isActive ? "ring-2 ring-primary" : ""}`}
+                  onClick={() => {
+                    setActiveDiscovery(d);
+                    router.push(`/${d.current_phase}`);
+                  }}
+                >
                   <CardHeader className="pb-2">
                     <div className="flex items-center justify-between">
                       <CardTitle className="text-base">{d.name}</CardTitle>
@@ -210,6 +240,18 @@ export default function DashboardPage() {
           </div>
         )}
       </div>
+
+      {/* Engagement Repo Integration for active discovery */}
+      {activeDiscovery && (
+        <EngagementConfig
+          discovery={activeDiscovery}
+          onUpdate={(patch) => {
+            api.discoveries.update(activeDiscovery.id, patch).then((updated) => {
+              setActiveDiscovery(updated);
+            }).catch(() => {});
+          }}
+        />
+      )}
     </div>
   );
 }
