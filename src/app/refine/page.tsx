@@ -1,21 +1,22 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { FlaskConical, Target, Lightbulb } from "lucide-react";
+import { FlaskConical, Target, Lightbulb, Cpu } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { PHASE_CONFIG, type SolutionMatch, type Assumption } from "@/types/core";
+import type { SolutionMatch, Assumption, QuestionSet } from "@/types/core";
 import { api } from "@/lib/api";
 import { useDiscovery } from "@/stores/discovery-store";
 import { AssumptionTracker } from "@/components/refine/assumption-tracker";
 import { SolutionMatcherPanel } from "@/components/refine/solution-matcher-panel";
-
-const config = PHASE_CONFIG.refine;
+import { SolutionArchitect } from "@/components/refine/solution-architect";
+import { PhaseShell } from "@/components/layout/phase-shell";
 
 export default function RefinePage() {
   const { activeDiscovery } = useDiscovery();
   const discoveryId = activeDiscovery?.id || "";
 
   const [questions, setQuestions] = useState<{ text: string; purpose: string; follow_ups: string[] }[]>([]);
+  const [savedQuestionSets, setSavedQuestionSets] = useState<QuestionSet[]>([]);
   const [context, setContext] = useState("");
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -42,6 +43,19 @@ export default function RefinePage() {
       setMatches(activeDiscovery.solution_matches);
     }
   }, [activeDiscovery?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Load saved question sets for this phase
+  useEffect(() => {
+    if (!discoveryId) return;
+    api.questions.list(discoveryId, "refine").then((sets) => {
+      setSavedQuestionSets(sets);
+      if (sets.length > 0 && questions.length === 0) {
+        const latest = sets[sets.length - 1];
+        setQuestions(latest.questions);
+        if (latest.context) setContext(latest.context);
+      }
+    }).catch(() => { /* non-critical */ });
+  }, [discoveryId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Persist assumptions to backend
   const persistAssumptions = useCallback(
@@ -80,6 +94,7 @@ export default function RefinePage() {
         context,
       });
       setQuestions(result.questions);
+      setSavedQuestionSets((prev) => [...prev, result]);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to generate questions — is the backend running?");
     } finally {
@@ -125,17 +140,7 @@ export default function RefinePage() {
   }
 
   return (
-    <div className="p-6 max-w-6xl mx-auto space-y-6">
-      <div className="flex items-center gap-3">
-        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-500/10">
-          <FlaskConical className="h-5 w-5 text-emerald-500" />
-        </div>
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">{config.label}</h1>
-          <p className="text-muted-foreground text-sm">{config.description}</p>
-        </div>
-      </div>
-
+    <PhaseShell phase="refine" discoveryId={discoveryId}>
       <Tabs defaultValue="assumptions" className="space-y-4">
         <TabsList>
           <TabsTrigger value="assumptions" className="gap-1.5">
@@ -145,6 +150,10 @@ export default function RefinePage() {
           <TabsTrigger value="matcher" className="gap-1.5">
             <Lightbulb className="h-3.5 w-3.5" />
             Solution Matcher
+          </TabsTrigger>
+          <TabsTrigger value="architect" className="gap-1.5">
+            <Cpu className="h-3.5 w-3.5" />
+            Solution Architect
           </TabsTrigger>
         </TabsList>
 
@@ -172,7 +181,14 @@ export default function RefinePage() {
             onMatch={runSolutionMatcher}
           />
         </TabsContent>
+
+        <TabsContent value="architect" className="space-y-4">
+          <SolutionArchitect
+            discoveryId={discoveryId}
+            providers={activeDiscovery?.solution_providers || ["Microsoft Azure"]}
+          />
+        </TabsContent>
       </Tabs>
-    </div>
+    </PhaseShell>
   );
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Search, MessageSquare, Upload } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -9,28 +9,52 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
-import { PHASE_CONFIG, type Question, type Evidence } from "@/types/core";
+import type { Question, Evidence, TranscriptAnalysis, QuestionSet } from "@/types/core";
 import { api } from "@/lib/api";
 import { useDiscovery } from "@/stores/discovery-store";
-
-const config = PHASE_CONFIG.capture;
+import { PhaseShell } from "@/components/layout/phase-shell";
 
 export default function CapturePage() {
   const { activeDiscovery } = useDiscovery();
   const discoveryId = activeDiscovery?.id || "";
 
   const [questions, setQuestions] = useState<Question[]>([]);
+  const [savedQuestionSets, setSavedQuestionSets] = useState<QuestionSet[]>([]);
   const [context, setContext] = useState("");
   const [transcript, setTranscript] = useState("");
   const [generating, setGenerating] = useState(false);
   const [analyzing, setAnalyzing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [extractedEvidence, setExtractedEvidence] = useState<Evidence[]>([]);
+  const [savedAnalyses, setSavedAnalyses] = useState<TranscriptAnalysis[]>([]);
   const [analysisResult, setAnalysisResult] = useState<{
     insights: { text: string; confidence: string }[];
     key_themes: string[];
     sentiment: string;
   } | null>(null);
+
+  // Load saved transcript analyses and question sets on mount / discovery change
+  const loadSavedData = useCallback(async () => {
+    if (!discoveryId) return;
+    try {
+      const [analyses, qSets] = await Promise.all([
+        api.transcripts.list(discoveryId),
+        api.questions.list(discoveryId, "capture"),
+      ]);
+      setSavedAnalyses(analyses);
+      setSavedQuestionSets(qSets);
+      // Restore the most recent question set if no questions are loaded yet
+      if (qSets.length > 0) {
+        const latest = qSets[qSets.length - 1];
+        setQuestions(latest.questions);
+        if (latest.context) setContext(latest.context);
+      }
+    } catch { /* non-critical — first load may have no data */ }
+  }, [discoveryId]);
+
+  useEffect(() => {
+    loadSavedData();
+  }, [loadSavedData]);
 
   const generateQuestions = async () => {
     setGenerating(true);
@@ -43,6 +67,7 @@ export default function CapturePage() {
         num_questions: 8,
       });
       setQuestions(result.questions);
+      setSavedQuestionSets((prev) => [...prev, result]);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to generate questions — is the backend running?");
     } finally {
@@ -59,6 +84,7 @@ export default function CapturePage() {
         discovery_id: discoveryId,
         transcript_text: transcript,
       });
+      setSavedAnalyses((prev) => [...prev, result]);
       setAnalysisResult({
         insights: result.insights.map((i) => ({
           text: typeof i === "string" ? i : i.text,
@@ -111,17 +137,7 @@ export default function CapturePage() {
   }
 
   return (
-    <div className="p-6 max-w-6xl mx-auto space-y-6">
-      <div className="flex items-center gap-3">
-        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-500/10">
-          <Search className="h-5 w-5 text-blue-500" />
-        </div>
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">{config.label}</h1>
-          <p className="text-muted-foreground text-sm">{config.description}</p>
-        </div>
-      </div>
-
+    <PhaseShell phase="capture" discoveryId={discoveryId}>
       <Tabs defaultValue="questions" className="space-y-4">
         <TabsList>
           <TabsTrigger value="questions" className="gap-1.5">
@@ -291,8 +307,67 @@ export default function CapturePage() {
               </CardContent>
             </Card>
           )}
+
+          {savedAnalyses.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">
+                  Previous Analyses
+                  <Badge variant="secondary" className="ml-2">{savedAnalyses.length}</Badge>
+                </CardTitle>
+                <CardDescription>
+                  Saved transcript analyses for this discovery. Evidence is already on the Evidence Board.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ScrollArea className="max-h-[400px]">
+                  <div className="space-y-3">
+                    {[...savedAnalyses].reverse().map((a) => (
+                      <div key={a.id} className="p-3 rounded-lg border space-y-2">
+                        <div className="flex items-center justify-between">
+                          <div className="flex gap-1.5 flex-wrap">
+                            <Badge variant="outline" className="text-[10px]">
+                              {a.sentiment}
+                            </Badge>
+                            {a.key_themes.slice(0, 3).map((t, i) => (
+                              <Badge key={i} variant="secondary" className="text-[10px]">
+                                {t}
+                              </Badge>
+                            ))}
+                          </div>
+                          <span className="text-[10px] text-muted-foreground">
+                            {new Date(a.created_at).toLocaleDateString()}
+                          </span>
+                        </div>
+                        <p className="text-xs text-muted-foreground line-clamp-2">
+                          {a.transcript_text}
+                        </p>
+                        {a.insights.length > 0 && (
+                          <div className="space-y-1">
+                            {a.insights.slice(0, 3).map((ins, i) => (
+                              <div key={i} className="flex items-start gap-1.5">
+                                <Badge variant="outline" className={`text-[9px] shrink-0 ${confidenceColor(ins.confidence)}`}>
+                                  {ins.confidence}
+                                </Badge>
+                                <p className="text-xs">{ins.text}</p>
+                              </div>
+                            ))}
+                            {a.insights.length > 3 && (
+                              <p className="text-[10px] text-muted-foreground">
+                                +{a.insights.length - 3} more insights
+                              </p>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </ScrollArea>
+              </CardContent>
+            </Card>
+          )}
         </TabsContent>
       </Tabs>
-    </div>
+    </PhaseShell>
   );
 }

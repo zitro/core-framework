@@ -103,6 +103,9 @@ class DiscoveryUpdate(BaseModel):
     execute_data: ExecuteData | None = None
     assumptions: list[Assumption] | None = None
     solution_matches: list[SolutionMatchData] | None = None
+    docs_path: str | None = None
+    solution_providers: list[str] | None = None
+    engagement_repo_path: str | None = None
 
 
 class Discovery(BaseModel):
@@ -116,6 +119,11 @@ class Discovery(BaseModel):
     execute_data: ExecuteData | None = None
     assumptions: list[Assumption] = Field(default_factory=list)
     solution_matches: list[SolutionMatchData] = Field(default_factory=list)
+    docs_path: str = ""
+    solution_providers: list[str] = Field(
+        default_factory=lambda: ["Microsoft Azure"]
+    )
+    engagement_repo_path: str = ""
     evidence: list[Evidence] = Field(default_factory=list)
     created_at: datetime = Field(default_factory=_utcnow)
     updated_at: datetime = Field(default_factory=_utcnow)
@@ -153,6 +161,20 @@ class TranscriptAnalysis(BaseModel):
     created_at: datetime = Field(default_factory=_utcnow)
 
 
+class ProblemStatementVersion(BaseModel):
+    id: str = ""
+    discovery_id: str
+    version: int = 1
+    who: str = ""
+    what: str = ""
+    why: str = ""
+    impact: str = ""
+    statement: str = ""
+    user_instructions: str = ""
+    context_used: str = ""
+    created_at: datetime = Field(default_factory=_utcnow)
+
+
 class EvidenceUpdate(BaseModel):
     """Typed update payload for evidence items."""
 
@@ -160,3 +182,48 @@ class EvidenceUpdate(BaseModel):
     source: str | None = None
     confidence: ConfidenceLevel | None = None
     tags: list[str] | None = None
+
+
+# ── AI Advisor artifacts ─────────────────────────────────
+
+
+class UseCaseVersion(BaseModel):
+    id: str = ""
+    discovery_id: str
+    version: int = 1
+    title: str = ""
+    persona: str = ""
+    goal: str = ""
+    current_state: str = ""
+    desired_state: str = ""
+    business_value: str = ""
+    business_impact: str = ""
+    success_metrics: list[str] = Field(default_factory=list)
+    summary: str = ""
+    user_instructions: str = ""
+    context_used: str = ""
+    created_at: datetime = Field(default_factory=_utcnow)
+
+
+class ServiceRecommendation(BaseModel):
+    service: str
+    purpose: str = ""
+    rationale: str = ""
+
+
+class SolutionBlueprint(BaseModel):
+    id: str = ""
+    discovery_id: str
+    version: int = 1
+    approach_title: str = ""
+    approach_summary: str = ""
+    services: list[ServiceRecommendation] = Field(default_factory=list)
+    architecture_overview: str = ""
+    quick_win_suggestion: str = ""
+    estimated_effort: str = ""
+    open_questions: list[str] = Field(default_factory=list)
+    follow_up_questions: list[str] = Field(default_factory=list)
+    target_providers: list[str] = Field(default_factory=list)
+    user_instructions: str = ""
+    context_used: str = ""
+    created_at: datetime = Field(default_factory=_utcnow)

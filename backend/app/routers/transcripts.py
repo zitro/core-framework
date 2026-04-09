@@ -14,6 +14,7 @@ from app.models.core import (
 )
 from app.providers.llm import get_llm_provider
 from app.providers.storage import get_storage_provider
+from app.utils.local_docs import read_docs_content
 
 logger = logging.getLogger(__name__)
 
@@ -48,15 +49,38 @@ class TranscriptRequest(BaseModel):
     transcript_text: str = Field(..., max_length=MAX_TRANSCRIPT_LENGTH)
 
 
+@router.get("/{discovery_id}", response_model=list[TranscriptAnalysis])
+async def list_analyses(discovery_id: str):
+    storage = get_storage_provider()
+    items = await storage.list("transcript_analyses", {"discoveryId": discovery_id})
+    if not items:
+        items = await storage.list("transcript_analyses", {"discovery_id": discovery_id})
+    return [TranscriptAnalysis(**item) for item in items]
+
+
 @router.post("/analyze", response_model=TranscriptAnalysis)
 async def analyze_transcript(request: TranscriptRequest):
     llm = get_llm_provider()
     storage = get_storage_provider()
 
+    # Include local docs for richer analysis if configured
+    docs_context = ""
+    try:
+        disc = await storage.get("discoveries", request.discovery_id)
+        docs_path = (disc or {}).get("docs_path", "")
+        if docs_path:
+            content = read_docs_content(docs_path)
+            if content:
+                docs_context = (
+                    f"\n\nProject documents for context:\n{content}"
+                )
+    except Exception:
+        pass  # non-critical
+
     try:
         result = await llm.complete_json(
             TRANSCRIPT_SYSTEM_PROMPT,
-            f"Analyze this transcript:\n\n{request.transcript_text[:15000]}",
+            f"Analyze this transcript:\n\n{request.transcript_text[:15000]}{docs_context}",
             max_tokens=4000,
         )
     except Exception:
@@ -101,7 +125,11 @@ async def analyze_transcript(request: TranscriptRequest):
         key_themes=result.get("key_themes", []),
     )
 
-    saved = await storage.create("transcript_analyses", analysis.model_dump(mode="json"))
+    try:
+        saved = await storage.create("transcript_analyses", analysis.model_dump(mode="json"))
+    except Exception:
+        logger.exception("Failed to save transcript analysis")
+        raise HTTPException(status_code=500, detail="Failed to save analysis")
     return TranscriptAnalysis(**saved)
 
 
