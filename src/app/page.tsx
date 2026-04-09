@@ -136,7 +136,7 @@ export default function DashboardPage() {
                 <Input
                   value={engagementPath}
                   onChange={(e) => setengagementPath(e.target.value)}
-                  placeholder="C:\Users\...\/path/to/engagement-repo"
+                  placeholder="/path/to/engagement-repo"
                   className="mt-1"
                 />
                 <p className="text-xs text-muted-foreground mt-1">
