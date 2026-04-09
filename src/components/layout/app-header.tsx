@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
@@ -53,31 +54,33 @@ export function AppHeader() {
             <ChevronsUpDown className="h-3 w-3 shrink-0 opacity-50" />
         </DropdownMenuTrigger>
         <DropdownMenuContent align="start" className="w-[280px]">
-          <DropdownMenuLabel className="text-[10px] uppercase tracking-wider">
-            Switch Discovery
-          </DropdownMenuLabel>
-          <DropdownMenuSeparator />
-          {discoveries.length === 0 ? (
-            <div className="px-2 py-3 text-center text-xs text-muted-foreground">
-              No discoveries yet
-            </div>
-          ) : (
-            discoveries.map((d) => (
-              <DropdownMenuItem
-                key={d.id}
-                onClick={() => setActiveDiscovery(d)}
-                className="flex items-center gap-2 cursor-pointer"
-              >
-                <span className="truncate flex-1 text-xs">{d.name}</span>
-                <Badge
-                  variant={activeDiscovery?.id === d.id ? "default" : "outline"}
-                  className="text-[9px] shrink-0"
+          <DropdownMenuGroup>
+            <DropdownMenuLabel className="text-[10px] uppercase tracking-wider">
+              Switch Discovery
+            </DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            {discoveries.length === 0 ? (
+              <div className="px-2 py-3 text-center text-xs text-muted-foreground">
+                No discoveries yet
+              </div>
+            ) : (
+              discoveries.map((d) => (
+                <DropdownMenuItem
+                  key={d.id}
+                  onClick={() => setActiveDiscovery(d)}
+                  className="flex items-center gap-2 cursor-pointer"
                 >
-                  {PHASE_CONFIG[d.current_phase].label}
-                </Badge>
-              </DropdownMenuItem>
-            ))
-          )}
+                  <span className="truncate flex-1 text-xs">{d.name}</span>
+                  <Badge
+                    variant={activeDiscovery?.id === d.id ? "default" : "outline"}
+                    className="text-[9px] shrink-0"
+                  >
+                    {PHASE_CONFIG[d.current_phase].label}
+                  </Badge>
+                </DropdownMenuItem>
+              ))
+            )}
+          </DropdownMenuGroup>
           <DropdownMenuSeparator />
           <DropdownMenuItem
             onClick={() => router.push("/")}
