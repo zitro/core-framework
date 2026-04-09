@@ -241,7 +241,7 @@ for file uploads, and Azure Speech Services for audio transcription.
 
 ### Azure Resource Setup
 
-All examples assume a resource group named `<RESOURCE_GROUP>`. Adjust names as needed.
+All examples assume a resource group named `my-resource-group`. Adjust names as needed.
 
 Create an Azure OpenAI resource and deploy a model:
 
