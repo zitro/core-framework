@@ -98,7 +98,7 @@ export function EngagementConfig({ discovery, onUpdate }: EngagementConfigProps)
           <input
             type="text"
             className="flex-1 rounded-md border bg-background px-3 py-2 text-sm"
-            placeholder="C:\Users\...\/path/to/engagement-repo"
+            placeholder="/path/to/engagement-repo"
             value={path}
             onChange={(e) => setPath(e.target.value)}
           />
