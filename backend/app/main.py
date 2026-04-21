@@ -38,13 +38,13 @@ def create_app() -> FastAPI:
         blueprints,
         discovery,
         docs,
+        engagement,
         evidence,
         export,
         problem_statements,
         questions,
         realtime,
         transcripts,
-        engagement,
     )
 
     app = FastAPI(
