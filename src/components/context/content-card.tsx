@@ -24,15 +24,15 @@ import type { EngagementContentFile } from "@/types/core";
 /*  Helpers                                                            */
 /* ------------------------------------------------------------------ */
 
-function getTypeIcon(type: string): typeof FileText {
-  if (type.includes("stakeholder") || type.includes("team")) return Users;
-  if (type.includes("customer") || type.includes("company") || type.includes("org")) return Building2;
-  if (type.includes("tech") || type.includes("stack") || type.includes("architecture")) return Cpu;
-  if (type.includes("call") || type.includes("transcript") || type.includes("meeting")) return Phone;
-  if (type.includes("email") || type.includes("mail")) return Mail;
-  if (type.includes("risk") || type.includes("alert")) return AlertTriangle;
-  if (type.includes("overview") || type.includes("initiative") || type.includes("project")) return Layers;
-  return FileText;
+function renderTypeIcon(type: string, className?: string) {
+  if (type.includes("stakeholder") || type.includes("team")) return <Users className={className} />;
+  if (type.includes("customer") || type.includes("company") || type.includes("org")) return <Building2 className={className} />;
+  if (type.includes("tech") || type.includes("stack") || type.includes("architecture")) return <Cpu className={className} />;
+  if (type.includes("call") || type.includes("transcript") || type.includes("meeting")) return <Phone className={className} />;
+  if (type.includes("email") || type.includes("mail")) return <Mail className={className} />;
+  if (type.includes("risk") || type.includes("alert")) return <AlertTriangle className={className} />;
+  if (type.includes("overview") || type.includes("initiative") || type.includes("project")) return <Layers className={className} />;
+  return <FileText className={className} />;
 }
 
 const COLOR_PALETTE = [
@@ -73,15 +73,13 @@ export function ContentCard({
 }) {
   const [expanded, setExpanded] = useState(!compact && shouldAutoExpand(file.type));
   const [visible, setVisible] = useState(expanded);
-  const Icon = getTypeIcon(file.type);
+  // Derived render-time update: keep `visible` true whenever expanded is true.
+  // `setVisible(false)` is driven by the collapse animation's transitionend handler.
+  if (expanded && !visible) {
+    setVisible(true);
+  }
   const colorClass = getTypeColor(file.type);
   const bodyRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (expanded) {
-      setVisible(true);
-    }
-  }, [expanded]);
 
   useEffect(() => {
     if (!bodyRef.current || !visible) return;
@@ -131,7 +129,7 @@ export function ContentCard({
           <div
             className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border ${colorClass} transition-transform duration-200 group-hover/content-card:scale-105`}
           >
-            <Icon className="h-4 w-4" />
+            {renderTypeIcon(file.type, "h-4 w-4")}
           </div>
           <div className="flex-1 min-w-0">
             <CardTitle className="text-sm font-medium leading-tight">
