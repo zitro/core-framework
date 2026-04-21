@@ -62,6 +62,7 @@ class EmpathyResearcher(BaseAgent):
     )
     system_prompt = SYSTEM
     collection = "empathy_maps"
+    requires_review = True
 
     async def run(
         self,

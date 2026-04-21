@@ -9,7 +9,9 @@ from app.dependencies import get_current_user
 from app.models.core import UseCaseVersion
 from app.providers.llm import get_llm_provider
 from app.providers.storage import get_storage_provider
+from app.utils.audit import stamp_create
 from app.utils.context import gather_context
+from app.utils.review_gate import auto_request_review
 
 logger = logging.getLogger(__name__)
 
@@ -107,9 +109,18 @@ async def generate_use_case(request: UseCaseRequest):
     )
 
     try:
-        saved = await storage.create("use_cases", version.model_dump(mode="json"))
+        saved = await storage.create(
+            "use_cases", stamp_create(version.model_dump(mode="json"))
+        )
     except Exception:
         logger.exception("Failed to save use case version")
         raise HTTPException(status_code=500, detail="Failed to save")
+
+    await auto_request_review(
+        artifact_collection="use_cases",
+        artifact_id=str(saved.get("id", "")),
+        artifact_title=saved.get("title", "")[:120],
+        discovery_id=request.discovery_id,
+    )
 
     return UseCaseVersion(**saved)

@@ -26,6 +26,7 @@ async def request_review(review: Review, claims: dict = Depends(get_current_user
 @router.get("/", response_model=list[Review])
 async def list_reviews(
     discovery_id: str | None = Query(default=None),
+    engagement_id: str | None = Query(default=None),
     status: ReviewStatus | None = Query(default=None),
 ) -> list[Review]:
     storage = get_storage_provider()
@@ -35,6 +36,12 @@ async def list_reviews(
     if status:
         filters["status"] = status.value
     items = await storage.list(COLLECTION, filters or None)
+    if engagement_id:
+        engagement = await storage.get("engagements", engagement_id)
+        if not engagement:
+            raise HTTPException(status_code=404, detail="Engagement not found")
+        allowed = set(engagement.get("discovery_ids") or [])
+        items = [i for i in items if i.get("discovery_id") in allowed]
     return [Review(**item) for item in items]
 
 

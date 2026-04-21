@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 
 from app.dependencies import get_current_user
 from app.models.core import Evidence, EvidenceUpdate
@@ -23,6 +23,24 @@ async def list_evidence(discovery_id: str, phase: str | None = None):
     if phase:
         filters["phase"] = phase
     items = await storage.list(COLLECTION, filters)
+    return [Evidence(**item) for item in items]
+
+
+@router.get("/", response_model=list[Evidence])
+async def list_evidence_scoped(
+    engagement_id: str | None = Query(default=None),
+    phase: str | None = Query(default=None),
+):
+    """List evidence across all discoveries, optionally scoped to an engagement."""
+    storage = get_storage_provider()
+    filters = {"phase": phase} if phase else None
+    items = await storage.list(COLLECTION, filters)
+    if engagement_id:
+        engagement = await storage.get("engagements", engagement_id)
+        if not engagement:
+            raise HTTPException(status_code=404, detail="Engagement not found")
+        allowed = set(engagement.get("discovery_ids") or [])
+        items = [i for i in items if i.get("discovery_id") in allowed]
     return [Evidence(**item) for item in items]
 
 

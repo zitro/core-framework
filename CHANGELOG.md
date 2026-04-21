@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-04-21
+
+### Added
+
+- Human-in-the-loop review gates: `BaseAgent` opens a pending `Review` for every artifact when `requires_review = True`; flagged on problem analyst, use case analyst, solution architect, company researcher, empathy researcher, and HMW framer
+- Review gates also wired into the non-agent POST routes for problem statements, use cases, and solution blueprints
+- `engagement_id` filter on `GET /api/discovery/`, `GET /api/evidence/`, and `GET /api/reviews/` so teams can scope a workspace to one engagement
+- Engagement export now writes company profiles, empathy maps, and HMW boards in addition to problem statements, use cases, and blueprints
+- Engagement export skips artifacts whose latest review status is `pending`, `changes_requested`, or `rejected`, and reports them under `skipped`
+- Engagements page lists attached discoveries inline with attach/detach controls
+
+### Changed
+
+- `routers/engagement.py` slimmed by extracting markdown renderers to `utils/engagement_export.py`
+- Backend FastAPI version and frontend sidebar badge bumped to `0.7.0`
+
 ## [0.6.0] - 2026-04-21
 
 ### Added

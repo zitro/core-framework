@@ -12,6 +12,7 @@ from app.providers.llm import get_llm_provider
 from app.providers.storage import get_storage_provider
 from app.utils.audit import stamp_create
 from app.utils.context import gather_context
+from app.utils.review_gate import auto_request_review
 
 logger = logging.getLogger(__name__)
 
@@ -42,6 +43,11 @@ class BaseAgent(ABC):
     meta: AgentMeta
     system_prompt: str
     collection: str  # Cosmos container name
+    # When True, every saved artifact opens a pending Review row so a human
+    # has to approve it before downstream consumers (e.g. engagement export)
+    # treat it as authoritative. Defaults False so chatty agents like the
+    # discovery coach don't flood the review queue.
+    requires_review: bool = False
 
     # ── helpers ────────────────────────────────────────────
 
@@ -66,7 +72,22 @@ class BaseAgent(ABC):
 
     async def _save(self, data: dict) -> dict:
         storage = self._storage()
-        return await storage.create(self.collection, stamp_create(data))
+        saved = await storage.create(self.collection, stamp_create(data))
+        if self.requires_review:
+            title = (
+                saved.get("approach_title")
+                or saved.get("title")
+                or saved.get("company")
+                or saved.get("statement")
+                or self.meta.name
+            )
+            await auto_request_review(
+                artifact_collection=self.collection,
+                artifact_id=str(saved.get("id", "")),
+                artifact_title=str(title)[:120],
+                discovery_id=str(saved.get("discovery_id", "")),
+            )
+        return saved
 
     async def _list(self, discovery_id: str) -> list[dict]:
         storage = self._storage()

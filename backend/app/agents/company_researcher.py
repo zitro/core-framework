@@ -57,6 +57,7 @@ class CompanyResearcher(BaseAgent):
     )
     system_prompt = SYSTEM
     collection = "company_profiles"
+    requires_review = True
 
     async def run(
         self,
