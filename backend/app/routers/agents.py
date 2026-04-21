@@ -10,6 +10,7 @@ from pydantic import BaseModel
 from app.agents import agent_registry, get_agent
 from app.agents.base import AgentMeta
 from app.dependencies import get_current_user
+from app.utils.telemetry import get_tracer
 
 logger = logging.getLogger(__name__)
 
@@ -65,11 +66,15 @@ async def run_agent(agent_id: str, request: RunAgentRequest):
         for k, v in request.model_dump().items()
         if k not in ("discovery_id", "user_instructions")
     }
-    result = await agent.run(
-        discovery_id=request.discovery_id,
-        user_instructions=request.user_instructions,
-        **extras,
-    )
+    tracer = get_tracer()
+    with tracer.start_as_current_span("agent.run") as span:
+        span.set_attribute("agent.id", agent_id)
+        span.set_attribute("discovery.id", request.discovery_id or "")
+        result = await agent.run(
+            discovery_id=request.discovery_id,
+            user_instructions=request.user_instructions,
+            **extras,
+        )
     return result.model_dump(mode="json")
 
 

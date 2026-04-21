@@ -8,6 +8,7 @@ from app.dependencies import get_current_user
 from app.models.core import Review, ReviewDecision, ReviewStatus
 from app.providers.storage import get_storage_provider
 from app.utils.audit import stamp_create, stamp_update
+from app.utils.audit_log import audit
 
 router = APIRouter(dependencies=[Depends(get_current_user)])
 COLLECTION = "reviews"
@@ -74,4 +75,11 @@ async def decide_review(
         }
     )
     item = await storage.update(COLLECTION, review_id, updates)
+    await audit(
+        "review_decision",
+        collection=existing.get("artifact_collection", ""),
+        item_id=existing.get("artifact_id", ""),
+        summary=f"{decision.status.value} by {reviewer}",
+        after={"review_id": review_id, "status": decision.status.value},
+    )
     return Review(**item)

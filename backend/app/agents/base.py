@@ -11,6 +11,7 @@ from pydantic import BaseModel, Field
 from app.providers.llm import get_llm_provider
 from app.providers.storage import get_storage_provider
 from app.utils.audit import stamp_create
+from app.utils.audit_log import audit
 from app.utils.context import gather_context
 from app.utils.review_gate import auto_request_review
 
@@ -73,17 +74,25 @@ class BaseAgent(ABC):
     async def _save(self, data: dict) -> dict:
         storage = self._storage()
         saved = await storage.create(self.collection, stamp_create(data))
+        item_id = str(saved.get("id", ""))
+        title = (
+            saved.get("approach_title")
+            or saved.get("title")
+            or saved.get("company")
+            or saved.get("statement")
+            or self.meta.name
+        )
+        await audit(
+            "agent_run",
+            collection=self.collection,
+            item_id=item_id,
+            summary=f"{self.meta.agent_id}: {str(title)[:120]}",
+            after=saved,
+        )
         if self.requires_review:
-            title = (
-                saved.get("approach_title")
-                or saved.get("title")
-                or saved.get("company")
-                or saved.get("statement")
-                or self.meta.name
-            )
             await auto_request_review(
                 artifact_collection=self.collection,
-                artifact_id=str(saved.get("id", "")),
+                artifact_id=item_id,
                 artifact_title=str(title)[:120],
                 discovery_id=str(saved.get("discovery_id", "")),
             )

@@ -18,6 +18,7 @@ KNOWN_COLLECTIONS: list[str] = [
     "engagements",
     "company_profiles",
     "reviews",
+    "audit",
 ]
 
 

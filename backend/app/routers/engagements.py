@@ -6,6 +6,7 @@ from app.dependencies import get_current_user
 from app.models.core import Engagement, EngagementUpdate
 from app.providers.storage import get_storage_provider
 from app.utils.audit import stamp_create, stamp_update
+from app.utils.audit_log import audit
 
 router = APIRouter(dependencies=[Depends(get_current_user)])
 COLLECTION = "engagements"
@@ -15,6 +16,13 @@ COLLECTION = "engagements"
 async def create_engagement(engagement: Engagement) -> Engagement:
     storage = get_storage_provider()
     item = await storage.create(COLLECTION, stamp_create(engagement.model_dump(mode="json")))
+    await audit(
+        "create",
+        collection=COLLECTION,
+        item_id=str(item.get("id", "")),
+        summary=item.get("name", ""),
+        after=item,
+    )
     return Engagement(**item)
 
 
@@ -45,6 +53,13 @@ async def update_engagement(engagement_id: str, updates: EngagementUpdate) -> En
         item = await storage.update(COLLECTION, engagement_id, update_data)
     except ValueError as exc:
         raise HTTPException(status_code=404, detail="Engagement not found") from exc
+    await audit(
+        "update",
+        collection=COLLECTION,
+        item_id=engagement_id,
+        summary=",".join(sorted(update_data.keys())),
+        after=update_data,
+    )
     return Engagement(**item)
 
 
@@ -54,6 +69,7 @@ async def delete_engagement(engagement_id: str) -> dict:
     deleted = await storage.delete(COLLECTION, engagement_id)
     if not deleted:
         raise HTTPException(status_code=404, detail="Engagement not found")
+    await audit("delete", collection=COLLECTION, item_id=engagement_id)
     return {"deleted": True}
 
 
