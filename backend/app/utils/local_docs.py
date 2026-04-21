@@ -7,13 +7,26 @@ logger = logging.getLogger(__name__)
 
 # Text formats — read directly as UTF-8
 TEXT_EXTENSIONS = {
-    ".md", ".txt", ".csv", ".json", ".yaml", ".yml",
-    ".rst", ".log", ".html", ".xml", ".toml", ".ini",
+    ".md",
+    ".txt",
+    ".csv",
+    ".json",
+    ".yaml",
+    ".yml",
+    ".rst",
+    ".log",
+    ".html",
+    ".xml",
+    ".toml",
+    ".ini",
 }
 
 # Binary formats — need dedicated parsers
 BINARY_EXTENSIONS = {
-    ".pdf", ".docx", ".pptx", ".xlsx",
+    ".pdf",
+    ".docx",
+    ".pptx",
+    ".xlsx",
 }
 
 ALLOWED_EXTENSIONS = TEXT_EXTENSIONS | BINARY_EXTENSIONS
@@ -113,11 +126,13 @@ def scan_docs(path_str: str) -> list[dict]:
         parts = f.relative_to(docs_dir).parts
         if any(p.startswith(".") or p in ("node_modules", "__pycache__") for p in parts):
             continue
-        files.append({
-            "name": str(f.relative_to(docs_dir)),
-            "size": f.stat().st_size,
-            "extension": f.suffix.lower(),
-        })
+        files.append(
+            {
+                "name": str(f.relative_to(docs_dir)),
+                "size": f.stat().st_size,
+                "extension": f.suffix.lower(),
+            }
+        )
     return files
 
 

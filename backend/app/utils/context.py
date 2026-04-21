@@ -19,40 +19,27 @@ async def gather_context(discovery_id: str) -> str:
     try:
         disc = await storage.get("discoveries", discovery_id)
         if disc:
-            parts.append(
-                f"Discovery: {disc.get('name', '')} — "
-                f"{disc.get('description', '')}"
-            )
+            parts.append(f"Discovery: {disc.get('name', '')} — {disc.get('description', '')}")
             ps = disc.get("problem_statement")
             if ps and ps.get("statement"):
                 parts.append(f"Current problem statement: {ps['statement']}")
             assumptions = disc.get("assumptions", [])
             if assumptions:
-                parts.append(
-                    "Assumptions: "
-                    + "; ".join(a.get("text", "") for a in assumptions)
-                )
+                parts.append("Assumptions: " + "; ".join(a.get("text", "") for a in assumptions))
             providers = disc.get("solution_providers", [])
             if providers:
-                parts.append(
-                    "Target solution providers: " + ", ".join(providers)
-                )
+                parts.append("Target solution providers: " + ", ".join(providers))
     except Exception:
         logger.debug("Could not load discovery %s", discovery_id)
 
     # Evidence
     try:
-        evidence = await storage.list(
-            "evidence", {"discoveryId": discovery_id}
-        )
+        evidence = await storage.list("evidence", {"discoveryId": discovery_id})
         if not evidence:
-            evidence = await storage.list(
-                "evidence", {"discovery_id": discovery_id}
-            )
+            evidence = await storage.list("evidence", {"discovery_id": discovery_id})
         if evidence:
             items = [
-                f"[{e.get('phase', '?')}/{e.get('confidence', '?')}] "
-                f"{e.get('content', '')}"
+                f"[{e.get('phase', '?')}/{e.get('confidence', '?')}] {e.get('content', '')}"
                 for e in evidence
             ]
             parts.append("Evidence:\n" + "\n".join(items))
@@ -61,34 +48,21 @@ async def gather_context(discovery_id: str) -> str:
 
     # Transcript analyses
     try:
-        analyses = await storage.list(
-            "transcript_analyses", {"discoveryId": discovery_id}
-        )
+        analyses = await storage.list("transcript_analyses", {"discoveryId": discovery_id})
         if not analyses:
-            analyses = await storage.list(
-                "transcript_analyses", {"discovery_id": discovery_id}
-            )
+            analyses = await storage.list("transcript_analyses", {"discovery_id": discovery_id})
         for a in analyses:
             themes = ", ".join(a.get("key_themes", []))
-            insights = "; ".join(
-                i.get("text", "") for i in a.get("insights", [])[:5]
-            )
-            parts.append(
-                f"Transcript analysis — themes: {themes}; "
-                f"insights: {insights}"
-            )
+            insights = "; ".join(i.get("text", "") for i in a.get("insights", [])[:5])
+            parts.append(f"Transcript analysis — themes: {themes}; insights: {insights}")
     except Exception:
         logger.debug("Could not load transcript analyses for %s", discovery_id)
 
     # Question sets and answers
     try:
-        qsets = await storage.list(
-            "question_sets", {"discoveryId": discovery_id}
-        )
+        qsets = await storage.list("question_sets", {"discoveryId": discovery_id})
         if not qsets:
-            qsets = await storage.list(
-                "question_sets", {"discovery_id": discovery_id}
-            )
+            qsets = await storage.list("question_sets", {"discovery_id": discovery_id})
         for qs in qsets:
             phase = qs.get("phase", "?")
             ctx = qs.get("context", "")

@@ -53,13 +53,9 @@ class BlueprintRequest(BaseModel):
 )
 async def list_blueprints(discovery_id: str):
     storage = get_storage_provider()
-    items = await storage.list(
-        "solution_blueprints", {"discoveryId": discovery_id}
-    )
+    items = await storage.list("solution_blueprints", {"discoveryId": discovery_id})
     if not items:
-        items = await storage.list(
-            "solution_blueprints", {"discovery_id": discovery_id}
-        )
+        items = await storage.list("solution_blueprints", {"discovery_id": discovery_id})
     versions = [SolutionBlueprint(**item) for item in items]
     versions.sort(key=lambda v: v.version)
     return versions
@@ -80,9 +76,7 @@ async def generate_blueprint(request: BlueprintRequest):
     providers = await get_solution_providers(request.discovery_id)
     provider_str = ", ".join(providers)
 
-    existing = await storage.list(
-        "solution_blueprints", {"discoveryId": request.discovery_id}
-    )
+    existing = await storage.list("solution_blueprints", {"discoveryId": request.discovery_id})
     if not existing:
         existing = await storage.list(
             "solution_blueprints",
@@ -92,10 +86,7 @@ async def generate_blueprint(request: BlueprintRequest):
 
     user_block = ""
     if request.user_instructions:
-        user_block = (
-            f"\n\nUser guidance for this version:\n"
-            f"{request.user_instructions}"
-        )
+        user_block = f"\n\nUser guidance for this version:\n{request.user_instructions}"
 
     user_prompt = (
         f"Discovery context:\n\n{context}{user_block}\n\n"
@@ -116,8 +107,11 @@ async def generate_blueprint(request: BlueprintRequest):
         approach_title=result.get("approach_title", ""),
         approach_summary=result.get("approach_summary", ""),
         services=[
-            {"service": s.get("service", ""), "purpose": s.get("purpose", ""),
-             "rationale": s.get("rationale", "")}
+            {
+                "service": s.get("service", ""),
+                "purpose": s.get("purpose", ""),
+                "rationale": s.get("rationale", ""),
+            }
             for s in result.get("services", [])
         ],
         architecture_overview=result.get("architecture_overview", ""),
@@ -131,9 +125,7 @@ async def generate_blueprint(request: BlueprintRequest):
     )
 
     try:
-        saved = await storage.create(
-            "solution_blueprints", blueprint.model_dump(mode="json")
-        )
+        saved = await storage.create("solution_blueprints", blueprint.model_dump(mode="json"))
     except Exception:
         logger.exception("Failed to save solution blueprint")
         raise HTTPException(status_code=500, detail="Failed to save")

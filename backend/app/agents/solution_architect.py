@@ -84,9 +84,7 @@ class SolutionArchitectAgent(BaseAgent):
 
         user_block = ""
         if user_instructions:
-            user_block = (
-                f"\n\nUser guidance for this version:\n{user_instructions}"
-            )
+            user_block = f"\n\nUser guidance for this version:\n{user_instructions}"
 
         user_prompt = (
             f"Discovery context:\n\n{context}{user_block}\n\n"
@@ -96,14 +94,10 @@ class SolutionArchitectAgent(BaseAgent):
         )
 
         try:
-            result = await self._llm().complete_json(
-                self.system_prompt, user_prompt
-            )
+            result = await self._llm().complete_json(self.system_prompt, user_prompt)
         except Exception:
             logger.exception("Solution Architect LLM call failed")
-            raise HTTPException(
-                status_code=502, detail="AI service unavailable"
-            )
+            raise HTTPException(status_code=502, detail="AI service unavailable")
 
         blueprint = SolutionBlueprint(
             discovery_id=discovery_id,

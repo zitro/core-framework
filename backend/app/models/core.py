@@ -120,9 +120,7 @@ class Discovery(BaseModel):
     assumptions: list[Assumption] = Field(default_factory=list)
     solution_matches: list[SolutionMatchData] = Field(default_factory=list)
     docs_path: str = ""
-    solution_providers: list[str] = Field(
-        default_factory=lambda: ["Microsoft Azure"]
-    )
+    solution_providers: list[str] = Field(default_factory=lambda: ["Microsoft Azure"])
     engagement_repo_path: str = ""
     evidence: list[Evidence] = Field(default_factory=list)
     created_at: datetime = Field(default_factory=_utcnow)

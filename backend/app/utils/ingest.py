@@ -31,9 +31,17 @@ def _discover_repo_structure(repo_path: str) -> dict[str, Any]:
 
     # Find the main content directory (skip dot-dirs, templates, scripts)
     skip = {
-        "templates", "scripts", "docs", "artifact-templates",
-        "security-plan-outputs", ".github", ".vscode", ".cspell", ".git",
-        "node_modules", "__pycache__",
+        "templates",
+        "scripts",
+        "docs",
+        "artifact-templates",
+        "security-plan-outputs",
+        ".github",
+        ".vscode",
+        ".cspell",
+        ".git",
+        "node_modules",
+        "__pycache__",
     }
     content_dir: Path | None = None
     for child in sorted(root.iterdir()):
@@ -142,9 +150,7 @@ def _build_classification_prompt(
     return system, user
 
 
-async def classify_and_place(
-    repo_path: str, raw_content: str
-) -> dict[str, Any]:
+async def classify_and_place(repo_path: str, raw_content: str) -> dict[str, Any]:
     """Classify raw content and suggest placement in the repo.
 
     Returns the AI classification result without writing any files.
@@ -156,15 +162,11 @@ async def classify_and_place(
             "structure": structure,
         }
 
-    system_prompt, user_prompt = _build_classification_prompt(
-        structure, raw_content
-    )
+    system_prompt, user_prompt = _build_classification_prompt(structure, raw_content)
 
     llm = get_llm_provider()
     try:
-        result = await llm.complete_json(
-            system_prompt, user_prompt, max_tokens=4000
-        )
+        result = await llm.complete_json(system_prompt, user_prompt, max_tokens=4000)
     except Exception:
         logger.exception("Content classification LLM call failed")
         return {"error": "AI service unavailable"}
