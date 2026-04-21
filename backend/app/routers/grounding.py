@@ -56,9 +56,7 @@ async def answer(req: GroundingRequest) -> dict:
         for i, r in enumerate(results)
     ]
     snippet_block = (
-        "\n".join(
-            f"[{s['index']}] {s['title']} <{s['url']}>\n  {s['snippet']}" for s in snippets
-        )
+        "\n".join(f"[{s['index']}] {s['title']} <{s['url']}>\n  {s['snippet']}" for s in snippets)
         or "(no results)"
     )
     user_prompt = (

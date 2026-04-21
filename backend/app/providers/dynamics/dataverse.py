@@ -34,11 +34,7 @@ class DataverseProvider(DynamicsProvider):
         self._base = (settings.dynamics_url or "").rstrip("/")
         if not self._base:
             return
-        if (
-            settings.azure_tenant_id
-            and settings.azure_client_id
-            and settings.azure_client_secret
-        ):
+        if settings.azure_tenant_id and settings.azure_client_id and settings.azure_client_secret:
             self._credential = ClientSecretCredential(
                 tenant_id=settings.azure_tenant_id,
                 client_id=settings.azure_client_id,

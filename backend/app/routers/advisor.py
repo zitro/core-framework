@@ -109,9 +109,7 @@ async def generate_use_case(request: UseCaseRequest):
     )
 
     try:
-        saved = await storage.create(
-            "use_cases", stamp_create(version.model_dump(mode="json"))
-        )
+        saved = await storage.create("use_cases", stamp_create(version.model_dump(mode="json")))
     except Exception:
         logger.exception("Failed to save use case version")
         raise HTTPException(status_code=500, detail="Failed to save")
