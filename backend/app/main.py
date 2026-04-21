@@ -60,7 +60,7 @@ def create_app() -> FastAPI:
 
     app = FastAPI(
         title=settings.app_name,
-        version="1.0.0",
+        version="1.0.1",
         description="CORE Discovery Framework API",
     )
 

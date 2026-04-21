@@ -9,10 +9,9 @@ rejected review (so callers can refuse to act on it).
 from __future__ import annotations
 
 import logging
-from datetime import UTC, datetime
 
 from app.providers.storage import get_storage_provider
-from app.utils.audit import current_user, user_label
+from app.utils.audit import current_user, stamp_create, user_label
 
 logger = logging.getLogger(__name__)
 
@@ -47,19 +46,18 @@ async def auto_request_review(
             if (row.get("status") or "") in _OPEN_STATUSES:
                 return row
         requested_by = user_label(current_user.get())
-        review = {
-            "artifact_collection": artifact_collection,
-            "artifact_id": artifact_id,
-            "artifact_title": artifact_title,
-            "discovery_id": discovery_id,
-            "status": "pending",
-            "requested_by": requested_by,
-            "reviewer": "",
-            "comment": "",
-            "created_by": requested_by,
-            "updated_by": requested_by,
-            "created_at": datetime.now(UTC).isoformat(),
-        }
+        review = stamp_create(
+            {
+                "artifact_collection": artifact_collection,
+                "artifact_id": artifact_id,
+                "artifact_title": artifact_title,
+                "discovery_id": discovery_id,
+                "status": "pending",
+                "requested_by": requested_by,
+                "reviewer": "",
+                "comment": "",
+            }
+        )
         return await storage.create(REVIEW_COLLECTION, review)
     except Exception:  # noqa: BLE001
         logger.exception(
