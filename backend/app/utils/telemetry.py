@@ -73,6 +73,7 @@ def get_tracer():
 
         return trace.get_tracer("core")
     except Exception:  # noqa: BLE001
+
         class _Noop:
             def start_as_current_span(self, _name: str, **_kwargs):
                 from contextlib import contextmanager

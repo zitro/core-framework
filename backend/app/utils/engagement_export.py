@@ -98,15 +98,19 @@ def render_company_profile(record: dict, discovery: str, date: str) -> str:
     result = record.get("result") or {}
     company = record.get("company") or result.get("company", "Company")
     sources = result.get("sources", [])
-    src_md = "\n".join(
-        f"- [{s.get('title', s.get('url', ''))}]({s.get('url', '')})" for s in sources
-    ) or "- _none_"
+    src_md = (
+        "\n".join(f"- [{s.get('title', s.get('url', ''))}]({s.get('url', '')})" for s in sources)
+        or "- _none_"
+    )
     news = result.get("recent_news", [])
-    news_md = "\n".join(
-        f"- {n.get('title', '')} — [{n.get('url', '')}]({n.get('url', '')})"
-        f"{' · ' + n.get('date', '') if n.get('date') else ''}"
-        for n in news
-    ) or "- _none_"
+    news_md = (
+        "\n".join(
+            f"- {n.get('title', '')} — [{n.get('url', '')}]({n.get('url', '')})"
+            f"{' · ' + n.get('date', '') if n.get('date') else ''}"
+            for n in news
+        )
+        or "- _none_"
+    )
     return (
         f"---\n"
         f'title: "Company Profile — {company}"\n'

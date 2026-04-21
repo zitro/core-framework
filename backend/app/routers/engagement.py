@@ -238,9 +238,7 @@ async def export_to_repo(request: ExportRequest):
             item_id = str(item.get("id", ""))
             status = await latest_status(collection, item_id) if item_id else ""
             if status in ("pending", "changes_requested", "rejected"):
-                skipped.append(
-                    {"collection": collection, "id": item_id, "status": status}
-                )
+                skipped.append({"collection": collection, "id": item_id, "status": status})
                 continue
             suffix = item.get("version", index) if suffix_kind == "v" else index
             filename = f"{prefix}-{suffix_kind}{suffix}.md"

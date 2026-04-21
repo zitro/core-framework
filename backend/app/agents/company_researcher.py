@@ -77,10 +77,7 @@ class CompanyResearcher(BaseAgent):
         if search.enabled:
             try:
                 results = await search.search(company, limit=8)
-                snippets = [
-                    {"title": r.title, "url": r.url, "snippet": r.snippet}
-                    for r in results
-                ]
+                snippets = [{"title": r.title, "url": r.url, "snippet": r.snippet} for r in results]
             except Exception:  # noqa: BLE001
                 logger.warning("Company search failed for %s", company, exc_info=True)
 

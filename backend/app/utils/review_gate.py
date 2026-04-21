@@ -60,9 +60,7 @@ async def auto_request_review(
         )
         return await storage.create(REVIEW_COLLECTION, review)
     except Exception:  # noqa: BLE001
-        logger.exception(
-            "auto_request_review failed for %s/%s", artifact_collection, artifact_id
-        )
+        logger.exception("auto_request_review failed for %s/%s", artifact_collection, artifact_id)
         return None
 
 

@@ -32,11 +32,7 @@ _TIMEOUT = httpx.Timeout(20.0)
 class MsGraphProvider(GraphProvider):
     def __init__(self) -> None:
         self._credential = None
-        if (
-            settings.azure_tenant_id
-            and settings.azure_client_id
-            and settings.azure_client_secret
-        ):
+        if settings.azure_tenant_id and settings.azure_client_id and settings.azure_client_secret:
             self._credential = ClientSecretCredential(
                 tenant_id=settings.azure_tenant_id,
                 client_id=settings.azure_client_id,
@@ -177,11 +173,7 @@ class MsGraphProvider(GraphProvider):
             return []
         out: list[GraphMeeting] = []
         for ev in cal.get("value", []):
-            organizer = (
-                ev.get("organizer", {})
-                .get("emailAddress", {})
-                .get("address", "")
-            )
+            organizer = ev.get("organizer", {}).get("emailAddress", {}).get("address", "")
             out.append(
                 GraphMeeting(
                     id=ev.get("id", ""),
