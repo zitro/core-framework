@@ -12,6 +12,10 @@ class Settings(BaseSettings):
     speech_provider: str = "none"
     # "none" | "web" (alias for duckduckgo) | "duckduckgo" | "bing"
     search_provider: str = "none"
+    # "none" | "msgraph"
+    graph_provider: str = "none"
+    # "none" | "dataverse"
+    dynamics_provider: str = "none"
 
     # Azure OpenAI
     azure_openai_endpoint: str = ""
@@ -49,6 +53,10 @@ class Settings(BaseSettings):
     # Azure Entra ID
     azure_tenant_id: str = ""
     azure_client_id: str = ""
+    azure_client_secret: str = ""
+
+    # Dynamics 365 / Dataverse
+    dynamics_url: str = ""
 
     # Bing Web Search v7
     bing_search_api_key: str = ""
@@ -81,6 +89,15 @@ class Settings(BaseSettings):
                 warnings.append("AZURE_SPEECH_REGION required when SPEECH_PROVIDER=azure")
         if self.search_provider == "bing" and not self.bing_search_api_key:
             warnings.append("BING_SEARCH_API_KEY required when SEARCH_PROVIDER=bing")
+        if self.graph_provider in ("msgraph", "azure"):
+            if not (self.azure_tenant_id and self.azure_client_id and self.azure_client_secret):
+                warnings.append(
+                    "AZURE_TENANT_ID, AZURE_CLIENT_ID, AZURE_CLIENT_SECRET required "
+                    "when GRAPH_PROVIDER=msgraph"
+                )
+        if self.dynamics_provider in ("dataverse", "dynamics"):
+            if not self.dynamics_url:
+                warnings.append("DYNAMICS_URL required when DYNAMICS_PROVIDER=dataverse")
         return warnings
 
 
