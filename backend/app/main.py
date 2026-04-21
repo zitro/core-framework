@@ -5,9 +5,9 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
-from slowapi.util import get_remote_address
 
 from app.config import settings
+from app.utils.ratelimit import user_or_ip_key
 
 logger = logging.getLogger("core")
 
@@ -22,7 +22,7 @@ def _configure_logging() -> None:
     )
 
 
-limiter = Limiter(key_func=get_remote_address, default_limits=[settings.rate_limit])
+limiter = Limiter(key_func=user_or_ip_key, default_limits=[settings.rate_limit])
 
 
 def create_app() -> FastAPI:
@@ -59,7 +59,7 @@ def create_app() -> FastAPI:
 
     app = FastAPI(
         title=settings.app_name,
-        version="0.5.0",
+        version="0.6.0",
         description="CORE Discovery Framework API",
     )
 
@@ -131,6 +131,11 @@ def create_app() -> FastAPI:
 
     @app.on_event("startup")
     async def _ensure_storage() -> None:
+        if not settings.cosmos_ensure_collections:
+            logger.info(
+                "Skipping ensure_collections (set COSMOS_ENSURE_COLLECTIONS=true to enable)"
+            )
+            return
         from app.providers.storage import KNOWN_COLLECTIONS, get_storage_provider
 
         try:

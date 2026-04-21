@@ -1,12 +1,11 @@
 """Engagements router — multi-engagement workspace for FDE/MCAPS workflows."""
 
-from datetime import UTC, datetime
-
 from fastapi import APIRouter, Depends, HTTPException
 
 from app.dependencies import get_current_user
 from app.models.core import Engagement, EngagementUpdate
 from app.providers.storage import get_storage_provider
+from app.utils.audit import stamp_create, stamp_update
 
 router = APIRouter(dependencies=[Depends(get_current_user)])
 COLLECTION = "engagements"
@@ -15,7 +14,7 @@ COLLECTION = "engagements"
 @router.post("/", response_model=Engagement, status_code=201)
 async def create_engagement(engagement: Engagement) -> Engagement:
     storage = get_storage_provider()
-    item = await storage.create(COLLECTION, engagement.model_dump(mode="json"))
+    item = await storage.create(COLLECTION, stamp_create(engagement.model_dump(mode="json")))
     return Engagement(**item)
 
 
@@ -41,7 +40,7 @@ async def update_engagement(engagement_id: str, updates: EngagementUpdate) -> En
     update_data = updates.model_dump(exclude_none=True, mode="json")
     if not update_data:
         raise HTTPException(status_code=422, detail="No valid fields to update")
-    update_data["updated_at"] = datetime.now(UTC).isoformat()
+    stamp_update(update_data)
     try:
         item = await storage.update(COLLECTION, engagement_id, update_data)
     except ValueError as exc:
@@ -70,7 +69,7 @@ async def attach_discovery(engagement_id: str, discovery_id: str) -> Engagement:
     updated = await storage.update(
         COLLECTION,
         engagement_id,
-        {"discovery_ids": ids, "updated_at": datetime.now(UTC).isoformat()},
+        stamp_update({"discovery_ids": ids}),
     )
     return Engagement(**updated)
 
@@ -85,6 +84,6 @@ async def detach_discovery(engagement_id: str, discovery_id: str) -> Engagement:
     updated = await storage.update(
         COLLECTION,
         engagement_id,
-        {"discovery_ids": ids, "updated_at": datetime.now(UTC).isoformat()},
+        stamp_update({"discovery_ids": ids}),
     )
     return Engagement(**updated)
