@@ -32,6 +32,16 @@ pre-commit install
 
 Now `git commit` will fail loudly on any drift instead of waiting for CI.
 
+## File size
+
+Source files (`*.py`, `*.ts`, `*.tsx`) must stay under 300 lines. Extract
+reusable components, helpers, or domain modules when a file approaches the
+limit.
+
+The only exemption is `src/components/ui/sidebar.tsx`, which is vendored
+verbatim from `shadcn/ui` (`npx shadcn add sidebar`). Splitting it would
+diverge from upstream and break future updates.
+
 ## Commit style
 
 Conventional commits, imperative mood, body as bullet list. No emojis.
