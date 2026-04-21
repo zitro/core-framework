@@ -15,6 +15,9 @@ KNOWN_COLLECTIONS: list[str] = [
     "hmw_boards",
     "ideation_sessions",
     "assumption_maps",
+    "engagements",
+    "company_profiles",
+    "reviews",
 ]
 
 

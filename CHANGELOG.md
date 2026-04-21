@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-04-21
+
+### Added
+
+- `Engagement` entity and `/api/engagements` CRUD with attach/detach helpers for grouping discoveries under a customer engagement
+- `EngagementStatus` lifecycle: proposed, active, paused, completed, cancelled
+- `Review` entity and `/api/reviews` for human-in-the-loop approval gates on any artifact (collection + item id), with pending, approved, rejected, and changes requested states
+- Company Researcher agent that combines the configured search provider with the LLM to produce a structured company profile (priorities, products, competitive landscape, news, sources, open questions)
+- Frontend Engagements, Company Research, and Reviews pages plus an "FDE" sidebar group
+- Shared `lib/http.ts` helper exposing `request`, `authHeader`, and `API_URL`, and a focused `lib/api-fde.ts` for the new endpoints
+- `KNOWN_COLLECTIONS` extended with `engagements`, `company_profiles`, and `reviews` so Cosmos auto-provisioning covers them on startup
+
+### Changed
+
+- Generic agent run endpoint now forwards arbitrary extra fields (e.g. `company`) to the agent so specialised agents can accept structured input
+- Backend FastAPI version and frontend sidebar badge bumped to `0.4.0`
+
 ## [0.3.0] - 2026-04-21
 
 ### Added

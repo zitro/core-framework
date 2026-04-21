@@ -7,6 +7,7 @@ into the central registry (each module ends with `register(...)`).
 # Import side-effect: each module registers itself with the registry.
 from app.agents import (  # noqa: F401
     assumption_tester,
+    company_researcher,
     discovery_coach,
     empathy_researcher,
     hmw_framer,

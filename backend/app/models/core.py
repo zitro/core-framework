@@ -244,3 +244,72 @@ class SolutionBlueprint(BaseModel):
     user_instructions: str = ""
     context_used: str = ""
     created_at: datetime = Field(default_factory=_utcnow)
+
+
+# ── FDE workflow ─────────────────────────────────────────
+
+
+class EngagementStatus(StrEnum):
+    PROPOSED = "proposed"
+    ACTIVE = "active"
+    PAUSED = "paused"
+    COMPLETED = "completed"
+    CANCELLED = "cancelled"
+
+
+class Engagement(BaseModel):
+    """A customer engagement that groups one or more discoveries."""
+
+    id: str = ""
+    name: str
+    customer: str = ""
+    industry: str = ""
+    summary: str = ""
+    status: EngagementStatus = EngagementStatus.PROPOSED
+    repo_path: str = ""
+    discovery_ids: list[str] = Field(default_factory=list)
+    owners: list[str] = Field(default_factory=list)
+    tags: list[str] = Field(default_factory=list)
+    created_at: datetime = Field(default_factory=_utcnow)
+    updated_at: datetime = Field(default_factory=_utcnow)
+
+
+class EngagementUpdate(BaseModel):
+    name: str | None = None
+    customer: str | None = None
+    industry: str | None = None
+    summary: str | None = None
+    status: EngagementStatus | None = None
+    repo_path: str | None = None
+    discovery_ids: list[str] | None = None
+    owners: list[str] | None = None
+    tags: list[str] | None = None
+
+
+class ReviewStatus(StrEnum):
+    PENDING = "pending"
+    APPROVED = "approved"
+    REJECTED = "rejected"
+    CHANGES_REQUESTED = "changes_requested"
+
+
+class Review(BaseModel):
+    """Human-in-the-loop review of any artifact (collection + item_id)."""
+
+    id: str = ""
+    discovery_id: str = ""
+    artifact_collection: str
+    artifact_id: str
+    artifact_title: str = ""
+    status: ReviewStatus = ReviewStatus.PENDING
+    requested_by: str = ""
+    reviewer: str = ""
+    comment: str = ""
+    created_at: datetime = Field(default_factory=_utcnow)
+    decided_at: datetime | None = None
+
+
+class ReviewDecision(BaseModel):
+    status: ReviewStatus
+    reviewer: str = ""
+    comment: str = ""
