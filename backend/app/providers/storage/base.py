@@ -24,3 +24,8 @@ class StorageProvider(ABC):
     @abstractmethod
     async def delete(self, collection: str, item_id: str) -> bool:
         """Delete an item."""
+
+    async def ensure_collections(self, collections: list[str]) -> None:
+        """Ensure all named collections exist. Default no-op for providers
+        that auto-create on first write (e.g. local JSON)."""
+        return None

@@ -2,6 +2,7 @@ import logging
 import uuid
 from typing import Any
 
+from azure.cosmos import PartitionKey
 from azure.cosmos.aio import CosmosClient
 from azure.identity.aio import DefaultAzureCredential
 
@@ -24,6 +25,21 @@ class CosmosStorageProvider(StorageProvider):
 
     def _container(self, collection: str):
         return self.database.get_container_client(collection)
+
+    async def ensure_collections(self, collections: list[str]) -> None:
+        """Create the database and any missing containers (idempotent)."""
+        try:
+            await self.client.create_database_if_not_exists(id=settings.cosmos_database)
+        except Exception:  # noqa: BLE001
+            logger.warning("create_database_if_not_exists failed", exc_info=True)
+        for name in collections:
+            try:
+                await self.database.create_container_if_not_exists(
+                    id=name,
+                    partition_key=PartitionKey(path="/id"),
+                )
+            except Exception:  # noqa: BLE001
+                logger.warning("create_container_if_not_exists(%s) failed", name, exc_info=True)
 
     async def create(self, collection: str, item: dict) -> dict:
         if not item.get("id"):
