@@ -40,10 +40,13 @@ def create_app() -> FastAPI:
         discovery,
         docs,
         dt_templates,
+        dynamics,
         engagement,
         engagements,
         evidence,
         export,
+        graph,
+        grounding,
         me,
         narrative,
         problem_statements,
@@ -56,7 +59,7 @@ def create_app() -> FastAPI:
 
     app = FastAPI(
         title=settings.app_name,
-        version="0.4.0",
+        version="0.5.0",
         description="CORE Discovery Framework API",
     )
 
@@ -122,6 +125,9 @@ def create_app() -> FastAPI:
     app.include_router(me.router, prefix="/api/me", tags=["me"])
     app.include_router(engagements.router, prefix="/api/engagements", tags=["engagements"])
     app.include_router(reviews.router, prefix="/api/reviews", tags=["reviews"])
+    app.include_router(graph.router, prefix="/api/graph", tags=["graph"])
+    app.include_router(dynamics.router, prefix="/api/dynamics", tags=["dynamics"])
+    app.include_router(grounding.router, prefix="/api/grounding", tags=["grounding"])
 
     @app.on_event("startup")
     async def _ensure_storage() -> None:
@@ -143,6 +149,9 @@ def create_app() -> FastAPI:
                 "storage": settings.storage_provider,
                 "speech": settings.speech_provider,
                 "auth": settings.auth_provider,
+                "search": settings.search_provider,
+                "graph": settings.graph_provider,
+                "dynamics": settings.dynamics_provider,
             },
         }
 

@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-04-21
+
+### Added
+
+- Microsoft Graph provider abstraction with `none` and `msgraph` (app-only client credentials) implementations covering files, messages, and meetings
+- `/api/graph/{status,files,messages,meetings}` read-only routes powered by Graph search and calendarView
+- Dynamics 365 / Dataverse provider abstraction with `none` and `dataverse` implementations for account search and lookup
+- `/api/dynamics/{status,accounts,accounts/{id}}` read-only routes
+- Grounded answer endpoint at `/api/grounding/answer` that combines the configured search provider with the LLM and returns inline `[source:N]` citations
+- `AZURE_CLIENT_SECRET`, `GRAPH_PROVIDER`, `DYNAMICS_PROVIDER`, and `DYNAMICS_URL` configuration and validation warnings
+- Frontend Microsoft 365 page with tabs for Files, Messages, Meetings, and Accounts plus a Grounded Answers page
+- New "M365" sidebar group and `lib/api-m365.ts` typed client
+- Health endpoint now reports `search`, `graph`, and `dynamics` provider selection
+
+### Changed
+
+- Backend FastAPI version and frontend sidebar badge bumped to `0.5.0`
+
 ## [0.4.0] - 2026-04-21
 
 ### Added
