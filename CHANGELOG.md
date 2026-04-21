@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.0] - 2026-04-21
+
+### Added
+
+- Append-only audit log: new `audit` collection plus `utils/audit_log.py` helper that records actor, action, before/after hashes, and a short summary
+- `/api/audit` read endpoint with filters for `collection`, `item_id`, and `actor`
+- BaseAgent `_save` now records an `agent_run` audit event for every produced artifact
+- Engagement create/update/delete and review decision routes record audit events
+- Optional OpenTelemetry / Application Insights wiring via `utils/telemetry.py` — auto-enabled when `APPLICATIONINSIGHTS_CONNECTION_STRING` or `OTEL_EXPORTER_OTLP_ENDPOINT` is set; instruments FastAPI and httpx; `agent.run` produces a span with `agent.id` and `discovery.id` attributes
+- New `azure` extras: `azure-monitor-opentelemetry`, `opentelemetry-instrumentation-fastapi`, `opentelemetry-instrumentation-httpx`
+- `pnpm gen:api` script and `scripts/gen-api-types.mjs` that dump the FastAPI OpenAPI schema and run `openapi-typescript` to produce `src/types/api.ts`
+
+### Changed
+
+- Backend FastAPI version and frontend sidebar badge bumped to `0.8.0`
+
 ## [0.7.0] - 2026-04-21
 
 ### Added

@@ -36,6 +36,7 @@ def create_app() -> FastAPI:
     from app.routers import (
         advisor,
         agents,
+        audit,
         blueprints,
         discovery,
         docs,
@@ -59,7 +60,7 @@ def create_app() -> FastAPI:
 
     app = FastAPI(
         title=settings.app_name,
-        version="0.7.0",
+        version="0.8.0",
         description="CORE Discovery Framework API",
     )
 
@@ -128,6 +129,11 @@ def create_app() -> FastAPI:
     app.include_router(graph.router, prefix="/api/graph", tags=["graph"])
     app.include_router(dynamics.router, prefix="/api/dynamics", tags=["dynamics"])
     app.include_router(grounding.router, prefix="/api/grounding", tags=["grounding"])
+    app.include_router(audit.router, prefix="/api/audit", tags=["audit"])
+
+    from app.utils.telemetry import configure_telemetry
+
+    configure_telemetry(app)
 
     @app.on_event("startup")
     async def _ensure_storage() -> None:
