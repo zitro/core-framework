@@ -4,11 +4,31 @@ import json
 import logging
 from collections import defaultdict
 
-from fastapi import APIRouter, WebSocket, WebSocketDisconnect
+from fastapi import APIRouter, Query, WebSocket, WebSocketDisconnect, status
+
+from app.providers.auth import get_auth_provider
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
+
+
+async def _validate_ws_token(token: str | None) -> dict | None:
+    """Validate a JWT supplied via the `?token=` query param.
+
+    Browsers can't set custom headers on `new WebSocket(...)`, so we accept
+    a bearer token via query string. The auth provider's `validate_request`
+    expects a `Request`-like object with a `headers` mapping; we synthesise
+    one from the token.
+    """
+
+    auth = get_auth_provider()
+
+    class _FakeRequest:
+        def __init__(self, value: str | None) -> None:
+            self.headers = {"Authorization": f"Bearer {value}"} if value else {}
+
+    return await auth.validate_request(_FakeRequest(token))
 
 
 class ConnectionManager:
@@ -55,7 +75,11 @@ manager = ConnectionManager()
 
 
 @router.websocket("/ws/{discovery_id}")
-async def discovery_websocket(websocket: WebSocket, discovery_id: str):
+async def discovery_websocket(
+    websocket: WebSocket,
+    discovery_id: str,
+    token: str | None = Query(default=None),
+):
     """Real-time collaboration channel for a discovery session.
 
     Message types:
@@ -63,6 +87,10 @@ async def discovery_websocket(websocket: WebSocket, discovery_id: str):
     - evidence_added: {"type": "evidence_added", "evidence": {...}}
     - cursor: {"type": "cursor", "user": "...", "section": "..."}
     """
+    claims = await _validate_ws_token(token)
+    if claims is None:
+        await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
+        return
     await manager.connect(discovery_id, websocket)
     try:
         while True:

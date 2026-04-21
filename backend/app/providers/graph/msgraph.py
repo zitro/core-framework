@@ -12,7 +12,7 @@ import logging
 from datetime import UTC, datetime, timedelta
 
 import httpx
-from azure.identity.aio import ClientSecretCredential
+from azure.identity.aio import ClientSecretCredential, DefaultAzureCredential
 
 from app.config import settings
 from app.providers.graph.base import (
@@ -31,7 +31,7 @@ _TIMEOUT = httpx.Timeout(20.0)
 
 class MsGraphProvider(GraphProvider):
     def __init__(self) -> None:
-        self._credential: ClientSecretCredential | None = None
+        self._credential = None
         if (
             settings.azure_tenant_id
             and settings.azure_client_id
@@ -42,6 +42,11 @@ class MsGraphProvider(GraphProvider):
                 client_id=settings.azure_client_id,
                 client_secret=settings.azure_client_secret,
             )
+        elif settings.azure_tenant_id and settings.azure_client_id:
+            # Prefer Managed Identity / Workload Identity / Azure CLI when no
+            # client secret is set in env. Operators should grant the MI the
+            # same Application permissions on Microsoft Graph.
+            self._credential = DefaultAzureCredential()
 
     @property
     def enabled(self) -> bool:

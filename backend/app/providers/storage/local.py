@@ -31,6 +31,10 @@ class LocalStorageProvider(StorageProvider):
         path.mkdir(parents=True, exist_ok=True)
         return path
 
+    async def ensure_collections(self, collections: list[str]) -> None:
+        for name in collections:
+            self._collection_path(name)
+
     async def create(self, collection: str, item: dict) -> dict:
         if not item.get("id"):
             item["id"] = str(uuid.uuid4())

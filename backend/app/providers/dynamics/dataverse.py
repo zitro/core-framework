@@ -6,7 +6,7 @@ import logging
 from urllib.parse import quote
 
 import httpx
-from azure.identity.aio import ClientSecretCredential
+from azure.identity.aio import ClientSecretCredential, DefaultAzureCredential
 
 from app.config import settings
 from app.providers.dynamics.base import CrmAccount, DynamicsProvider
@@ -30,11 +30,12 @@ def _to_account(row: dict) -> CrmAccount:
 
 class DataverseProvider(DynamicsProvider):
     def __init__(self) -> None:
-        self._credential: ClientSecretCredential | None = None
+        self._credential = None
         self._base = (settings.dynamics_url or "").rstrip("/")
+        if not self._base:
+            return
         if (
-            self._base
-            and settings.azure_tenant_id
+            settings.azure_tenant_id
             and settings.azure_client_id
             and settings.azure_client_secret
         ):
@@ -43,6 +44,10 @@ class DataverseProvider(DynamicsProvider):
                 client_id=settings.azure_client_id,
                 client_secret=settings.azure_client_secret,
             )
+        else:
+            # Fall back to Managed Identity / Azure CLI; the SP must be mapped
+            # to a Dataverse Application User with appropriate roles.
+            self._credential = DefaultAzureCredential()
 
     @property
     def enabled(self) -> bool:

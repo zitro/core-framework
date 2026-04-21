@@ -10,6 +10,7 @@ from pydantic import BaseModel, Field
 
 from app.providers.llm import get_llm_provider
 from app.providers.storage import get_storage_provider
+from app.utils.audit import stamp_create
 from app.utils.context import gather_context
 
 logger = logging.getLogger(__name__)
@@ -65,7 +66,7 @@ class BaseAgent(ABC):
 
     async def _save(self, data: dict) -> dict:
         storage = self._storage()
-        return await storage.create(self.collection, data)
+        return await storage.create(self.collection, stamp_create(data))
 
     async def _list(self, discovery_id: str) -> list[dict]:
         storage = self._storage()

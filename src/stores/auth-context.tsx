@@ -32,7 +32,7 @@ export interface AuthState {
   account: { name: string; username: string } | null;
   signIn: () => Promise<void>;
   signOut: () => Promise<void>;
-  getToken: () => Promise<string | null>;
+  getToken: (opts?: { forceRefresh?: boolean }) => Promise<string | null>;
 }
 
 const AuthContext = createContext<AuthState>({
@@ -89,20 +89,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await pca.logoutRedirect();
   }, []);
 
-  const getToken = useCallback(async () => {
-    const pca = pcaRef.current;
-    const active = pca?.getActiveAccount();
-    if (!pca || !active) return null;
-    try {
-      const result = await pca.acquireTokenSilent({
-        scopes: SCOPES,
-        account: active,
-      });
-      return result.accessToken;
-    } catch {
-      return null;
-    }
-  }, []);
+  const getToken = useCallback(
+    async (opts?: { forceRefresh?: boolean }) => {
+      const pca = pcaRef.current;
+      const active = pca?.getActiveAccount();
+      if (!pca || !active) return null;
+      try {
+        const result = await pca.acquireTokenSilent({
+          scopes: SCOPES,
+          account: active,
+          forceRefresh: opts?.forceRefresh ?? false,
+        });
+        return result.accessToken;
+      } catch {
+        return null;
+      }
+    },
+    [],
+  );
 
   const value = useMemo<AuthState>(
     () => ({
@@ -119,8 +123,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 
   if (typeof window !== "undefined") {
-    (window as unknown as { __coreGetToken?: () => Promise<string | null> }).__coreGetToken =
-      getToken;
+    const w = window as unknown as {
+      __coreGetToken?: AuthState["getToken"];
+      __coreRequireSignIn?: () => Promise<void>;
+    };
+    w.__coreGetToken = getToken;
+    w.__coreRequireSignIn = signIn;
   }
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

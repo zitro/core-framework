@@ -3,6 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from app.dependencies import get_current_user
 from app.models.core import Evidence, EvidenceUpdate
 from app.providers.storage import get_storage_provider
+from app.utils.audit import stamp_create, stamp_update
 
 router = APIRouter(dependencies=[Depends(get_current_user)])
 COLLECTION = "evidence"
@@ -11,7 +12,7 @@ COLLECTION = "evidence"
 @router.post("/", response_model=Evidence, status_code=201)
 async def create_evidence(evidence: Evidence):
     storage = get_storage_provider()
-    item = await storage.create(COLLECTION, evidence.model_dump(mode="json"))
+    item = await storage.create(COLLECTION, stamp_create(evidence.model_dump(mode="json")))
     return Evidence(**item)
 
 
@@ -31,6 +32,7 @@ async def update_evidence(evidence_id: str, updates: EvidenceUpdate):
     update_data = updates.model_dump(exclude_none=True)
     if not update_data:
         raise HTTPException(status_code=422, detail="No valid fields to update")
+    stamp_update(update_data)
     try:
         item = await storage.update(COLLECTION, evidence_id, update_data)
     except ValueError:

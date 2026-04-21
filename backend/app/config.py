@@ -40,6 +40,10 @@ class Settings(BaseSettings):
     local_storage_path: str = "./data"
     local_db_path: str = "./data/core.db"
 
+    # When true, FastAPI startup will (re)create Cosmos containers. Default off so
+    # production restarts don't pay the round-trip on every pod boot.
+    cosmos_ensure_collections: bool = False
+
     # Azure Blob Storage
     azure_storage_account: str = ""
     azure_storage_connection_string: str = ""
@@ -90,10 +94,10 @@ class Settings(BaseSettings):
         if self.search_provider == "bing" and not self.bing_search_api_key:
             warnings.append("BING_SEARCH_API_KEY required when SEARCH_PROVIDER=bing")
         if self.graph_provider in ("msgraph", "azure"):
-            if not (self.azure_tenant_id and self.azure_client_id and self.azure_client_secret):
+            if not (self.azure_tenant_id and self.azure_client_id):
                 warnings.append(
-                    "AZURE_TENANT_ID, AZURE_CLIENT_ID, AZURE_CLIENT_SECRET required "
-                    "when GRAPH_PROVIDER=msgraph"
+                    "AZURE_TENANT_ID and AZURE_CLIENT_ID required when GRAPH_PROVIDER=msgraph "
+                    "(AZURE_CLIENT_SECRET optional; falls back to DefaultAzureCredential)"
                 )
         if self.dynamics_provider in ("dataverse", "dynamics"):
             if not self.dynamics_url:

@@ -21,30 +21,52 @@ export function useRealtime({ discoveryId, onMessage }: UseRealtimeOptions) {
 
   useEffect(() => {
     if (!discoveryId) return;
+    let cancelled = false;
+    let ws: WebSocket | null = null;
 
-    const ws = new WebSocket(`${WS_URL}/ws/${discoveryId}`);
-    wsRef.current = ws;
-
-    ws.onopen = () => setConnected(true);
-    ws.onclose = () => {
-      setConnected(false);
-      setActiveUsers(0);
-    };
-
-    ws.onmessage = (event) => {
-      try {
-        const data = JSON.parse(event.data) as RealtimeMessage;
-        if (data.type === "presence") {
-          setActiveUsers(data.active_users as number);
+    (async () => {
+      let token: string | null = null;
+      if (typeof window !== "undefined") {
+        const getter = (
+          window as unknown as {
+            __coreGetToken?: (opts?: { forceRefresh?: boolean }) => Promise<string | null>;
+          }
+        ).__coreGetToken;
+        if (getter) {
+          try {
+            token = await getter();
+          } catch {
+            token = null;
+          }
         }
-        onMessage?.(data);
-      } catch {
-        // ignore malformed messages
       }
-    };
+      if (cancelled) return;
+      const qs = token ? `?token=${encodeURIComponent(token)}` : "";
+      ws = new WebSocket(`${WS_URL}/ws/${discoveryId}${qs}`);
+      wsRef.current = ws;
+
+      ws.onopen = () => setConnected(true);
+      ws.onclose = () => {
+        setConnected(false);
+        setActiveUsers(0);
+      };
+
+      ws.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data) as RealtimeMessage;
+          if (data.type === "presence") {
+            setActiveUsers(data.active_users as number);
+          }
+          onMessage?.(data);
+        } catch {
+          // ignore malformed messages
+        }
+      };
+    })();
 
     return () => {
-      ws.close();
+      cancelled = true;
+      ws?.close();
       wsRef.current = null;
     };
   }, [discoveryId, onMessage]);

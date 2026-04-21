@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-04-21
+
+### Added
+
+- WebSocket auth gate: `/ws/{discovery_id}` now validates a `?token=` bearer via the configured auth provider and closes with policy violation when the token is missing or invalid
+- SPA token refresh: HTTP requests that 401 once attempt a forced silent MSAL token refresh and retry; a hard failure triggers `loginRedirect`
+- Per-user rate limiting: `slowapi` keys by Entra `sub` when authenticated, falling back to remote address otherwise
+- Audit attribution: `created_by` / `updated_by` fields on `Discovery`, `Engagement`, `Evidence`, and `Review`; backend stamps them automatically from the active user's claims via a `ContextVar`-backed helper
+- `BaseAgent._save` now stamps audit fields, so all agent-produced artifacts capture the invoking user
+- `LocalStorageProvider.ensure_collections` now pre-creates each collection directory so `KNOWN_COLLECTIONS` works under both Cosmos and local providers
+- Microsoft Graph and Dataverse providers fall back to `DefaultAzureCredential` when no `AZURE_CLIENT_SECRET` is set, enabling Managed Identity / Workload Identity in production
+- `COSMOS_ENSURE_COLLECTIONS` setting (default `false`) gates container provisioning on startup so production restarts don't pay the round-trip every boot
+
+### Changed
+
+- `.env.example` documents the production secret-management path (Managed Identity + Key Vault) and the new ensure-collections flag
+- Backend FastAPI version and frontend sidebar badge bumped to `0.6.0`
+
 ## [0.5.0] - 2026-04-21
 
 ### Added

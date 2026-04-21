@@ -54,6 +54,8 @@ class Evidence(BaseModel):
     confidence: ConfidenceLevel = ConfidenceLevel.UNKNOWN
     evidence_type: EvidenceType = EvidenceType.GENERAL
     tags: list[str] = Field(default_factory=list)
+    created_by: str = ""
+    updated_by: str = ""
     created_at: datetime = Field(default_factory=_utcnow)
 
 
@@ -141,6 +143,8 @@ class Discovery(BaseModel):
     solution_providers: list[str] = Field(default_factory=lambda: ["Microsoft Azure"])
     engagement_repo_path: str = ""
     evidence: list[Evidence] = Field(default_factory=list)
+    created_by: str = ""
+    updated_by: str = ""
     created_at: datetime = Field(default_factory=_utcnow)
     updated_at: datetime = Field(default_factory=_utcnow)
 
@@ -270,6 +274,8 @@ class Engagement(BaseModel):
     discovery_ids: list[str] = Field(default_factory=list)
     owners: list[str] = Field(default_factory=list)
     tags: list[str] = Field(default_factory=list)
+    created_by: str = ""
+    updated_by: str = ""
     created_at: datetime = Field(default_factory=_utcnow)
     updated_at: datetime = Field(default_factory=_utcnow)
 
@@ -305,6 +311,8 @@ class Review(BaseModel):
     requested_by: str = ""
     reviewer: str = ""
     comment: str = ""
+    created_by: str = ""
+    updated_by: str = ""
     created_at: datetime = Field(default_factory=_utcnow)
     decided_at: datetime | None = None
 

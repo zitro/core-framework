@@ -3,6 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from app.dependencies import get_current_user
 from app.models.core import Discovery, DiscoveryUpdate
 from app.providers.storage import get_storage_provider
+from app.utils.audit import stamp_create, stamp_update
 
 router = APIRouter(dependencies=[Depends(get_current_user)])
 COLLECTION = "discoveries"
@@ -11,7 +12,7 @@ COLLECTION = "discoveries"
 @router.post("/", response_model=Discovery, status_code=201)
 async def create_discovery(discovery: Discovery):
     storage = get_storage_provider()
-    item = await storage.create(COLLECTION, discovery.model_dump(mode="json"))
+    item = await storage.create(COLLECTION, stamp_create(discovery.model_dump(mode="json")))
     return Discovery(**item)
 
 
@@ -38,6 +39,7 @@ async def update_discovery(discovery_id: str, updates: DiscoveryUpdate):
     update_data = updates.model_dump(exclude_none=True)
     if not update_data:
         raise HTTPException(status_code=422, detail="No valid fields to update")
+    stamp_update(update_data)
     try:
         item = await storage.update(COLLECTION, discovery_id, update_data)
     except ValueError:
