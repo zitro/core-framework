@@ -61,6 +61,7 @@ class HMWFramer(BaseAgent):
     )
     system_prompt = SYSTEM
     collection = "hmw_boards"
+    requires_review = True
 
     async def run(
         self,

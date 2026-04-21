@@ -210,6 +210,7 @@ export interface EngagementScanResult {
 
 export interface EngagementExportResult {
   exported: string[];
+  skipped?: { collection: string; id: string; status: string }[];
   count: number;
   target_dir: string;
 }

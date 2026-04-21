@@ -1,6 +1,6 @@
 [project]
 name = "core-discovery-api"
-version = "0.6.0"
+version = "0.7.0"
 description = "CORE Discovery Framework - AI-powered product discovery coaching"
 requires-python = ">=3.11"
 dependencies = [

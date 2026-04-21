@@ -62,6 +62,7 @@ class ProblemAnalyst(BaseAgent):
     )
     system_prompt = SYSTEM
     collection = "problem_statements"
+    requires_review = True
 
     async def run(
         self, discovery_id: str, user_instructions: str = "", **kwargs: Any

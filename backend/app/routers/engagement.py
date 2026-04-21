@@ -1,6 +1,7 @@
 """Engagement repo router — scan, preview, ingest, and export."""
 
 import logging
+from collections.abc import Callable
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -14,6 +15,14 @@ from app.utils.engagement import (
     read_engagement_content_structured,
     scan_engagement_repo,
 )
+from app.utils.engagement_export import (
+    render_blueprint,
+    render_company_profile,
+    render_empathy_map,
+    render_hmw_board,
+    render_problem_statement,
+    render_use_case,
+)
 from app.utils.file_extract import (
     SUPPORTED_EXTENSIONS,
     ExtractionError,
@@ -22,6 +31,7 @@ from app.utils.file_extract import (
 )
 from app.utils.ingest import classify_and_place, write_classified_content
 from app.utils.references import regenerate_references
+from app.utils.review_gate import latest_status
 
 logger = logging.getLogger(__name__)
 
@@ -164,12 +174,31 @@ async def references_rebuild(request: RepoPathRequest):
     return result
 
 
+_EXPORT_TARGETS: list[tuple[str, str, str, Callable[[dict, str, str], str]]] = [
+    ("problem_statements", "core-problem-statement", "v", render_problem_statement),
+    ("use_cases", "core-use-case", "v", render_use_case),
+    ("solution_blueprints", "core-solution-blueprint", "v", render_blueprint),
+    ("company_profiles", "core-company-profile", "n", render_company_profile),
+    ("empathy_maps", "core-empathy-map", "n", render_empathy_map),
+    ("hmw_boards", "core-hmw-board", "n", render_hmw_board),
+]
+
+
+async def _items_for_discovery(storage, collection: str, discovery_id: str) -> list[dict]:
+    items = await storage.list(collection, {"discoveryId": discovery_id})
+    if not items:
+        items = await storage.list(collection, {"discovery_id": discovery_id})
+    return items
+
+
 @router.post("/export")
 async def export_to_repo(request: ExportRequest):
-    """Export CORE outputs as markdown files into the engagement repo.
+    """Export approved CORE artifacts as markdown into the engagement repo.
 
-    Writes problem statements, use cases, and solution blueprints
-    into a decisions/ directory.
+    Writes problem statements, use cases, solution blueprints, company
+    profiles, empathy maps, and HMW boards into a `decisions/` directory.
+    Artifacts whose latest review status is `pending`, `changes_requested`,
+    or `rejected` are skipped and reported under `skipped`.
     """
     storage = get_storage_provider()
     root = Path(request.repo_path)
@@ -180,11 +209,9 @@ async def export_to_repo(request: ExportRequest):
     if not disc:
         raise HTTPException(status_code=404, detail="Discovery not found")
 
-    # Find the project directory to write into
     if request.project_dir:
         project_path = root / request.project_dir
     else:
-        # Auto-detect: find the content dir, then its first sub-project
         content_dir = _find_content_dir(root)
         if not content_dir:
             raise HTTPException(
@@ -192,11 +219,7 @@ async def export_to_repo(request: ExportRequest):
                 detail="No content directory found in engagement repo",
             )
         projects = [d for d in sorted(content_dir.iterdir()) if d.is_dir() and any(d.glob("*.md"))]
-        if not projects:
-            # Write directly to the content dir
-            project_path = content_dir
-        else:
-            project_path = projects[0]
+        project_path = projects[0] if projects else content_dir
 
     if not project_path.is_dir():
         raise HTTPException(status_code=400, detail="Project directory not found")
@@ -205,140 +228,29 @@ async def export_to_repo(request: ExportRequest):
     decisions_dir.mkdir(exist_ok=True)
 
     exported: list[str] = []
+    skipped: list[dict] = []
     today = datetime.now(UTC).strftime("%Y-%m-%d")
     discovery_name = disc.get("name", "CORE Discovery")
 
-    # Export problem statements
-    ps_items = await storage.list("problem_statements", {"discoveryId": request.discovery_id})
-    if not ps_items:
-        ps_items = await storage.list(
-            "problem_statements",
-            {"discovery_id": request.discovery_id},
-        )
-    for ps in ps_items:
-        version = ps.get("version", 1)
-        filename = f"core-problem-statement-v{version}.md"
-        filepath = decisions_dir / filename
-        content = _render_problem_statement(ps, discovery_name, today)
-        filepath.write_text(content, encoding="utf-8")
-        exported.append(str(filepath.relative_to(root)))
-
-    # Export use cases
-    uc_items = await storage.list("use_cases", {"discoveryId": request.discovery_id})
-    if not uc_items:
-        uc_items = await storage.list("use_cases", {"discovery_id": request.discovery_id})
-    for uc in uc_items:
-        version = uc.get("version", 1)
-        filename = f"core-use-case-v{version}.md"
-        filepath = decisions_dir / filename
-        content = _render_use_case(uc, discovery_name, today)
-        filepath.write_text(content, encoding="utf-8")
-        exported.append(str(filepath.relative_to(root)))
-
-    # Export solution blueprints
-    bp_items = await storage.list("solution_blueprints", {"discoveryId": request.discovery_id})
-    if not bp_items:
-        bp_items = await storage.list(
-            "solution_blueprints",
-            {"discovery_id": request.discovery_id},
-        )
-    for bp in bp_items:
-        version = bp.get("version", 1)
-        filename = f"core-solution-blueprint-v{version}.md"
-        filepath = decisions_dir / filename
-        content = _render_blueprint(bp, discovery_name, today)
-        filepath.write_text(content, encoding="utf-8")
-        exported.append(str(filepath.relative_to(root)))
+    for collection, prefix, suffix_kind, renderer in _EXPORT_TARGETS:
+        items = await _items_for_discovery(storage, collection, request.discovery_id)
+        for index, item in enumerate(items, start=1):
+            item_id = str(item.get("id", ""))
+            status = await latest_status(collection, item_id) if item_id else ""
+            if status in ("pending", "changes_requested", "rejected"):
+                skipped.append(
+                    {"collection": collection, "id": item_id, "status": status}
+                )
+                continue
+            suffix = item.get("version", index) if suffix_kind == "v" else index
+            filename = f"{prefix}-{suffix_kind}{suffix}.md"
+            filepath = decisions_dir / filename
+            filepath.write_text(renderer(item, discovery_name, today), encoding="utf-8")
+            exported.append(str(filepath.relative_to(root)))
 
     return {
         "exported": exported,
+        "skipped": skipped,
         "count": len(exported),
         "target_dir": str(decisions_dir.relative_to(root)),
     }
-
-
-# ── Markdown renderers ───────────────────────────────────
-
-
-def _render_problem_statement(ps: dict, discovery: str, date: str) -> str:
-    return (
-        f"---\n"
-        f'title: "Problem Statement v{ps.get("version", 1)}"\n'
-        f"date: {date}\n"
-        f"type: decision\n"
-        f'initiative: "{discovery}"\n'
-        f"source: CORE Discovery Framework\n"
-        f"---\n\n"
-        f"# Problem Statement v{ps.get('version', 1)}\n\n"
-        f"| Dimension | Detail |\n"
-        f"| --------- | ------ |\n"
-        f"| Who | {ps.get('who', '')} |\n"
-        f"| What | {ps.get('what', '')} |\n"
-        f"| Why | {ps.get('why', '')} |\n"
-        f"| Impact | {ps.get('impact', '')} |\n\n"
-        f"## Statement\n\n"
-        f"{ps.get('statement', '')}\n"
-    )
-
-
-def _render_use_case(uc: dict, discovery: str, date: str) -> str:
-    metrics = uc.get("success_metrics", [])
-    metrics_md = "\n".join(f"- {m}" for m in metrics) if metrics else "- TBD"
-    return (
-        f"---\n"
-        f'title: "{uc.get("title", "Use Case")}"\n'
-        f"date: {date}\n"
-        f"type: decision\n"
-        f'initiative: "{discovery}"\n'
-        f"source: CORE Discovery Framework\n"
-        f"---\n\n"
-        f"# {uc.get('title', 'Use Case')}\n\n"
-        f"**Persona:** {uc.get('persona', '')}\n\n"
-        f"**Goal:** {uc.get('goal', '')}\n\n"
-        f"## Current State\n\n{uc.get('current_state', '')}\n\n"
-        f"## Desired State\n\n{uc.get('desired_state', '')}\n\n"
-        f"## Business Value\n\n{uc.get('business_value', '')}\n\n"
-        f"## Business Impact\n\n{uc.get('business_impact', '')}\n\n"
-        f"## Success Metrics\n\n{metrics_md}\n\n"
-        f"## Summary\n\n{uc.get('summary', '')}\n"
-    )
-
-
-def _render_blueprint(bp: dict, discovery: str, date: str) -> str:
-    services = bp.get("services", [])
-    svc_rows = "\n".join(
-        f"| {s.get('service', '')} | {s.get('purpose', '')} | {s.get('rationale', '')} |"
-        for s in services
-    )
-    svc_table = (
-        "| Service | Purpose | Rationale |\n| ------- | ------- | --------- |\n" + svc_rows
-        if services
-        else "No services specified."
-    )
-
-    oq = bp.get("open_questions", [])
-    oq_md = "\n".join(f"- {q}" for q in oq) if oq else "- None identified"
-
-    fq = bp.get("follow_up_questions", [])
-    fq_md = "\n".join(f"- {q}" for q in fq) if fq else "- None identified"
-
-    providers = ", ".join(bp.get("target_providers", []))
-    return (
-        f"---\n"
-        f'title: "{bp.get("approach_title", "Solution Blueprint")}"\n'
-        f"date: {date}\n"
-        f"type: decision\n"
-        f'initiative: "{discovery}"\n'
-        f"source: CORE Discovery Framework\n"
-        f"---\n\n"
-        f"# {bp.get('approach_title', 'Solution Blueprint')}\n\n"
-        f"**Target Providers:** {providers}\n\n"
-        f"**Estimated Effort:** {bp.get('estimated_effort', 'TBD')}\n\n"
-        f"## Approach\n\n{bp.get('approach_summary', '')}\n\n"
-        f"## Recommended Services\n\n{svc_table}\n\n"
-        f"## Architecture Overview\n\n"
-        f"{bp.get('architecture_overview', '')}\n\n"
-        f"## Quick Win\n\n{bp.get('quick_win_suggestion', '')}\n\n"
-        f"## Open Questions\n\n{oq_md}\n\n"
-        f"## Follow-up Questions\n\n{fq_md}\n"
-    )

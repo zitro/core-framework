@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { engagementsApi } from "@/lib/api-fde";
+import { EngagementDiscoveriesPanel } from "@/components/engagements/engagement-discoveries-panel";
 import {
   ENGAGEMENT_STATUS_LABELS,
   type Engagement,
@@ -147,6 +148,12 @@ export default function EngagementsPage() {
                   <span>· {e.discovery_ids.length} discoveries</span>
                 </div>
                 {e.summary && <p>{e.summary}</p>}
+                <EngagementDiscoveriesPanel
+                  engagement={e}
+                  onChanged={(next) =>
+                    setItems((curr) => curr.map((x) => (x.id === next.id ? next : x)))
+                  }
+                />
                 <div className="flex flex-wrap gap-1.5">
                   {STATUSES.map((s) => (
                     <Button

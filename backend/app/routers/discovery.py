@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 
 from app.dependencies import get_current_user
 from app.models.core import Discovery, DiscoveryUpdate
@@ -17,9 +17,15 @@ async def create_discovery(discovery: Discovery):
 
 
 @router.get("/", response_model=list[Discovery])
-async def list_discoveries():
+async def list_discoveries(engagement_id: str | None = Query(default=None)):
     storage = get_storage_provider()
     items = await storage.list(COLLECTION)
+    if engagement_id:
+        engagement = await storage.get("engagements", engagement_id)
+        if not engagement:
+            raise HTTPException(status_code=404, detail="Engagement not found")
+        allowed = set(engagement.get("discovery_ids") or [])
+        items = [i for i in items if i.get("id") in allowed]
     return [Discovery(**item) for item in items]
 
 

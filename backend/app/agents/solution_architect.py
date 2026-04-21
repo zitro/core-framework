@@ -68,6 +68,7 @@ class SolutionArchitectAgent(BaseAgent):
     )
     system_prompt = SYSTEM
     collection = "solution_blueprints"
+    requires_review = True
 
     async def run(
         self, discovery_id: str, user_instructions: str = "", **kwargs: Any
