@@ -72,6 +72,7 @@ jobs:
       packages: write
       id-token: write   # required for cosign keyless signing + provenance
       attestations: write
+      security-events: write   # required for upload-sarif
 
     strategy:
       fail-fast: false
@@ -183,6 +184,11 @@ jobs:
           push-to-registry: true
 
       - name: Vulnerability scan (Trivy)
+        id: trivy
+        continue-on-error: true   # report-only; never block release on scanner failure
+        env:
+          TRIVY_DB_REPOSITORY: ghcr.io/aquasecurity/trivy-db,public.ecr.aws/aquasecurity/trivy-db
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         uses: aquasecurity/trivy-action@dc5a429b52fcf669ce959baa2c2dd26090d2a6c4 # v0.32.0
         with:
           image-ref: ${{ env.REGISTRY }}/${{ env.IMAGE_OWNER }}/${{ matrix.image }}@${{ steps.build.outputs.digest }}
@@ -190,11 +196,11 @@ jobs:
           output: trivy-${{ matrix.component }}.sarif
           severity: CRITICAL,HIGH
           ignore-unfixed: true
-          exit-code: "0"   # report only; do not fail release on CVEs (tighten later)
+          exit-code: "0"
 
       - name: Upload Trivy results to Security tab
+        if: steps.trivy.outcome == 'success' && hashFiles(format('trivy-{0}.sarif', matrix.component)) != ''
         uses: github/codeql-action/upload-sarif@fc54ff75c9030388b65fbabde476bad39588e069 # v3.27.1
-        if: always()
         with:
           sarif_file: trivy-${{ matrix.component }}.sarif
           category: trivy-${{ matrix.component }}
