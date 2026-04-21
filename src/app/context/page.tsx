@@ -189,18 +189,37 @@ export default function ContextPage() {
         </>
       )}
 
+      {/* Loading state */}
+      {loading && !data && (
+        <div className="grid grid-cols-3 gap-3">
+          {[0, 1, 2].map((i) => (
+            <Card key={i}>
+              <CardContent className="flex items-center gap-3 py-3">
+                <div className="h-9 w-9 rounded-lg bg-muted animate-pulse" />
+                <div className="space-y-1.5">
+                  <div className="h-6 w-10 rounded bg-muted animate-pulse" />
+                  <div className="h-3 w-16 rounded bg-muted animate-pulse" />
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
+
       {/* Empty state */}
       {!data && !loading && !error && (
-        <div className="flex flex-col items-center justify-center py-20 text-center">
-          <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-muted mb-4">
-            <FolderGit2 className="h-8 w-8 text-muted-foreground/50" />
-          </div>
-          <h2 className="text-lg font-medium mb-1">No repo loaded</h2>
-          <p className="text-sm text-muted-foreground max-w-md">
-            Enter the path to your engagement repo above to browse its content,
-            search across files, and ingest new information with AI classification.
-          </p>
-        </div>
+        <Card className="border-dashed">
+          <CardContent className="flex flex-col items-center justify-center py-16 text-center">
+            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-muted mb-4">
+              <FolderGit2 className="h-7 w-7 text-muted-foreground/50" />
+            </div>
+            <h2 className="text-lg font-medium mb-1">No repo loaded</h2>
+            <p className="text-sm text-muted-foreground max-w-md">
+              Enter the path to your engagement repo above to browse its content,
+              search across files, and ingest new information with AI classification.
+            </p>
+          </CardContent>
+        </Card>
       )}
     </div>
   );
@@ -218,13 +237,13 @@ function StatCard({
   color: string;
 }) {
   return (
-    <Card>
+    <Card className="transition-shadow duration-200 hover:shadow-md">
       <CardContent className="flex items-center gap-3 py-3">
         <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${color}`}>
           <Icon className="h-4 w-4" />
         </div>
         <div>
-          <p className="text-2xl font-bold tracking-tight">{value}</p>
+          <p className="text-2xl font-bold tracking-tight tabular-nums">{value}</p>
           <p className="text-xs text-muted-foreground">{label}</p>
         </div>
       </CardContent>

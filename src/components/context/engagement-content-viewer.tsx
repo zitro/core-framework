@@ -8,6 +8,7 @@ import {
   LayoutGrid,
   List,
 } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
@@ -188,17 +189,19 @@ export function EngagementContentViewer({ data }: EngagementContentViewerProps) 
 
       {/* Content */}
       {filtered.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-16 text-center">
-          <Search className="h-10 w-10 text-muted-foreground/40 mb-3" />
-          <p className="text-sm text-muted-foreground">No files match your filters</p>
-          <button
-            onClick={clearFilters}
-            title="Clear all filters"
-            className="mt-2 text-xs text-primary hover:underline"
-          >
-            Clear filters
-          </button>
-        </div>
+        <Card className="border-dashed">
+          <CardContent className="flex flex-col items-center justify-center py-12 text-center">
+            <Search className="h-8 w-8 text-muted-foreground/40 mb-3" />
+            <p className="text-sm text-muted-foreground">No files match your filters</p>
+            <button
+              onClick={clearFilters}
+              title="Clear all filters"
+              className="mt-2 text-xs text-primary hover:underline"
+            >
+              Clear filters
+            </button>
+          </CardContent>
+        </Card>
       ) : (
         <Tabs defaultValue={defaultTab} className="space-y-4">
           <TabsList className="flex-wrap h-auto gap-1">
