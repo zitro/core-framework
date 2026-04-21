@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.0] - 2026-04-21
+
+First stable release. Consolidates the v0.1–v0.9 work into a documented, audited, observable, multi-engagement discovery platform with human-in-the-loop review gates, Microsoft 365 read-only surfaces, optional Azure Monitor telemetry, and an OpenAPI-typed frontend.
+
+### Added
+
+- README refresh covering engagements, reviews, audit log, telemetry, typed API client, Storybook scaffold, M365 surfaces, and the bearer-token WebSocket
+- Release / license / Python / Next.js badges at the top of the README
+- Documented `pnpm gen:api`, opt-in Storybook workflow, and `/api/audit` filter examples
+
+### Changed
+
+- API endpoint table updated to include engagements, reviews, audit, agents run, M365, grounding, and the `?token=` WS auth
+- Tech stack table now lists HITL review gates, OpenAPI client tooling, Storybook scaffold, and observability
+- Backend, frontend, and FastAPI versions bumped to `1.0.0`
+
 ## [0.9.0] - 2026-04-21
 
 ### Added

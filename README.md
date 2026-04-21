@@ -1,8 +1,13 @@
 ---
 title: CORE Discovery Framework
-description: An AI-powered product discovery coaching platform built on the CORE methodology (Capture, Orient, Refine, Execute) with a Next.js frontend, FastAPI backend, pluggable AI agents, and bidirectional engagement repo integration.
-ms.date: 2026-04-09
+description: An AI-powered product discovery coaching platform built on the CORE methodology (Capture, Orient, Refine, Execute) with a Next.js frontend, FastAPI backend, pluggable AI agents, audited human-in-the-loop review gates, and bidirectional engagement repo integration.
+ms.date: 2026-04-21
 ---
+
+[![Release](https://img.shields.io/github/v/tag/zitro/core-framework?label=release)](https://github.com/zitro/core-framework/releases)
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![Python](https://img.shields.io/badge/python-3.11%2B-blue.svg)](backend/pyproject.toml)
+[![Next.js](https://img.shields.io/badge/next.js-16-black.svg)](package.json)
 
 ## Overview
 
@@ -24,16 +29,29 @@ The four phases work together:
 
 Beyond the four phases, the platform includes:
 
-- Five specialized AI agents (discovery coach, problem analyst, transcript analyst, use case analyst,
-  solution architect) that power the analysis behind each phase.
+- Specialized AI agents (discovery coach, problem analyst, transcript analyst, use case analyst,
+  solution architect, company researcher, empathy researcher, HMW framer) that power the analysis
+  behind each phase. Most agents open a pending review on every artifact they produce so a human can
+  approve before it leaves the workspace.
 - An AI advisor that generates use case proposals and solution architecture blueprints from accumulated
   evidence.
+- Engagement workspaces that group multiple discoveries under one customer with attach/detach
+  controls, scoped review queues, and one-click export of all artifact families to a structured
+  markdown repo (skipping anything still pending or rejected in review).
+- Microsoft 365 read-only surfaces (Files, Messages, Meetings, Accounts) backed by Microsoft Graph
+  and Dataverse providers, plus a Grounded Answers page that combines web search with the LLM and
+  returns inline `[source:N]` citations.
+- Append-only audit log capturing every create, update, delete, agent run, and review decision —
+  who, when, what, plus before/after content hashes — exposed via `/api/audit`.
+- Optional OpenTelemetry / Application Insights instrumentation that wraps every agent run in a
+  span tagged with `agent.id` and `discovery.id`, auto-enabled when the relevant env var is set.
 - Bidirectional engagement repo integration for importing context from and exporting deliverables to
   structured markdown repositories.
 - Local documentation scanning that ingests PDF, PPTX, DOCX, XLSX, and text files to feed context
   into the AI agents.
-- Real-time WebSocket collaboration so multiple users can work on a discovery session simultaneously.
-- JSON and CSV export for sharing discovery outputs externally.
+- Real-time WebSocket collaboration with bearer-token auth and SPA token-refresh on 401, so multiple
+  users can work on a discovery session simultaneously without losing state on token expiry.
+- JSON, CSV, and structured markdown export for sharing discovery outputs externally.
 
 ## Architecture
 
@@ -72,16 +90,19 @@ The backend uses a provider abstraction pattern. Swap between local development 
 | Frontend     | Next.js 16, React 19, TypeScript 5.9                |
 | Styling      | Tailwind CSS v4, shadcn/ui (base-nova)              |
 | Backend      | FastAPI, Pydantic 2, uvicorn                        |
-| AI Agents    | 5 specialized agents with base class and registry   |
+| AI Agents    | Specialized agents with base class, registry, and opt-in HITL review gates |
 | LLM          | Azure OpenAI, OpenAI direct, or Ollama (local)      |
 | Storage      | Azure Cosmos DB or local JSON files                 |
 | Blobs        | Azure Blob Storage or local filesystem              |
 | Speech       | Azure Speech Services (optional)                    |
-| Auth         | Azure Entra ID or none (local)                      |
-| Realtime     | WebSocket hub for live collaboration                |
-| Docs Parsing | PDF, PPTX, DOCX, XLSX via pymupdf and python-pptx  |
-| Integration  | Engagement repos (scan, ingest, and export)          |
-| CI/CD        | GitHub Actions (lint, test, build)                  |
+| Auth         | Azure Entra ID (MSAL on the SPA, bearer on the API) or none (local) |
+| Microsoft 365| Microsoft Graph (files, messages, meetings) + Dataverse (accounts) |
+| Realtime     | WebSocket hub for live collaboration with bearer-token gate |
+| Docs Parsing | PDF, PPTX, DOCX, XLSX via pymupdf and python-pptx   |
+| Integration  | Engagement repos (scan, ingest, and export)         |
+| Observability| Append-only audit log + optional Azure Monitor / OTLP tracing |
+| Tooling      | OpenAPI typed-client generation (`pnpm gen:api`), Storybook scaffold |
+| CI/CD        | GitHub Actions (lint, test, build), tag-driven multi-arch release pipeline |
 
 ## Prerequisites
 
@@ -489,7 +510,8 @@ All endpoints are prefixed with `/api`.
 | Method | Path                                  | Purpose                                |
 |--------|---------------------------------------|----------------------------------------|
 | GET    | `/api/health`                         | Health check with provider status      |
-| GET    | `/api/discovery/`                     | List all discoveries                   |
+| GET    | `/api/me`                             | Active principal (Entra or local)      |
+| GET    | `/api/discovery/`                     | List discoveries (filter `?engagement_id=`) |
 | POST   | `/api/discovery/`                     | Create a new discovery                 |
 | GET    | `/api/discovery/{id}`                 | Get a single discovery                 |
 | PATCH  | `/api/discovery/{id}`                 | Update a discovery                     |
@@ -498,22 +520,37 @@ All endpoints are prefixed with `/api`.
 | POST   | `/api/questions/solution-match`       | Match problems to capabilities         |
 | POST   | `/api/transcripts/analyze`            | Analyze a text transcript              |
 | POST   | `/api/transcripts/upload-audio`       | Upload audio for speech-to-text        |
-| GET    | `/api/evidence/{discoveryId}`         | List evidence for a discovery          |
+| GET    | `/api/evidence/`                      | List evidence (filter by `engagement_id` and `phase`) |
 | POST   | `/api/evidence/`                      | Create an evidence item                |
 | PATCH  | `/api/evidence/{id}`                  | Update an evidence item                |
 | DELETE | `/api/evidence/{id}`                  | Delete an evidence item                |
 | POST   | `/api/problem-statements/generate`    | Generate evidence-backed problem stmt  |
 | POST   | `/api/advisor/use-cases/generate`     | Generate use case proposals            |
 | POST   | `/api/blueprints/generate`            | Generate solution architecture         |
-| POST   | `/api/docs/scan`                      | Scan local documentation directory     |
+| POST   | `/api/agents/{agent_id}/run`          | Run any registered agent (traced span) |
+| GET    | `/api/engagements/`                   | List engagements                       |
+| POST   | `/api/engagements/`                   | Create an engagement                   |
+| PATCH  | `/api/engagements/{id}`               | Update an engagement                   |
+| DELETE | `/api/engagements/{id}`               | Delete an engagement                   |
+| POST   | `/api/engagements/{id}/discoveries/{discovery_id}` | Attach a discovery   |
+| DELETE | `/api/engagements/{id}/discoveries/{discovery_id}` | Detach a discovery   |
 | POST   | `/api/engagement/scan`                | Scan an engagement repo                |
-| POST   | `/api/engagement/export`              | Export deliverables to engagement repo |
+| POST   | `/api/engagement/export`              | Export deliverables (skips items pending/rejected in review) |
+| GET    | `/api/reviews/`                       | List reviews (filter `?engagement_id=`)|
+| POST   | `/api/reviews/`                       | Open a review request                  |
+| POST   | `/api/reviews/{id}/decision`          | Approve / reject / request changes     |
+| GET    | `/api/audit/`                         | Read audit log (filter `?collection=`, `?item_id=`, `?actor=`) |
+| GET    | `/api/graph/{status,files,messages,meetings}` | Microsoft Graph read-only      |
+| GET    | `/api/dynamics/{status,accounts}`     | Dataverse account read-only            |
+| POST   | `/api/grounding/answer`               | LLM answer with `[source:N]` citations |
+| POST   | `/api/docs/scan`                      | Scan local documentation directory     |
 | GET    | `/api/export/{id}?format=json`        | Export discovery as JSON               |
 | GET    | `/api/export/{id}?format=csv`         | Export discovery as CSV                |
-| WS     | `/ws/{discoveryId}`                   | Real-time collaboration channel        |
+| WS     | `/ws/{discoveryId}?token=<bearer>`    | Real-time collaboration channel        |
 
 Interactive API documentation is available at [http://localhost:8000/docs](http://localhost:8000/docs)
-when the backend is running.
+when the backend is running. Generate a typed TypeScript client from the schema at any time with
+`pnpm gen:api` (writes `src/types/api.ts`).
 
 ## Data Flow
 
@@ -530,6 +567,71 @@ Capture ──▶ Orient ──▶ Refine ──▶ Execute
   ▼            ▼          ▼          ▼
   Evidence Board (cross-phase, scoped per discovery)
 ```
+
+## Human-in-the-Loop Reviews
+
+Most agent-produced artifacts (problem statements, use cases, blueprints, company profiles, empathy
+maps, HMW boards) automatically open a `Review` in the `pending` state. Reviewers approve, reject,
+or request changes from the **Reviews** page. The engagement export route skips any artifact whose
+latest review is `pending`, `changes_requested`, or `rejected` and reports it under `skipped`, so
+nothing leaves the workspace without a human signoff.
+
+Filter the queue by engagement to keep reviewers focused:
+
+```bash
+curl -H "Authorization: Bearer $TOKEN" \
+  "http://localhost:8000/api/reviews/?engagement_id=$ENG_ID"
+```
+
+## Audit Log
+
+Every create, update, delete, agent run, and review decision writes a row to the append-only `audit`
+collection. Each row captures the actor (from the active Entra principal), action, collection,
+item id, before/after content hashes, and a short summary. Read it via:
+
+```bash
+curl -H "Authorization: Bearer $TOKEN" \
+  "http://localhost:8000/api/audit/?collection=engagements&item_id=$ID"
+```
+
+## Telemetry
+
+OpenTelemetry instrumentation is opt-in. Set either of the following and the backend will configure
+exporters at startup, instrument FastAPI and httpx, and wrap each `agent.run` in a span tagged with
+`agent.id` and `discovery.id`:
+
+| Variable                                     | Effect                                  |
+|----------------------------------------------|-----------------------------------------|
+| `APPLICATIONINSIGHTS_CONNECTION_STRING`      | Send traces and metrics to App Insights |
+| `OTEL_EXPORTER_OTLP_ENDPOINT`                | Send traces over OTLP HTTP              |
+
+When neither is set, telemetry is a no-op and pulls zero extra weight.
+
+## Typed API Client
+
+The frontend can consume types generated directly from the live FastAPI OpenAPI schema:
+
+```bash
+# Backend must be running on the URL configured in scripts/gen-api-types.mjs
+pnpm gen:api
+```
+
+This produces `src/types/api.ts`. New API modules import the generated `paths` type and derive
+request / response shapes from it instead of restating them by hand.
+
+## UI Component Catalog (Storybook)
+
+Storybook is included as an opt-in dev tool — config and stories ship with the repo, but the
+package isn't a default dependency. Install and run it on demand:
+
+```bash
+pnpm add -D @storybook/nextjs @storybook/react storybook
+pnpm storybook
+```
+
+Stories for the shadcn primitives (`Button`, `Badge`, `Card`) live next to each component as
+`*.stories.tsx`. The TypeScript build excludes them so missing Storybook deps never break the
+production build.
 
 All data is scoped to the active discovery session. When you select a discovery from the Dashboard or
 the sidebar, every phase page and the Evidence Board operate within that discovery's context.
