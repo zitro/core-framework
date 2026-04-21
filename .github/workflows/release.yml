@@ -3,7 +3,7 @@ name: Release
 on:
   push:
     tags:
-      - "v*.*.*"
+      - "v*"
   workflow_dispatch:
     inputs:
       tag:
@@ -15,12 +15,63 @@ env:
   IMAGE_OWNER: ${{ github.repository_owner }}
 
 jobs:
+  # Gate: re-run the test suite on the exact tagged commit before publishing.
+  test:
+    name: Test (${{ matrix.suite }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: true
+      matrix:
+        suite: [backend, frontend]
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - if: matrix.suite == 'backend'
+        uses: actions/setup-python@0b93645e9fea7318ecaed2b359559ac225c90a2b # v5.3.0
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - if: matrix.suite == 'backend'
+        working-directory: backend
+        run: |
+          pip install -e ".[dev,local]"
+          ruff check .
+          ruff format --check .
+          pytest tests/ -v --tb=short
+        env:
+          LLM_PROVIDER: local
+          STORAGE_PROVIDER: local
+          AUTH_PROVIDER: none
+
+      - if: matrix.suite == 'frontend'
+        uses: pnpm/action-setup@0c17529a66aca453f9227af23103ed11469b1e47 # v4.0.0
+        with:
+          version: 10
+
+      - if: matrix.suite == 'frontend'
+        uses: actions/setup-node@39370e3970a6d050c480ffad4ff0ed4d3fdee5af # v4.1.0
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - if: matrix.suite == 'frontend'
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm lint
+          npx tsc --noEmit
+          npx vitest run
+          pnpm build
+
   build-and-push:
     name: Build and push ${{ matrix.component }} image
+    needs: test
     runs-on: ubuntu-latest
     permissions:
       contents: read
       packages: write
+      id-token: write   # required for cosign keyless signing + provenance
+      attestations: write
 
     strategy:
       fail-fast: false
@@ -37,7 +88,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
       - name: Resolve version
         id: version
@@ -47,16 +98,25 @@ jobs:
           else
             TAG="${GITHUB_REF#refs/tags/}"
           fi
-          # Strip leading 'v' for semver-style tagging
           VERSION="${TAG#v}"
+          # Detect prerelease (anything after a hyphen, e.g. 0.1.0-rc1)
+          if [[ "$VERSION" == *-* ]]; then
+            IS_PRERELEASE=true
+          else
+            IS_PRERELEASE=false
+          fi
           echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
           echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "is_prerelease=${IS_PRERELEASE}" >> "$GITHUB_OUTPUT"
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@49b3bc8e6bdd4a60e6116a5414239cba5943d3cf # v3.2.0
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@c47758b77c9736f4b2ef4073d4d51994fabfe349 # v3.7.1
 
       - name: Log in to GHCR
-        uses: docker/login-action@v3
+        uses: docker/login-action@9780b0c442fbb1117ed29e0efdff1e18412f7567 # v3.3.0
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
@@ -64,30 +124,80 @@ jobs:
 
       - name: Extract metadata
         id: meta
-        uses: docker/metadata-action@v5
+        uses: docker/metadata-action@8e5442c4ef9f78752691e2d8f8d19755c6f78e81 # v5.5.1
+        env:
+          DOCKER_METADATA_ANNOTATIONS_LEVELS: manifest,index
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_OWNER }}/${{ matrix.image }}
+          # semver flavor only tags `latest` for non-prereleases.
+          flavor: |
+            latest=${{ steps.version.outputs.is_prerelease == 'false' }}
           tags: |
-            type=raw,value=${{ steps.version.outputs.version }}
-            type=raw,value=latest
+            type=semver,pattern={{version}},value=${{ steps.version.outputs.tag }}
+            type=semver,pattern={{major}}.{{minor}},value=${{ steps.version.outputs.tag }}
+            type=semver,pattern={{major}},value=${{ steps.version.outputs.tag }}
           labels: |
             org.opencontainers.image.title=${{ matrix.image }}
             org.opencontainers.image.description=CORE Discovery ${{ matrix.component }}
             org.opencontainers.image.source=https://github.com/${{ github.repository }}
+            org.opencontainers.image.url=https://github.com/${{ github.repository }}
+            org.opencontainers.image.documentation=https://github.com/${{ github.repository }}#readme
             org.opencontainers.image.version=${{ steps.version.outputs.version }}
             org.opencontainers.image.licenses=MIT
+            org.opencontainers.image.vendor=CORE Discovery contributors
 
       - name: Build and push
-        uses: docker/build-push-action@v6
+        id: build
+        uses: docker/build-push-action@48aba3b46d1b1fec4febb7c5d0c644b249a11355 # v6.10.0
         with:
           context: ${{ matrix.context }}
           file: ${{ matrix.dockerfile }}
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          annotations: ${{ steps.meta.outputs.annotations }}
           cache-from: type=gha,scope=${{ matrix.component }}
           cache-to: type=gha,scope=${{ matrix.component }},mode=max
-          platforms: linux/amd64
+          platforms: linux/amd64,linux/arm64
+          provenance: true
+          sbom: true
+
+      - name: Install Cosign
+        uses: sigstore/cosign-installer@1aa8e0f2454b781fbf0fbf306a4c9533a0c57409 # v3.7.0
+
+      - name: Sign image (keyless, OIDC)
+        env:
+          TAGS: ${{ steps.meta.outputs.tags }}
+          DIGEST: ${{ steps.build.outputs.digest }}
+        run: |
+          set -euo pipefail
+          for tag in $TAGS; do
+            cosign sign --yes "${tag}@${DIGEST}"
+          done
+
+      - name: Generate build provenance attestation
+        uses: actions/attest-build-provenance@ef244123eb79f2f7a7e75d99086184180e6d0018 # v1.4.4
+        with:
+          subject-name: ${{ env.REGISTRY }}/${{ env.IMAGE_OWNER }}/${{ matrix.image }}
+          subject-digest: ${{ steps.build.outputs.digest }}
+          push-to-registry: true
+
+      - name: Vulnerability scan (Trivy)
+        uses: aquasecurity/trivy-action@dc5a429b52fcf669ce959baa2c2dd26090d2a6c4 # v0.32.0
+        with:
+          image-ref: ${{ env.REGISTRY }}/${{ env.IMAGE_OWNER }}/${{ matrix.image }}@${{ steps.build.outputs.digest }}
+          format: sarif
+          output: trivy-${{ matrix.component }}.sarif
+          severity: CRITICAL,HIGH
+          ignore-unfixed: true
+          exit-code: "0"   # report only; do not fail release on CVEs (tighten later)
+
+      - name: Upload Trivy results to Security tab
+        uses: github/codeql-action/upload-sarif@fc54ff75c9030388b65fbabde476bad39588e069 # v3.27.1
+        if: always()
+        with:
+          sarif_file: trivy-${{ matrix.component }}.sarif
+          category: trivy-${{ matrix.component }}
 
   create-release:
     name: Create GitHub release
@@ -99,21 +209,44 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Detect prerelease
+        id: pre
+        run: |
+          TAG="${GITHUB_REF#refs/tags/}"
+          if [[ "$TAG" == *-* ]]; then echo "prerelease=true" >> "$GITHUB_OUTPUT"; else echo "prerelease=false" >> "$GITHUB_OUTPUT"; fi
 
       - name: Create release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@e7a8f85e1c67a31e6ed99a94b41bd0b71bbee6b8 # v2.0.9
         with:
           generate_release_notes: true
+          prerelease: ${{ steps.pre.outputs.prerelease }}
           body: |
-            Container images published to GHCR:
+            Container images published to GHCR (multi-arch: amd64, arm64):
 
             - `ghcr.io/${{ github.repository_owner }}/core-framework-frontend:${{ github.ref_name }}`
             - `ghcr.io/${{ github.repository_owner }}/core-framework-backend:${{ github.ref_name }}`
 
-            Pull with:
+            Pull:
 
             ```bash
             docker pull ghcr.io/${{ github.repository_owner }}/core-framework-frontend:${{ github.ref_name }}
             docker pull ghcr.io/${{ github.repository_owner }}/core-framework-backend:${{ github.ref_name }}
+            ```
+
+            Verify signature (Cosign keyless):
+
+            ```bash
+            cosign verify \
+              --certificate-identity-regexp "https://github.com/${{ github.repository }}/.github/workflows/release.yml@refs/tags/" \
+              --certificate-oidc-issuer "https://token.actions.githubusercontent.com" \
+              ghcr.io/${{ github.repository_owner }}/core-framework-frontend:${{ github.ref_name }}
+            ```
+
+            Verify build provenance:
+
+            ```bash
+            gh attestation verify oci://ghcr.io/${{ github.repository_owner }}/core-framework-frontend:${{ github.ref_name }} \
+              --repo ${{ github.repository }}
             ```
