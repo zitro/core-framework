@@ -12,6 +12,13 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
+# Bounds: a collaboration message is small (cursor moves, evidence stubs).
+# 64 KiB is generous and protects against memory abuse from oversized frames.
+MAX_WS_MESSAGE_BYTES = 64 * 1024
+# Cap concurrent connections per discovery room. Real workshops are small;
+# anything bigger is almost certainly a runaway client or abuse.
+MAX_CONNECTIONS_PER_ROOM = 50
+
 
 async def _validate_ws_token(token: str | None) -> dict | None:
     """Validate a JWT supplied via the `?token=` query param.
@@ -91,10 +98,16 @@ async def discovery_websocket(
     if claims is None:
         await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
         return
+    if len(manager.rooms.get(discovery_id, [])) >= MAX_CONNECTIONS_PER_ROOM:
+        await websocket.close(code=status.WS_1013_TRY_AGAIN_LATER)
+        return
     await manager.connect(discovery_id, websocket)
     try:
         while True:
             raw = await websocket.receive_text()
+            if len(raw) > MAX_WS_MESSAGE_BYTES:
+                await websocket.send_json({"type": "error", "detail": "Message too large"})
+                continue
             try:
                 data = json.loads(raw)
             except json.JSONDecodeError:
