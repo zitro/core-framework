@@ -7,6 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-04-21
+
+### Added
+
+- Web search provider abstraction with `none`, `duckduckgo`, and `bing` implementations and `POST /api/search`
+- File upload ingest endpoint that converts PDF, DOCX, PPTX, XLSX, MD, and TXT into markdown and routes through the existing classification flow
+- Auto-generated `references.md` index regenerated on every engagement write, with `POST /api/engagement/references/rebuild` for manual refresh
+- Discovery Narrator: `POST /api/narrative/generate` synthesizes discovery context into a shareable story tunable by audience and style
+- Generic agent registry exposed at `GET /api/agents`, `POST /api/agents/{id}/run`, and `GET /api/agents/{id}/outputs/{discovery_id}`
+- Four design-thinking sub-agents: Empathy Researcher, HMW Framer, Ideation Facilitator, and Assumption Tester
+- `EvidenceType` taxonomy aligned to design thinking: observation, quote, pain point, jobs-to-be-done, assumption, hypothesis, insight, general
+- Five design-thinking artifact templates (empathy map, persona, journey map, HMW board, assumption matrix) plus `/api/dt-templates` to list, fetch, and drop them into an engagement repo
+- `docs/design-thinking.md` mapping CORE phases to design-thinking stages and methods
+- In-app Methodology page and per-phase Design Thinking guidance panel
+- Frontend Narrative, Web Search, and Methodology pages plus sidebar entries
+- Shared `dt-methods.ts` catalog reused by the methodology page and the per-phase panel
+
+### Changed
+
+- Existing agent prompts (Discovery Coach, Problem Analyst, Use Case Analyst, Solution Architect, Transcript Analyst) reference design-thinking methods and stages explicitly
+- Transcript Analyst output schema now includes `evidence_type` per evidence item
+- Backend FastAPI `version` and frontend sidebar badge bumped to `0.2.0`
+
 ## [0.1.1] - 2026-04-21
 
 ### Added

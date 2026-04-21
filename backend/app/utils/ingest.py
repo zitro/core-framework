@@ -13,6 +13,7 @@ from pathlib import Path
 from typing import Any
 
 from app.providers.llm import get_llm_provider
+from app.utils.references import regenerate_references
 
 logger = logging.getLogger(__name__)
 
@@ -220,4 +221,12 @@ def write_classified_content(
         target_file.write_text(content, encoding="utf-8")
 
     rel = str(target_file.relative_to(base))
-    return {"path": rel, "full_path": str(target_file), "action": action}
+    # Refresh the auto-generated references index so the engagement repo
+    # always has an up-to-date catalog of its own content.
+    ref_result = regenerate_references(base)
+    return {
+        "path": rel,
+        "full_path": str(target_file),
+        "action": action,
+        "references_index": ref_result,
+    }

@@ -4,7 +4,7 @@ import logging
 from datetime import UTC, datetime
 from pathlib import Path
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 from pydantic import BaseModel
 
 from app.dependencies import get_current_user
@@ -14,7 +14,14 @@ from app.utils.engagement import (
     read_engagement_content_structured,
     scan_engagement_repo,
 )
+from app.utils.file_extract import (
+    SUPPORTED_EXTENSIONS,
+    ExtractionError,
+    UnsupportedFileTypeError,
+    extract_to_markdown,
+)
 from app.utils.ingest import classify_and_place, write_classified_content
+from app.utils.references import regenerate_references
 
 logger = logging.getLogger(__name__)
 
@@ -80,6 +87,47 @@ async def ingest_classify(request: IngestClassifyRequest):
     return result
 
 
+@router.post("/ingest/upload")
+async def ingest_upload(
+    repo_path: str = Form(...),
+    file: UploadFile = File(...),
+):
+    """Upload a binary file (PDF/DOCX/PPTX/XLSX/MD/TXT), extract to markdown,
+    and AI-classify it for placement in the engagement repo.
+
+    Returns the same shape as `/ingest/classify` plus an `extracted_chars`
+    field. The caller still needs to POST to `/ingest/write` to persist.
+    """
+    root = Path(repo_path)
+    if not root.is_dir():
+        raise HTTPException(status_code=400, detail="Directory not found")
+
+    filename = file.filename or "upload"
+    data = await file.read()
+    if not data:
+        raise HTTPException(status_code=422, detail="Empty file")
+    # Guard against accidental huge uploads (25 MiB)
+    if len(data) > 25 * 1024 * 1024:
+        raise HTTPException(status_code=413, detail="File exceeds 25 MiB limit")
+
+    try:
+        markdown = extract_to_markdown(filename, data)
+    except UnsupportedFileTypeError as exc:
+        raise HTTPException(status_code=415, detail=str(exc)) from exc
+    except ExtractionError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+    classification = await classify_and_place(repo_path, markdown)
+    if "error" in classification:
+        raise HTTPException(status_code=502, detail=classification["error"])
+    return {
+        **classification,
+        "source_filename": filename,
+        "extracted_chars": len(markdown),
+        "supported_extensions": sorted(SUPPORTED_EXTENSIONS),
+    }
+
+
 @router.post("/ingest/write")
 async def ingest_write(request: IngestWriteRequest):
     """Write AI-classified content to the repo filesystem."""
@@ -98,6 +146,21 @@ async def ingest_write(request: IngestWriteRequest):
     )
     if "error" in result:
         raise HTTPException(status_code=400, detail=result["error"])
+    return result
+
+
+@router.post("/references/rebuild")
+async def references_rebuild(request: RepoPathRequest):
+    """Force a rebuild of `references.md` for an engagement repo's content dir."""
+    root = Path(request.path)
+    if not root.is_dir():
+        raise HTTPException(status_code=400, detail="Directory not found")
+    content_dir = _find_content_dir(root)
+    if not content_dir:
+        raise HTTPException(status_code=422, detail="No content directory found")
+    result = regenerate_references(content_dir)
+    if "error" in result:
+        raise HTTPException(status_code=500, detail=result["error"])
     return result
 
 

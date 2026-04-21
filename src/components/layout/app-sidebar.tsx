@@ -3,7 +3,7 @@
 import { useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Search, Compass, Lightbulb, Rocket, Home, BookOpen, FolderOpen, FolderGit2 } from "lucide-react";
+import { Search, Compass, Lightbulb, Rocket, Home, BookOpen, FolderOpen, FolderGit2, Sparkles, Globe, BookMarked } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -154,6 +154,24 @@ export function AppSidebar() {
                   <span>Engagement Context</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton render={<Link href="/narrative" />} isActive={pathname === "/narrative"}>
+                  <Sparkles className="h-4 w-4 text-fuchsia-500" />
+                  <span>Narrative</span>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton render={<Link href="/search" />} isActive={pathname === "/search"}>
+                  <Globe className="h-4 w-4 text-cyan-500" />
+                  <span>Web Search</span>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton render={<Link href="/methodology" />} isActive={pathname === "/methodology"}>
+                  <BookMarked className="h-4 w-4 text-amber-500" />
+                  <span>Methodology</span>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
@@ -186,7 +204,7 @@ export function AppSidebar() {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2 text-xs text-muted-foreground">
             <Badge variant="outline" className="text-[10px]">
-              v0.1.0
+              v0.2.0
             </Badge>
             <span>CORE Framework</span>
           </div>
