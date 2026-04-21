@@ -9,12 +9,12 @@ from pydantic import BaseModel
 
 from app.dependencies import get_current_user
 from app.providers.storage import get_storage_provider
-from app.utils.ingest import classify_and_place, write_classified_content
 from app.utils.engagement import (
-    scan_engagement_repo,
-    read_engagement_content_structured,
     _find_content_dir,
+    read_engagement_content_structured,
+    scan_engagement_repo,
 )
+from app.utils.ingest import classify_and_place, write_classified_content
 
 logger = logging.getLogger(__name__)
 

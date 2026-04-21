@@ -3,8 +3,8 @@
 import logging
 
 from app.providers.storage import get_storage_provider
-from app.utils.local_docs import read_docs_content
 from app.utils.engagement import read_engagement_context
+from app.utils.local_docs import read_docs_content
 
 logger = logging.getLogger(__name__)
 
