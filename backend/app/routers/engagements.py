@@ -58,7 +58,7 @@ async def update_engagement(engagement_id: str, updates: EngagementUpdate) -> En
         collection=COLLECTION,
         item_id=engagement_id,
         summary=",".join(sorted(update_data.keys())),
-        after=update_data,
+        after=item,
     )
     return Engagement(**item)
 
@@ -66,10 +66,17 @@ async def update_engagement(engagement_id: str, updates: EngagementUpdate) -> En
 @router.delete("/{engagement_id}")
 async def delete_engagement(engagement_id: str) -> dict:
     storage = get_storage_provider()
+    existing = await storage.get(COLLECTION, engagement_id)
     deleted = await storage.delete(COLLECTION, engagement_id)
     if not deleted:
         raise HTTPException(status_code=404, detail="Engagement not found")
-    await audit("delete", collection=COLLECTION, item_id=engagement_id)
+    await audit(
+        "delete",
+        collection=COLLECTION,
+        item_id=engagement_id,
+        summary=(existing or {}).get("name", ""),
+        before=existing,
+    )
     return {"deleted": True}
 
 
@@ -87,6 +94,13 @@ async def attach_discovery(engagement_id: str, discovery_id: str) -> Engagement:
         engagement_id,
         stamp_update({"discovery_ids": ids}),
     )
+    await audit(
+        "attach_discovery",
+        collection=COLLECTION,
+        item_id=engagement_id,
+        summary=f"+{discovery_id}",
+        after={"discovery_ids": ids},
+    )
     return Engagement(**updated)
 
 
@@ -101,5 +115,12 @@ async def detach_discovery(engagement_id: str, discovery_id: str) -> Engagement:
         COLLECTION,
         engagement_id,
         stamp_update({"discovery_ids": ids}),
+    )
+    await audit(
+        "detach_discovery",
+        collection=COLLECTION,
+        item_id=engagement_id,
+        summary=f"-{discovery_id}",
+        after={"discovery_ids": ids},
     )
     return Engagement(**updated)

@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.1] - 2026-04-21
+
+Follow-up audit pass after v1.0.0 — 5 review passes (correctness, security, architecture, ops, docs) flagged consistency cleanups.
+
+### Changed
+
+- `routers/reviews.py` and `utils/review_gate.py` now use `stamp_create` and `user_label` for actor / timestamp stamping (was hand-rolled in two places, drifting from the rest of the codebase)
+- `routers/engagements.py` `update`, `delete`, `attach_discovery`, and `detach_discovery` now write meaningful audit entries (full `after` snapshot on update, captured `before` on delete, and dedicated `attach_discovery` / `detach_discovery` actions)
+- Backend, frontend, and FastAPI versions bumped to `1.0.1`
+
 ## [1.0.0] - 2026-04-21
 
 First stable release. Consolidates the v0.1–v0.9 work into a documented, audited, observable, multi-engagement discovery platform with human-in-the-loop review gates, Microsoft 365 read-only surfaces, optional Azure Monitor telemetry, and an OpenAPI-typed frontend.

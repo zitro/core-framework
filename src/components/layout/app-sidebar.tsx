@@ -250,7 +250,7 @@ export function AppSidebar() {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2 text-xs text-muted-foreground">
             <Badge variant="outline" className="text-[10px]">
-              v1.0.0
+              v1.0.1
             </Badge>
             <span>CORE Framework</span>
           </div>

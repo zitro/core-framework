@@ -7,7 +7,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from app.dependencies import get_current_user
 from app.models.core import Review, ReviewDecision, ReviewStatus
 from app.providers.storage import get_storage_provider
-from app.utils.audit import stamp_create, stamp_update
+from app.utils.audit import stamp_create, stamp_update, user_label
 from app.utils.audit_log import audit
 
 router = APIRouter(dependencies=[Depends(get_current_user)])
@@ -19,7 +19,7 @@ async def request_review(review: Review, claims: dict = Depends(get_current_user
     """Open a review request for an artifact."""
     storage = get_storage_provider()
     if not review.requested_by:
-        review.requested_by = claims.get("name") or claims.get("sub") or "unknown"
+        review.requested_by = user_label(claims)
     item = await storage.create(COLLECTION, stamp_create(review.model_dump(mode="json")))
     return Review(**item)
 
@@ -65,7 +65,7 @@ async def decide_review(
     existing = await storage.get(COLLECTION, review_id)
     if not existing:
         raise HTTPException(status_code=404, detail="Review not found")
-    reviewer = decision.reviewer or claims.get("name") or claims.get("sub") or "unknown"
+    reviewer = decision.reviewer or user_label(claims)
     updates = stamp_update(
         {
             "status": decision.status.value,
