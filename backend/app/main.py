@@ -41,6 +41,7 @@ def create_app() -> FastAPI:
         docs,
         dt_templates,
         engagement,
+        engagements,
         evidence,
         export,
         me,
@@ -48,13 +49,14 @@ def create_app() -> FastAPI:
         problem_statements,
         questions,
         realtime,
+        reviews,
         search,
         transcripts,
     )
 
     app = FastAPI(
         title=settings.app_name,
-        version="0.3.0",
+        version="0.4.0",
         description="CORE Discovery Framework API",
     )
 
@@ -118,6 +120,8 @@ def create_app() -> FastAPI:
     app.include_router(agents.router, prefix="/api/agents", tags=["agents"])
     app.include_router(dt_templates.router, prefix="/api/dt-templates", tags=["dt-templates"])
     app.include_router(me.router, prefix="/api/me", tags=["me"])
+    app.include_router(engagements.router, prefix="/api/engagements", tags=["engagements"])
+    app.include_router(reviews.router, prefix="/api/reviews", tags=["reviews"])
 
     @app.on_event("startup")
     async def _ensure_storage() -> None:

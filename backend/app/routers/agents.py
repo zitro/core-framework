@@ -5,7 +5,7 @@ from __future__ import annotations
 import logging
 
 from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 
 from app.agents import agent_registry, get_agent
 from app.agents.base import AgentMeta
@@ -27,8 +27,11 @@ class AgentSummary(BaseModel):
 
 
 class RunAgentRequest(BaseModel):
-    discovery_id: str = Field(min_length=1)
+    discovery_id: str = ""
     user_instructions: str = ""
+
+    # Allow agent-specific extra fields (e.g. company name for the researcher).
+    model_config = {"extra": "allow"}
 
 
 def _to_summary(meta: AgentMeta) -> AgentSummary:
@@ -57,9 +60,15 @@ async def run_agent(agent_id: str, request: RunAgentRequest):
     except KeyError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
 
+    extras = {
+        k: v
+        for k, v in request.model_dump().items()
+        if k not in ("discovery_id", "user_instructions")
+    }
     result = await agent.run(
         discovery_id=request.discovery_id,
         user_instructions=request.user_instructions,
+        **extras,
     )
     return result.model_dump(mode="json")
 

@@ -3,7 +3,7 @@
 import { useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Search, Compass, Lightbulb, Rocket, Home, BookOpen, FolderOpen, FolderGit2, Sparkles, Globe, BookMarked } from "lucide-react";
+import { Search, Compass, Lightbulb, Rocket, Home, BookOpen, FolderOpen, FolderGit2, Sparkles, Globe, BookMarked, Briefcase, Building2, ShieldCheck } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -176,6 +176,32 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
 
+        <SidebarGroup>
+          <SidebarGroupLabel>FDE</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              <SidebarMenuItem>
+                <SidebarMenuButton render={<Link href="/engagements" />} isActive={pathname === "/engagements"}>
+                  <Briefcase className="h-4 w-4 text-sky-500" />
+                  <span>Engagements</span>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton render={<Link href="/company" />} isActive={pathname === "/company"}>
+                  <Building2 className="h-4 w-4 text-emerald-500" />
+                  <span>Company Research</span>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton render={<Link href="/reviews" />} isActive={pathname === "/reviews"}>
+                  <ShieldCheck className="h-4 w-4 text-rose-500" />
+                  <span>Reviews</span>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
         {recentDiscoveries.length > 0 && (
           <SidebarGroup>
             <SidebarGroupLabel>Recent Discoveries</SidebarGroupLabel>
@@ -204,7 +230,7 @@ export function AppSidebar() {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2 text-xs text-muted-foreground">
             <Badge variant="outline" className="text-[10px]">
-              v0.3.0
+              v0.4.0
             </Badge>
             <span>CORE Framework</span>
           </div>
