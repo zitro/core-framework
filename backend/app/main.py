@@ -43,6 +43,7 @@ def create_app() -> FastAPI:
         engagement,
         evidence,
         export,
+        me,
         narrative,
         problem_statements,
         questions,
@@ -53,7 +54,7 @@ def create_app() -> FastAPI:
 
     app = FastAPI(
         title=settings.app_name,
-        version="0.2.0",
+        version="0.3.0",
         description="CORE Discovery Framework API",
     )
 
@@ -116,6 +117,18 @@ def create_app() -> FastAPI:
     app.include_router(narrative.router, prefix="/api/narrative", tags=["narrative"])
     app.include_router(agents.router, prefix="/api/agents", tags=["agents"])
     app.include_router(dt_templates.router, prefix="/api/dt-templates", tags=["dt-templates"])
+    app.include_router(me.router, prefix="/api/me", tags=["me"])
+
+    @app.on_event("startup")
+    async def _ensure_storage() -> None:
+        from app.providers.storage import KNOWN_COLLECTIONS, get_storage_provider
+
+        try:
+            provider = get_storage_provider()
+            await provider.ensure_collections(KNOWN_COLLECTIONS)
+            logger.info("Storage ready (%d collections)", len(KNOWN_COLLECTIONS))
+        except Exception:  # noqa: BLE001
+            logger.exception("Storage ensure_collections failed")
 
     @app.get("/api/health")
     async def health():

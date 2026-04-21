@@ -3,6 +3,20 @@ from functools import lru_cache
 from app.config import settings
 from app.providers.storage.base import StorageProvider
 
+KNOWN_COLLECTIONS: list[str] = [
+    "discoveries",
+    "evidence",
+    "question_sets",
+    "transcript_analyses",
+    "problem_statements",
+    "use_cases",
+    "solution_blueprints",
+    "empathy_maps",
+    "hmw_boards",
+    "ideation_sessions",
+    "assumption_maps",
+]
+
 
 @lru_cache(maxsize=1)
 def get_storage_provider() -> StorageProvider:

@@ -18,9 +18,23 @@ import { toast } from "sonner";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
+async function authHeader(): Promise<Record<string, string>> {
+  if (typeof window === "undefined") return {};
+  const getter = (window as unknown as { __coreGetToken?: () => Promise<string | null> })
+    .__coreGetToken;
+  if (!getter) return {};
+  try {
+    const token = await getter();
+    return token ? { Authorization: `Bearer ${token}` } : {};
+  } catch {
+    return {};
+  }
+}
+
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
+  const auth = await authHeader();
   const res = await fetch(`${API_URL}${path}`, {
-    headers: { "Content-Type": "application/json", ...options?.headers },
+    headers: { "Content-Type": "application/json", ...auth, ...options?.headers },
     ...options,
   });
   if (!res.ok) {
@@ -35,6 +49,17 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
 export const api = {
   // Health
   health: () => request<{ status: string; providers: Record<string, string> }>("/api/health"),
+
+  // Identity
+  me: () =>
+    request<{
+      auth_provider: string;
+      authenticated: boolean;
+      sub: string;
+      name: string;
+      email: string;
+      tenant_id: string;
+    }>("/api/me"),
 
   // Discoveries
   discoveries: {
@@ -204,9 +229,11 @@ export const api = {
       const form = new FormData();
       form.append("repo_path", repoPath);
       form.append("file", file);
+      const auth = await authHeader();
       const res = await fetch(`${API_URL}/api/engagement/ingest/upload`, {
         method: "POST",
         body: form,
+        headers: auth,
       });
       if (!res.ok) {
         const error = await res.json().catch(() => ({ detail: res.statusText }));

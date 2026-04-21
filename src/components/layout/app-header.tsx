@@ -15,6 +15,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { SidebarTrigger } from "@/components/ui/sidebar";
+import { AuthButton } from "@/components/layout/auth-button";
 import { useDiscovery } from "@/stores/discovery-store";
 import { PHASE_CONFIG } from "@/types/core";
 
@@ -91,6 +92,10 @@ export function AppHeader() {
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
+
+      <div className="ml-auto flex items-center gap-3">
+        <AuthButton />
+      </div>
     </header>
   );
 }
