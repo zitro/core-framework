@@ -8,6 +8,7 @@ import { ThemeProvider } from "@/components/layout/theme-provider";
 import { AppSidebar } from "@/components/layout/app-sidebar";
 import { AppHeader } from "@/components/layout/app-header";
 import "./globals.css";
+import "highlight.js/styles/github-dark.min.css";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",

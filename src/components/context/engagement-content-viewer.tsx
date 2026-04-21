@@ -1,254 +1,23 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useCallback, useRef, useEffect } from "react";
 import {
-  Users,
-  Building2,
-  Cpu,
-  FileText,
-  Phone,
-  Mail,
-  AlertTriangle,
-  Layers,
-  ChevronDown,
-  ChevronRight,
+  Search,
+  X,
+  Filter,
+  LayoutGrid,
+  List,
 } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ScrollArea } from "@/components/ui/scroll-area";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import type { EngagementContentFile, EngagementContentResult } from "@/types/core";
+import { ContentCard, getTypeColor } from "@/components/context/content-card";
 
-/** Pick an icon based on keyword patterns in the type string. */
-function getTypeIcon(type: string): typeof FileText {
-  if (type.includes("stakeholder") || type.includes("team")) return Users;
-  if (type.includes("customer") || type.includes("company") || type.includes("org")) return Building2;
-  if (type.includes("tech") || type.includes("stack") || type.includes("architecture")) return Cpu;
-  if (type.includes("call") || type.includes("transcript") || type.includes("meeting")) return Phone;
-  if (type.includes("email") || type.includes("mail")) return Mail;
-  if (type.includes("risk") || type.includes("alert")) return AlertTriangle;
-  if (type.includes("overview") || type.includes("initiative") || type.includes("project")) return Layers;
-  return FileText;
-}
-
-/** Simple hash-based color assignment for consistent type coloring. */
-const COLOR_PALETTE = [
-  "text-blue-500 bg-blue-500/10",
-  "text-emerald-500 bg-emerald-500/10",
-  "text-violet-500 bg-violet-500/10",
-  "text-orange-500 bg-orange-500/10",
-  "text-amber-500 bg-amber-500/10",
-  "text-cyan-500 bg-cyan-500/10",
-  "text-red-500 bg-red-500/10",
-  "text-teal-500 bg-teal-500/10",
-  "text-indigo-500 bg-indigo-500/10",
-];
-
-function getTypeColor(type: string): string {
-  if (!type) return "text-muted-foreground bg-muted";
-  let hash = 0;
-  for (let i = 0; i < type.length; i++) hash = (hash * 31 + type.charCodeAt(i)) | 0;
-  return COLOR_PALETTE[Math.abs(hash) % COLOR_PALETTE.length];
-}
-
-interface EngagementContentViewerProps {
-  data: EngagementContentResult;
-}
-
-export function EngagementContentViewer({ data }: EngagementContentViewerProps) {
-  const topLevelFiles = useMemo(
-    () => data.content.filter((f) => !f.project),
-    [data.content],
-  );
-
-  const projectGroups = useMemo(() => {
-    const groups: Record<string, EngagementContentFile[]> = {};
-    for (const proj of data.projects) {
-      groups[proj] = data.content.filter((f) => f.project === proj);
-    }
-    return groups;
-  }, [data.content, data.projects]);
-
-  const defaultTab = data.projects[0] || "overview";
-
-  return (
-    <Tabs defaultValue={defaultTab} className="space-y-4">
-      <TabsList>
-        {topLevelFiles.length > 0 && (
-          <TabsTrigger value="overview">Overview</TabsTrigger>
-        )}
-        {data.projects.map((proj) => (
-          <TabsTrigger key={proj} value={proj} className="max-w-48 truncate">
-            {formatSlugName(proj)}
-          </TabsTrigger>
-        ))}
-      </TabsList>
-
-      {topLevelFiles.length > 0 && (
-        <TabsContent value="overview" className="space-y-4">
-          {topLevelFiles.map((file) => (
-            <ContentCard key={file.path} file={file} />
-          ))}
-        </TabsContent>
-      )}
-
-      {Object.entries(projectGroups).map(([proj, files]) => (
-        <TabsContent key={proj} value={proj} className="space-y-4">
-          {files.map((file) => (
-            <ContentCard key={file.path} file={file} />
-          ))}
-        </TabsContent>
-      ))}
-    </Tabs>
-  );
-}
-
-function ContentCard({ file }: { file: EngagementContentFile }) {
-  const [expanded, setExpanded] = useState(shouldAutoExpand(file.type));
-  const Icon = getTypeIcon(file.type);
-  const colorClass = getTypeColor(file.type);
-
-  return (
-    <Card>
-      <CardHeader
-        className="cursor-pointer select-none py-3"
-        onClick={() => setExpanded(!expanded)}
-      >
-        <div className="flex items-center gap-3">
-          <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-md ${colorClass}`}>
-            <Icon className="h-4 w-4" />
-          </div>
-          <div className="flex-1 min-w-0">
-            <CardTitle className="text-sm font-medium leading-tight">
-              {file.title}
-            </CardTitle>
-            <div className="flex items-center gap-2 mt-1">
-              <Badge variant="outline" className="text-[10px]">
-                {file.type_label}
-              </Badge>
-              {file.frontmatter.date && (
-                <span className="text-[10px] text-muted-foreground">
-                  {String(file.frontmatter.date)}
-                </span>
-              )}
-            </div>
-          </div>
-          {expanded ? (
-            <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0" />
-          ) : (
-            <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
-          )}
-        </div>
-      </CardHeader>
-      {expanded && (
-        <CardContent className="pt-0 pb-4">
-          <FrontmatterTable frontmatter={file.frontmatter} />
-          <ScrollArea className="max-h-[600px]">
-            <div className="prose prose-sm dark:prose-invert max-w-none">
-              <MarkdownBody content={file.body} />
-            </div>
-          </ScrollArea>
-        </CardContent>
-      )}
-    </Card>
-  );
-}
-
-function FrontmatterTable({ frontmatter }: { frontmatter: Record<string, string | string[]> }) {
-  const displayKeys = Object.entries(frontmatter).filter(
-    ([key]) => !["type", "title"].includes(key),
-  );
-  if (displayKeys.length === 0) return null;
-
-  return (
-    <div className="mb-3 rounded-md border p-2 text-xs">
-      <div className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1">
-        {displayKeys.map(([key, val]) => (
-          <div key={key} className="contents">
-            <span className="font-medium text-muted-foreground capitalize">
-              {key.replace(/-/g, " ")}
-            </span>
-            <span>{Array.isArray(val) ? val.join(", ") : String(val)}</span>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function MarkdownBody({ content }: { content: string }) {
-  // Render markdown as structured HTML. Tables, headers, lists, and
-  // paragraphs are the most common elements in engagement files.
-  const html = useMemo(() => markdownToHtml(content), [content]);
-  return <div dangerouslySetInnerHTML={{ __html: html }} />;
-}
-
-function markdownToHtml(md: string): string {
-  let html = escapeHtml(md);
-
-  // Headers
-  html = html.replace(/^#### (.+)$/gm, "<h4>$1</h4>");
-  html = html.replace(/^### (.+)$/gm, "<h3>$1</h3>");
-  html = html.replace(/^## (.+)$/gm, "<h2>$1</h2>");
-  html = html.replace(/^# (.+)$/gm, "<h1>$1</h1>");
-
-  // Bold / italic
-  html = html.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
-  html = html.replace(/\*(.+?)\*/g, "<em>$1</em>");
-
-  // Inline code
-  html = html.replace(/`([^`]+)`/g, "<code>$1</code>");
-
-  // Tables
-  html = html.replace(
-    /^(\|.+\|)\n(\|[\s:|-]+\|)\n((?:\|.+\|\n?)*)/gm,
-    (_match, header: string, _sep: string, body: string) => {
-      const ths = header
-        .split("|")
-        .filter(Boolean)
-        .map((c: string) => `<th>${c.trim()}</th>`)
-        .join("");
-      const rows = body
-        .trim()
-        .split("\n")
-        .map((row: string) => {
-          const tds = row
-            .split("|")
-            .filter(Boolean)
-            .map((c: string) => `<td>${c.trim()}</td>`)
-            .join("");
-          return `<tr>${tds}</tr>`;
-        })
-        .join("");
-      return `<table><thead><tr>${ths}</tr></thead><tbody>${rows}</tbody></table>`;
-    },
-  );
-
-  // Unordered lists
-  html = html.replace(/^- (.+)$/gm, "<li>$1</li>");
-  html = html.replace(/((?:<li>.*<\/li>\n?)+)/g, "<ul>$1</ul>");
-
-  // Horizontal rules
-  html = html.replace(/^---$/gm, "<hr />");
-
-  // Paragraphs — blank line separated blocks
-  html = html.replace(/\n{2,}/g, "</p><p>");
-  html = `<p>${html}</p>`;
-
-  // Clean up empty paragraphs and paragraphs wrapping block elements
-  html = html.replace(/<p>\s*<\/p>/g, "");
-  html = html.replace(/<p>\s*(<(?:h[1-4]|table|ul|hr))/g, "$1");
-  html = html.replace(/(<\/(?:h[1-4]|table|ul|hr\s?\/)>)\s*<\/p>/g, "$1");
-
-  return html;
-}
-
-function escapeHtml(text: string): string {
-  return text
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;");
-}
+/* ------------------------------------------------------------------ */
+/*  Helpers                                                            */
+/* ------------------------------------------------------------------ */
 
 function formatSlugName(slug: string): string {
   return slug
@@ -256,6 +25,245 @@ function formatSlugName(slug: string): string {
     .replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
-function shouldAutoExpand(type: string): boolean {
-  return type.includes("overview") || type.includes("details");
+function matchesSearch(file: EngagementContentFile, query: string): boolean {
+  const q = query.toLowerCase();
+  return (
+    file.title.toLowerCase().includes(q) ||
+    file.type.toLowerCase().includes(q) ||
+    file.type_label.toLowerCase().includes(q) ||
+    file.body.toLowerCase().includes(q) ||
+    Object.values(file.frontmatter).some((v) =>
+      (Array.isArray(v) ? v.join(" ") : String(v)).toLowerCase().includes(q),
+    )
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/*  Viewer                                                             */
+/* ------------------------------------------------------------------ */
+
+interface EngagementContentViewerProps {
+  data: EngagementContentResult;
+}
+
+export function EngagementContentViewer({ data }: EngagementContentViewerProps) {
+  const [search, setSearch] = useState("");
+  const [activeTypes, setActiveTypes] = useState<Set<string>>(new Set());
+  const [view, setView] = useState<"list" | "grid">("list");
+  const searchRef = useRef<HTMLInputElement>(null);
+
+  const allTypes = useMemo(() => {
+    const types = new Map<string, string>();
+    for (const f of data.content) types.set(f.type, f.type_label);
+    return types;
+  }, [data.content]);
+
+  const filtered = useMemo(() => {
+    return data.content.filter((f) => {
+      if (search && !matchesSearch(f, search)) return false;
+      if (activeTypes.size > 0 && !activeTypes.has(f.type)) return false;
+      return true;
+    });
+  }, [data.content, search, activeTypes]);
+
+  const topLevelFiles = useMemo(() => filtered.filter((f) => !f.project), [filtered]);
+  const projectGroups = useMemo(() => {
+    const groups: Record<string, EngagementContentFile[]> = {};
+    for (const proj of data.projects) {
+      const files = filtered.filter((f) => f.project === proj);
+      if (files.length > 0) groups[proj] = files;
+    }
+    return groups;
+  }, [filtered, data.projects]);
+
+  const toggleType = useCallback((type: string) => {
+    setActiveTypes((prev) => {
+      const next = new Set(prev);
+      if (next.has(type)) next.delete(type);
+      else next.add(type);
+      return next;
+    });
+  }, []);
+
+  const clearFilters = useCallback(() => {
+    setSearch("");
+    setActiveTypes(new Set());
+  }, []);
+
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === "f") {
+        e.preventDefault();
+        searchRef.current?.focus();
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, []);
+
+  const hasFilters = search || activeTypes.size > 0;
+  const defaultTab = Object.keys(projectGroups)[0] || "overview";
+
+  return (
+    <div className="space-y-4">
+      {/* Search + Filter Bar */}
+      <div className="flex flex-col gap-3">
+        <div className="flex items-center gap-2">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              ref={searchRef}
+              placeholder="Search files, content, metadata... (Ctrl+F)"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="pl-9 pr-9"
+            />
+            {search && (
+              <button
+                onClick={() => setSearch("")}
+                title="Clear search"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            )}
+          </div>
+          <div className="flex items-center rounded-lg border p-0.5">
+            <Button
+              variant={view === "list" ? "secondary" : "ghost"}
+              size="icon-sm"
+              onClick={() => setView("list")}
+              title="List view"
+            >
+              <List className="h-3.5 w-3.5" />
+            </Button>
+            <Button
+              variant={view === "grid" ? "secondary" : "ghost"}
+              size="icon-sm"
+              onClick={() => setView("grid")}
+              title="Grid view"
+            >
+              <LayoutGrid className="h-3.5 w-3.5" />
+            </Button>
+          </div>
+        </div>
+
+        {/* Type filter chips */}
+        <div className="flex items-center gap-2 flex-wrap">
+          <Filter className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+          {[...allTypes.entries()].map(([type, label]) => (
+            <button
+              key={type}
+              onClick={() => toggleType(type)}
+              title={`Filter by ${label}`}
+              className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium border transition-all duration-200 ${
+                activeTypes.has(type)
+                  ? getTypeColor(type)
+                  : "text-muted-foreground bg-transparent border-border hover:bg-muted"
+              }`}
+            >
+              {label}
+              <span className="text-[10px] opacity-60">
+                {data.content.filter((f) => f.type === type).length}
+              </span>
+            </button>
+          ))}
+          {hasFilters && (
+            <button
+              onClick={clearFilters}
+              title="Clear all filters"
+              className="text-xs text-muted-foreground hover:text-foreground transition-colors underline"
+            >
+              Clear all
+            </button>
+          )}
+        </div>
+
+        {hasFilters && (
+          <p className="text-xs text-muted-foreground">
+            Showing {filtered.length} of {data.content.length} files
+          </p>
+        )}
+      </div>
+
+      {/* Content */}
+      {filtered.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-16 text-center">
+          <Search className="h-10 w-10 text-muted-foreground/40 mb-3" />
+          <p className="text-sm text-muted-foreground">No files match your filters</p>
+          <button
+            onClick={clearFilters}
+            title="Clear all filters"
+            className="mt-2 text-xs text-primary hover:underline"
+          >
+            Clear filters
+          </button>
+        </div>
+      ) : (
+        <Tabs defaultValue={defaultTab} className="space-y-4">
+          <TabsList className="flex-wrap h-auto gap-1">
+            {topLevelFiles.length > 0 && (
+              <TabsTrigger value="overview">
+                Overview
+                <Badge variant="secondary" className="ml-1.5 text-[10px] px-1.5 py-0">
+                  {topLevelFiles.length}
+                </Badge>
+              </TabsTrigger>
+            )}
+            {Object.entries(projectGroups).map(([proj, files]) => (
+              <TabsTrigger key={proj} value={proj} className="max-w-56 truncate">
+                {formatSlugName(proj)}
+                <Badge variant="secondary" className="ml-1.5 text-[10px] px-1.5 py-0">
+                  {files.length}
+                </Badge>
+              </TabsTrigger>
+            ))}
+          </TabsList>
+
+          {topLevelFiles.length > 0 && (
+            <TabsContent value="overview">
+              <FileList files={topLevelFiles} view={view} search={search} />
+            </TabsContent>
+          )}
+
+          {Object.entries(projectGroups).map(([proj, files]) => (
+            <TabsContent key={proj} value={proj}>
+              <FileList files={files} view={view} search={search} />
+            </TabsContent>
+          ))}
+        </Tabs>
+      )}
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/*  File List                                                          */
+/* ------------------------------------------------------------------ */
+
+function FileList({
+  files,
+  view,
+  search,
+}: {
+  files: EngagementContentFile[];
+  view: "list" | "grid";
+  search: string;
+}) {
+  if (view === "grid") {
+    return (
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        {files.map((file) => (
+          <ContentCard key={file.path} file={file} compact search={search} />
+        ))}
+      </div>
+    );
+  }
+  return (
+    <div className="space-y-3">
+      {files.map((file) => (
+        <ContentCard key={file.path} file={file} search={search} />
+      ))}
+    </div>
+  );
 }
