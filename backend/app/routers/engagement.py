@@ -1,4 +1,4 @@
-"""Engagement repo router — scan, preview, and export to engagement repos."""
+"""Engagement repo router — scan, preview, ingest, and export."""
 
 import logging
 from datetime import UTC, datetime
@@ -9,7 +9,12 @@ from pydantic import BaseModel
 
 from app.dependencies import get_current_user
 from app.providers.storage import get_storage_provider
-from app.utils.engagement import scan_engagement_repo
+from app.utils.ingest import classify_and_place, write_classified_content
+from app.utils.engagement import (
+    scan_engagement_repo,
+    read_engagement_content_structured,
+    _find_content_dir,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -22,66 +27,124 @@ class RepoPathRequest(BaseModel):
 
 class ExportRequest(BaseModel):
     discovery_id: str
-    engagement_repo_path: str
-    initiative_dir: str = ""
+    repo_path: str
+    project_dir: str = ""
+
+
+class IngestClassifyRequest(BaseModel):
+    repo_path: str
+    content: str
+
+
+class IngestWriteRequest(BaseModel):
+    content_dir: str
+    directory: str = ""
+    filename: str
+    content: str
+    action: str = "create"
+    append_target: str = ""
 
 
 @router.post("/scan")
 async def scan_repo(request: RepoPathRequest):
-    """Scan a engagement repo directory and return its structure."""
+    """Scan an engagement repo directory and return its structure."""
     root = Path(request.path)
     if not root.is_dir():
         raise HTTPException(status_code=400, detail="Directory not found")
     return scan_engagement_repo(request.path)
 
 
+@router.post("/content")
+async def get_content(request: RepoPathRequest):
+    """Return full parsed content from an engagement repo for frontend rendering."""
+    root = Path(request.path)
+    if not root.is_dir():
+        raise HTTPException(status_code=400, detail="Directory not found")
+    result = read_engagement_content_structured(request.path)
+    if "error" in result:
+        raise HTTPException(status_code=400, detail=result["error"])
+    return result
+
+
+@router.post("/ingest/classify")
+async def ingest_classify(request: IngestClassifyRequest):
+    """AI-classify raw content and suggest placement in the repo."""
+    root = Path(request.repo_path)
+    if not root.is_dir():
+        raise HTTPException(status_code=400, detail="Directory not found")
+    if not request.content.strip():
+        raise HTTPException(status_code=422, detail="No content provided")
+    result = await classify_and_place(request.repo_path, request.content)
+    if "error" in result:
+        raise HTTPException(status_code=502, detail=result["error"])
+    return result
+
+
+@router.post("/ingest/write")
+async def ingest_write(request: IngestWriteRequest):
+    """Write AI-classified content to the repo filesystem."""
+    base = Path(request.content_dir)
+    if not base.is_dir():
+        raise HTTPException(status_code=400, detail="Content directory not found")
+    if not request.filename.strip():
+        raise HTTPException(status_code=422, detail="No filename provided")
+    result = write_classified_content(
+        content_dir=request.content_dir,
+        directory=request.directory,
+        filename=request.filename,
+        content=request.content,
+        action=request.action,
+        append_target=request.append_target,
+    )
+    if "error" in result:
+        raise HTTPException(status_code=400, detail=result["error"])
+    return result
+
+
 @router.post("/export")
 async def export_to_repo(request: ExportRequest):
-    """Export CORE outputs as engagement-compatible markdown files.
+    """Export CORE outputs as markdown files into the engagement repo.
 
     Writes problem statements, use cases, and solution blueprints
-    into the engagement initiative's decisions/ directory.
+    into a decisions/ directory.
     """
     storage = get_storage_provider()
-    root = Path(request.engagement_repo_path)
+    root = Path(request.repo_path)
     if not root.is_dir():
-        raise HTTPException(status_code=400, detail="engagement repo not found")
+        raise HTTPException(status_code=400, detail="Engagement repo not found")
 
     disc = await storage.get("discoveries", request.discovery_id)
     if not disc:
         raise HTTPException(status_code=404, detail="Discovery not found")
 
-    # Find the initiative directory to write into
-    if request.initiative_dir:
-        initiative_path = root / request.initiative_dir
+    # Find the project directory to write into
+    if request.project_dir:
+        project_path = root / request.project_dir
     else:
-        # Auto-detect: find first customer dir, then first initiative
-        from app.utils.engagement import _find_content_dir
-
-        customer_dir = _find_content_dir(root)
-        if not customer_dir:
+        # Auto-detect: find the content dir, then its first sub-project
+        content_dir = _find_content_dir(root)
+        if not content_dir:
             raise HTTPException(
                 status_code=422,
-                detail="No customer directory found in engagement repo",
+                detail="No content directory found in engagement repo",
             )
-        initiatives = [
+        projects = [
             d
-            for d in sorted(customer_dir.iterdir())
-            if d.is_dir() and (d / "initiative-overview.md").exists()
+            for d in sorted(content_dir.iterdir())
+            if d.is_dir() and any(d.glob("*.md"))
         ]
-        if not initiatives:
-            raise HTTPException(
-                status_code=422,
-                detail="No initiative found in engagement repo",
-            )
-        initiative_path = initiatives[0]
+        if not projects:
+            # Write directly to the content dir
+            project_path = content_dir
+        else:
+            project_path = projects[0]
 
-    if not initiative_path.is_dir():
+    if not project_path.is_dir():
         raise HTTPException(
-            status_code=400, detail="Initiative directory not found"
+            status_code=400, detail="Project directory not found"
         )
 
-    decisions_dir = initiative_path / "decisions"
+    decisions_dir = project_path / "decisions"
     decisions_dir.mkdir(exist_ok=True)
 
     exported: list[str] = []

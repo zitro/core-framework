@@ -164,7 +164,7 @@ Accessible from any phase via the sidebar. It shows every piece of evidence acro
 
 If you have existing engagement materials, configure local documentation scanning in the settings panel. Point CORE at a folder of PDFs, slide decks, or Word docs, and the platform ingests them into the AI context.
 
-If your team uses engagement for engagement management, configure the engagement repo integration to import customer context and export CORE deliverables back to the engagement repo.
+If your team uses a structured engagement repo, configure the engagement integration to import project context and export CORE deliverables back to the repo.
 
 Both features are optional. CORE works without them. They become valuable when you want AI analysis that builds on your existing knowledge base, not a fresh start every time.
 

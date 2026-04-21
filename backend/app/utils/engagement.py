@@ -1,7 +1,8 @@
-"""engagement repo integration — reads a engagement Git-backed note-taking repo.
+"""Engagement repo integration — reads a structured markdown knowledge base.
 
 Parses the directory structure and YAML frontmatter to produce
-structured context for CORE agents.
+structured context for CORE agents.  Works with any Git-backed
+markdown repo that uses frontmatter metadata.
 """
 
 from __future__ import annotations
@@ -15,32 +16,25 @@ logger = logging.getLogger(__name__)
 
 FRONTMATTER_RE = re.compile(r"^---\s*\n(.*?)\n---\s*(?:\n|$)", re.DOTALL)
 
-# Content types we want to ingest, mapped to context labels
-TYPE_LABELS: dict[str, str] = {
-    "customer-details": "Customer Details",
-    "customer-stakeholders": "Customer Stakeholders",
-    "msft-stakeholders": "Microsoft Stakeholders",
-    "tech-stack": "Technology Stack",
-    "initiative-overview": "Initiative Overview",
-    "approach": "Approach",
-    "architecture-overview": "Architecture Overview",
-    "game-plan": "Game Plan",
-    "risk-register": "Risk Register",
-    "call-transcript": "Call Transcript",
-    "chat": "Chat Record",
-    "email": "Email",
-    "decision": "Decision Record",
-    "status-update": "Status Update",
-    "workshop": "Workshop Notes",
-    "mve": "MVE Scope",
-    "advisory": "Advisory Notes",
-    "activity-overview": "Activity Overview",
-    "demos": "Demo Catalog",
-    "ai-design-win": "AI Design Win",
-}
-
 MAX_FILE_SIZE = 200 * 1024  # 200 KB per file
 MAX_TOTAL_SIZE = 500 * 1024  # 500 KB combined
+
+# Directories to skip when scanning for the main content directory.
+_SKIP_DIRS = {
+    "templates", "scripts", "docs", "artifact-templates",
+    "security-plan-outputs", "node_modules", "__pycache__",
+    ".github", ".vscode", ".cspell", ".git",
+}
+
+
+def _type_to_label(file_type: str) -> str:
+    """Convert a frontmatter type slug to a human-readable label.
+
+    Examples: 'call-transcript' → 'Call Transcript', '' → 'Notes'
+    """
+    if not file_type:
+        return "Notes"
+    return file_type.replace("-", " ").replace("_", " ").title()
 
 
 def _parse_frontmatter(text: str) -> tuple[dict[str, Any], str]:
@@ -72,36 +66,39 @@ def _parse_frontmatter(text: str) -> tuple[dict[str, Any], str]:
 
 
 def _find_content_dir(repo_path: Path) -> Path | None:
-    """Locate the customer directory (skip _sample-customer, templates, etc.)."""
-    skip = {
-        "_sample-customer",
-        "templates",
-        "scripts",
-        "docs",
-        "artifact-templates",
-        "security-plan-outputs",
-        ".github",
-        ".vscode",
-        ".cspell",
-        ".git",
-    }
+    """Locate the primary content directory inside the repo.
+
+    Looks for the first subdirectory that contains markdown files with
+    YAML frontmatter.  Skips common infrastructure directories.
+    """
     for child in sorted(repo_path.iterdir()):
-        if child.is_dir() and child.name not in skip and not child.name.startswith("."):
-            # Check if it looks like a customer dir (has customer-details.md)
-            if (child / "customer-details.md").exists():
-                return child
+        if not child.is_dir():
+            continue
+        if child.name in _SKIP_DIRS or child.name.startswith((".", "_")):
+            continue
+        # Accept any dir that has at least one .md file with frontmatter
+        for md in child.rglob("*.md"):
+            try:
+                head = md.read_text(encoding="utf-8", errors="ignore")[:500]
+                if FRONTMATTER_RE.match(head):
+                    return child
+            except Exception:
+                continue
     return None
 
 
 def scan_engagement_repo(repo_path: str) -> dict[str, Any]:
-    """Scan a engagement repo and return structured metadata.
+    """Scan an engagement repo and return structured metadata.
+
+    Discovers the content directory, identifies sub-projects (directories
+    that contain markdown files with frontmatter), and indexes all files.
 
     Returns:
         {
             "path": str,
-            "customer_dir": str | None,
-            "customer_name": str,
-            "initiatives": [str],
+            "content_dir": str | None,
+            "content_name": str,
+            "projects": [str],
             "files": [{"path": str, "type": str, "title": str}],
         }
     """
@@ -109,37 +106,49 @@ def scan_engagement_repo(repo_path: str) -> dict[str, Any]:
     if not root.is_dir():
         return {"path": repo_path, "error": "Directory not found"}
 
-    customer_dir = _find_content_dir(root)
+    content_dir = _find_content_dir(root)
     result: dict[str, Any] = {
         "path": repo_path,
-        "customer_dir": str(customer_dir) if customer_dir else None,
-        "customer_name": "",
-        "initiatives": [],
+        "content_dir": str(content_dir) if content_dir else None,
+        "content_name": "",
+        "projects": [],
         "files": [],
     }
 
-    if not customer_dir:
+    if not content_dir:
         return result
 
-    # Read customer name
-    details_file = customer_dir / "customer-details.md"
-    if details_file.exists():
+    # Read name from the first frontmattered file at the root level
+    for md in sorted(content_dir.glob("*.md")):
         try:
-            fm, _ = _parse_frontmatter(details_file.read_text(encoding="utf-8"))
-            result["customer_name"] = fm.get("customer", customer_dir.name)
+            fm, _ = _parse_frontmatter(md.read_text(encoding="utf-8"))
+            name = fm.get("customer", fm.get("title", ""))
+            if name:
+                result["content_name"] = name
+                break
         except Exception:
-            result["customer_name"] = customer_dir.name
+            continue
+    if not result["content_name"]:
+        result["content_name"] = content_dir.name
 
-    # Find initiatives
-    for child in sorted(customer_dir.iterdir()):
-        if child.is_dir() and (child / "initiative-overview.md").exists():
-            result["initiatives"].append(child.name)
+    # Find sub-projects (subdirs that contain frontmattered .md files)
+    for child in sorted(content_dir.iterdir()):
+        if not child.is_dir():
+            continue
+        for md in child.glob("*.md"):
+            try:
+                head = md.read_text(encoding="utf-8", errors="ignore")[:500]
+                if FRONTMATTER_RE.match(head):
+                    result["projects"].append(child.name)
+                    break
+            except Exception:
+                continue
 
     # Index all markdown files
-    for md_file in sorted(customer_dir.rglob("*.md")):
+    for md_file in sorted(content_dir.rglob("*.md")):
         if md_file.name.startswith("_") or md_file.name == "README.md":
             continue
-        rel = str(md_file.relative_to(customer_dir))
+        rel = str(md_file.relative_to(content_dir))
         try:
             fm, _ = _parse_frontmatter(
                 md_file.read_text(encoding="utf-8", errors="ignore")
@@ -159,7 +168,7 @@ def scan_engagement_repo(repo_path: str) -> dict[str, Any]:
 
 
 def read_engagement_context(repo_path: str) -> str:
-    """Read a engagement repo and produce structured text context for AI agents.
+    """Read an engagement repo and produce structured text context for AI agents.
 
     Groups content by type so agents understand what kind of information
     each block represents (stakeholder data vs transcript vs decision etc.).
@@ -168,15 +177,14 @@ def read_engagement_context(repo_path: str) -> str:
     if not root.is_dir():
         return ""
 
-    customer_dir = _find_content_dir(root)
-    if not customer_dir:
+    content_dir = _find_content_dir(root)
+    if not content_dir:
         return ""
 
     sections: dict[str, list[str]] = {}
     total_size = 0
 
-    # Process customer-level files first, then initiatives
-    for md_file in sorted(customer_dir.rglob("*.md")):
+    for md_file in sorted(content_dir.rglob("*.md")):
         if md_file.name.startswith("_") or md_file.name == "README.md":
             continue
         if md_file.stat().st_size > MAX_FILE_SIZE:
@@ -193,15 +201,13 @@ def read_engagement_context(repo_path: str) -> str:
         fm, body = _parse_frontmatter(text)
 
         file_type = fm.get("type", "")
-        label = TYPE_LABELS.get(file_type, file_type or "Notes")
+        label = _type_to_label(file_type)
 
-        # Build a concise block
         title = fm.get("title", fm.get("initiative", fm.get("customer", "")))
         header = f"[{label}]"
         if title:
             header += f" {title}"
 
-        # Keep body trimmed
         body_trimmed = body.strip()[:4000]
         block = f"{header}\n{body_trimmed}"
 
@@ -210,9 +216,95 @@ def read_engagement_context(repo_path: str) -> str:
     if not sections:
         return ""
 
-    parts: list[str] = ["engagement notes:"]
+    parts: list[str] = ["Engagement notes:"]
     for label, blocks in sections.items():
         for block in blocks:
             parts.append(block)
 
     return "\n\n".join(parts)
+
+
+def read_engagement_content_structured(repo_path: str) -> dict[str, Any]:
+    """Read an engagement repo and return structured content for frontend rendering.
+
+    Returns files grouped by type with frontmatter, body, and project info.
+    """
+    root = Path(repo_path)
+    if not root.is_dir():
+        return {"path": repo_path, "error": "Directory not found"}
+
+    content_dir = _find_content_dir(root)
+    result: dict[str, Any] = {
+        "path": repo_path,
+        "content_name": "",
+        "projects": [],
+        "content": [],
+    }
+
+    if not content_dir:
+        return result
+
+    # Read name from the first frontmattered file at the root level
+    for md in sorted(content_dir.glob("*.md")):
+        try:
+            fm, _ = _parse_frontmatter(md.read_text(encoding="utf-8"))
+            name = fm.get("customer", fm.get("title", ""))
+            if name:
+                result["content_name"] = name
+                break
+        except Exception:
+            continue
+    if not result["content_name"]:
+        result["content_name"] = content_dir.name
+
+    # Find sub-projects
+    for child in sorted(content_dir.iterdir()):
+        if not child.is_dir():
+            continue
+        for md in child.glob("*.md"):
+            try:
+                head = md.read_text(encoding="utf-8", errors="ignore")[:500]
+                if FRONTMATTER_RE.match(head):
+                    result["projects"].append(child.name)
+                    break
+            except Exception:
+                continue
+
+    # Read all markdown files with content
+    total_size = 0
+    for md_file in sorted(content_dir.rglob("*.md")):
+        if md_file.name.startswith("_") or md_file.name == "README.md":
+            continue
+        if md_file.stat().st_size > MAX_FILE_SIZE:
+            continue
+        if total_size >= MAX_TOTAL_SIZE * 4:  # higher limit for structured reads
+            break
+
+        try:
+            text = md_file.read_text(encoding="utf-8", errors="ignore")
+        except Exception:
+            continue
+
+        total_size += len(text.encode("utf-8"))
+        fm, body = _parse_frontmatter(text)
+
+        file_type = fm.get("type", "")
+        type_label = _type_to_label(file_type)
+        title = fm.get("title", fm.get("initiative", fm.get("customer", md_file.stem)))
+        rel = str(md_file.relative_to(content_dir))
+
+        # Determine which project this file belongs to
+        parts = Path(rel).parts
+        project = parts[0] if len(parts) > 1 and parts[0] in result["projects"] else None
+
+        result["content"].append({
+            "path": rel,
+            "type": file_type,
+            "type_label": type_label,
+            "title": title,
+            "frontmatter": fm,
+            "body": body.strip(),
+            "project": project,
+        })
+
+    return result

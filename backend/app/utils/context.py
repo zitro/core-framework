@@ -109,15 +109,15 @@ async def gather_context(discovery_id: str) -> str:
     except Exception:
         logger.debug("Could not load local docs for %s", discovery_id)
 
-    # engagement notes
+    # Engagement repo notes
     try:
         if not disc:
             disc = await storage.get("discoveries", discovery_id)
-        vertex_path = (disc or {}).get("engagement_repo_path", "")
-        if vertex_path:
-            vertex_ctx = read_engagement_context(vertex_path)
-            if vertex_ctx:
-                parts.append(vertex_ctx)
+        engagement_path = (disc or {}).get("engagement_repo_path", "")
+        if engagement_path:
+            engagement_ctx = read_engagement_context(engagement_path)
+            if engagement_ctx:
+                parts.append(engagement_ctx)
     except Exception:
         logger.debug("Could not load engagement notes for %s", discovery_id)
 

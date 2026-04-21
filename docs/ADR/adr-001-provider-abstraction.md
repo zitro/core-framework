@@ -70,7 +70,7 @@ This was chosen because:
 * Any team can run CORE with their preferred LLM and storage by changing two environment variables
 * Routers and business logic are completely decoupled from provider implementation details
 * Testing is straightforward: mock the factory function's return value
-* Adding Cosmos DB, Anthropic, or Google engagement requires zero changes to existing code
+* Adding Cosmos DB, Anthropic, or Mistral requires zero changes to existing code
 
 ### Negative
 

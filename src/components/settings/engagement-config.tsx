@@ -41,7 +41,7 @@ export function EngagementConfig({ discovery, onUpdate }: EngagementConfigProps)
     try {
       const result = await api.engagement.scan(path.trim());
       setScan(result);
-      if (result.customer_name) {
+      if (result.content_name) {
         onUpdate({ engagement_repo_path: path.trim() } as Partial<Discovery>);
       }
     } catch {
@@ -58,7 +58,7 @@ export function EngagementConfig({ discovery, onUpdate }: EngagementConfigProps)
     try {
       const result = await api.engagement.export({
         discovery_id: discovery.id,
-        engagement_repo_path: path.trim(),
+        repo_path: path.trim(),
       });
       setExportResult(result);
       toast.success(`Exported ${result.count} files`);
@@ -73,7 +73,7 @@ export function EngagementConfig({ discovery, onUpdate }: EngagementConfigProps)
   useEffect(() => {
     if (discovery.engagement_repo_path && !scan) {
       setPath(discovery.engagement_repo_path);
-      api.vertex
+      api.engagement
         .scan(discovery.engagement_repo_path)
         .then(setScan)
         .catch(() => {});
@@ -85,10 +85,10 @@ export function EngagementConfig({ discovery, onUpdate }: EngagementConfigProps)
       <CardHeader className="pb-3">
         <CardTitle className="flex items-center gap-2 text-base">
           <GitBranch className="h-4 w-4" />
-          Engagement Repo Integration
+          Engagement Repo
         </CardTitle>
         <CardDescription>
-          Link a structured markdown repo to feed engagement notes into AI
+          Link a structured markdown repo to feed notes into AI
           context and export CORE outputs back.
         </CardDescription>
       </CardHeader>
@@ -119,16 +119,16 @@ export function EngagementConfig({ discovery, onUpdate }: EngagementConfigProps)
             <div className="space-y-2">
               <div className="flex items-center gap-2 text-sm">
                 <CheckCircle className="h-3.5 w-3.5 text-green-500" />
-                <span className="font-medium">{scan.customer_name}</span>
+                <span className="font-medium">{scan.content_name}</span>
                 <Badge variant="outline" className="text-xs">
                   {scan.files.length} files
                 </Badge>
               </div>
 
-              {scan.initiatives.length > 0 && (
+              {scan.projects.length > 0 && (
                 <div className="text-sm text-muted-foreground">
-                  Initiatives:{" "}
-                  {scan.initiatives.map((i) => (
+                  Projects:{" "}
+                  {scan.projects.map((i) => (
                     <Badge key={i} variant="secondary" className="mr-1 text-xs">
                       {i}
                     </Badge>
@@ -161,7 +161,7 @@ export function EngagementConfig({ discovery, onUpdate }: EngagementConfigProps)
             <div className="flex items-center justify-between">
               <div className="text-sm text-muted-foreground">
                 <FileText className="mr-1 inline h-3.5 w-3.5" />
-                Export problem statements, use cases, and blueprints to engagement
+                Export problem statements, use cases, and blueprints
               </div>
               <Button
                 size="sm"

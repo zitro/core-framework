@@ -10,6 +10,9 @@ import type {
   SolutionBlueprint,
   EngagementScanResult,
   EngagementExportResult,
+  EngagementContentResult,
+  IngestClassification,
+  IngestWriteResult,
 } from "@/types/core";
 import { toast } from "sonner";
 
@@ -160,18 +163,40 @@ export const api = {
   },
 
   // Engagement Repo Integration
-  vertex: {
+  engagement: {
     scan: (path: string) =>
       request<EngagementScanResult>("/api/engagement/scan", {
         method: "POST",
         body: JSON.stringify({ path }),
       }),
+    content: (path: string) =>
+      request<EngagementContentResult>("/api/engagement/content", {
+        method: "POST",
+        body: JSON.stringify({ path }),
+      }),
     export: (data: {
       discovery_id: string;
-      engagement_repo_path: string;
-      initiative_dir?: string;
+      repo_path: string;
+      project_dir?: string;
     }) =>
       request<EngagementExportResult>("/api/engagement/export", {
+        method: "POST",
+        body: JSON.stringify(data),
+      }),
+    ingestClassify: (repoPath: string, content: string) =>
+      request<IngestClassification>("/api/engagement/ingest/classify", {
+        method: "POST",
+        body: JSON.stringify({ repo_path: repoPath, content }),
+      }),
+    ingestWrite: (data: {
+      content_dir: string;
+      directory: string;
+      filename: string;
+      content: string;
+      action: string;
+      append_target: string;
+    }) =>
+      request<IngestWriteResult>("/api/engagement/ingest/write", {
         method: "POST",
         body: JSON.stringify(data),
       }),

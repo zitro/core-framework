@@ -28,8 +28,8 @@ Beyond the four phases, the platform includes:
   solution architect) that power the analysis behind each phase.
 - An AI advisor that generates use case proposals and solution architecture blueprints from accumulated
   evidence.
-- Bidirectional engagement integration for importing context from and exporting deliverables to
-  engagement repositories.
+- Bidirectional engagement repo integration for importing context from and exporting deliverables to
+  structured markdown repositories.
 - Local documentation scanning that ingests PDF, PPTX, DOCX, XLSX, and text files to feed context
   into the AI agents.
 - Real-time WebSocket collaboration so multiple users can work on a discovery session simultaneously.
@@ -80,7 +80,7 @@ The backend uses a provider abstraction pattern. Swap between local development 
 | Auth         | Azure Entra ID or none (local)                      |
 | Realtime     | WebSocket hub for live collaboration                |
 | Docs Parsing | PDF, PPTX, DOCX, XLSX via pymupdf and python-pptx  |
-| Integration  | engagement repos (scan and export)           |
+| Integration  | Engagement repos (scan, ingest, and export)          |
 | CI/CD        | GitHub Actions (lint, test, build)                  |
 
 ## Prerequisites
@@ -453,12 +453,12 @@ core-framework/
 │   │   │   ├── blueprints.py     # Solution architecture generation
 │   │   │   ├── export.py         # JSON/CSV export downloads
 │   │   │   ├── docs.py           # Local documentation scanning
-│   │   │   ├── engagement.py         # engagement integration
+│   │   │   ├── engagement.py     # Engagement repo integration
 │   │   │   └── realtime.py       # WebSocket hub for live collaboration
 │   │   ├── utils/                # Utilities
 │   │   │   ├── context.py        # Context gathering (includes engagement data)
 │   │   │   ├── local_docs.py     # Binary document parsing (PDF, PPTX, etc.)
-│   │   │   └── engagement.py         # engagement repo scanning and frontmatter parsing
+│   │   │   └── engagement.py     # Engagement repo scanning and frontmatter parsing
 │   │   └── providers/            # Pluggable service providers
 │   │       ├── llm/              # Azure OpenAI, OpenAI, Ollama
 │   │       ├── storage/          # Cosmos DB, local JSON
@@ -506,8 +506,8 @@ All endpoints are prefixed with `/api`.
 | POST   | `/api/advisor/use-cases/generate`     | Generate use case proposals            |
 | POST   | `/api/blueprints/generate`            | Generate solution architecture         |
 | POST   | `/api/docs/scan`                      | Scan local documentation directory     |
-| POST   | `/api/engagement/scan`                    | Scan a engagement repo          |
-| POST   | `/api/engagement/export`                  | Export deliverables to engagement repo   |
+| POST   | `/api/engagement/scan`                | Scan an engagement repo                |
+| POST   | `/api/engagement/export`              | Export deliverables to engagement repo |
 | GET    | `/api/export/{id}?format=json`        | Export discovery as JSON               |
 | GET    | `/api/export/{id}?format=csv`         | Export discovery as CSV                |
 | WS     | `/ws/{discoveryId}`                   | Real-time collaboration channel        |
@@ -631,30 +631,30 @@ example, uses different prompt strategies for Capture (listening and probing) ve
 
 ## Engagement Repo Integration
 
-CORE integrates bidirectionally with engagement repositories. The engagement repo serves as the knowledge base
-of record for customer engagements, while CORE provides the AI analysis layer.
+CORE integrates bidirectionally with structured markdown engagement repositories. The engagement
+repo serves as a knowledge base for a project, while CORE provides the AI analysis layer.
 
-### Ingest (engagement to CORE)
+### Ingest (Repo to CORE)
 
-Point CORE at a engagement repo path and it scans the directory structure, auto-detects the customer
-directory (skipping templates and samples), and parses YAML frontmatter from all markdown files.
-The scan returns structured metadata: customer name, initiative list, and file counts grouped by
-type (call transcripts, decisions, stakeholders, architecture, and 15+ other content types).
+Point CORE at an engagement repo path and it scans the directory structure, auto-detects the
+content directory (skipping templates, scripts, and hidden dirs), and parses YAML frontmatter
+from all markdown files. The scan returns structured metadata: content name, project list, and
+file counts grouped by type (labels are derived dynamically from the frontmatter `type` field).
 
-When a discovery session has a `engagement_repo_path` set, the context gathering utility automatically
-calls `read_engagement_context()` to load relevant files, grouped by type, into the AI agents' context
-window. Size caps (200 KB per file, 500 KB total) prevent prompt overflow.
+When a discovery session has an `engagement_repo_path` set, the context gathering utility
+automatically calls `read_engagement_context()` to load relevant files, grouped by type, into
+the AI agents' context window. Size caps (200 KB per file, 500 KB total) prevent prompt overflow.
 
-### Export (CORE to engagement)
+### Export (CORE to Repo)
 
 The export endpoint renders CORE deliverables (problem statements, use cases, solution blueprints)
-as engagement-compatible markdown files with `type: decision` YAML frontmatter. Drop the exported files
-into the engagement repo and they become part of the engagement record.
+as markdown files with `type: decision` YAML frontmatter. Drop the exported files into the
+engagement repo and they become part of the project record.
 
 ### Frontend Configuration
 
-The settings panel provides a engagement configuration card where you enter the repo path, scan to
-preview the contents (customer name, initiative count, file counts by type), and export CORE
+The settings panel provides an engagement repo configuration card where you enter the repo path,
+scan to preview the contents (content name, project count, file counts by type), and export CORE
 outputs back to the repo.
 
 ## Local Documentation Scanning

@@ -179,9 +179,9 @@ export interface SolutionBlueprint {
 
 export interface EngagementScanResult {
   path: string;
-  customer_dir: string | null;
-  customer_name: string;
-  initiatives: string[];
+  content_dir: string | null;
+  content_name: string;
+  projects: string[];
   files: { path: string; type: string; title: string }[];
   error?: string;
 }
@@ -190,6 +190,46 @@ export interface EngagementExportResult {
   exported: string[];
   count: number;
   target_dir: string;
+}
+
+export interface EngagementContentFile {
+  path: string;
+  type: string;
+  type_label: string;
+  title: string;
+  frontmatter: Record<string, string | string[]>;
+  body: string;
+  project: string | null;
+}
+
+export interface EngagementContentResult {
+  path: string;
+  content_name: string;
+  projects: string[];
+  content: EngagementContentFile[];
+}
+
+export interface IngestClassification {
+  classification: {
+    type: string;
+    title: string;
+    confidence: "high" | "medium" | "low";
+  };
+  placement: {
+    directory: string;
+    filename: string;
+    action: "create" | "append";
+    append_target: string;
+  };
+  generated_content: string;
+  summary: string;
+  content_dir: string;
+}
+
+export interface IngestWriteResult {
+  path: string;
+  full_path: string;
+  action: string;
 }
 
 export const PHASE_CONFIG: Record<
