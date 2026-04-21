@@ -3,7 +3,7 @@
 import { useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Search, Compass, Lightbulb, Rocket, Home, BookOpen, FolderOpen } from "lucide-react";
+import { Search, Compass, Lightbulb, Rocket, Home, BookOpen, FolderOpen, FolderGit2 } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -146,6 +146,12 @@ export function AppSidebar() {
                 <SidebarMenuButton render={<Link href="/discoveries" />} isActive={pathname === "/discoveries"}>
                   <FolderOpen className="h-4 w-4 text-indigo-500" />
                   <span>All Discoveries</span>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton render={<Link href="/context" />} isActive={pathname === "/context"}>
+                  <FolderGit2 className="h-4 w-4 text-teal-500" />
+                  <span>Engagement Context</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
             </SidebarMenu>

@@ -98,7 +98,7 @@ providers/
 ### Why this pattern
 
 * Routers call the abstract interface. They never import a concrete provider. This means switching from Ollama to Azure OpenAI is a `.env` change, not a code change.
-* New providers (Anthropic, Google engagement, Azure Cosmos) implement the interface and register in the factory. No router code changes.
+* New providers (Anthropic, Mistral, Azure Cosmos) implement the interface and register in the factory. No router code changes.
 * The factory uses `@lru_cache(maxsize=1)` to guarantee a single provider instance per process. This avoids creating new HTTP clients per request.
 
 ### Why not dependency injection

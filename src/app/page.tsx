@@ -46,7 +46,7 @@ export default function DashboardPage() {
   const [description, setDescription] = useState("");
   const [mode, setMode] = useState<DiscoveryMode>("standard");
   const [docsPath, setDocsPath] = useState("");
-  const [engagementPath, setengagementPath] = useState("");
+  const [engagementPath, setEngagementPath] = useState("");
 
   useEffect(() => {
     loadDiscoveries().catch(() => {});
@@ -58,7 +58,7 @@ export default function DashboardPage() {
     setName("");
     setDescription("");
     setDocsPath("");
-    setengagementPath("");
+    setEngagementPath("");
     setOpen(false);
   };
 
@@ -132,10 +132,10 @@ export default function DashboardPage() {
               </div>
               <DocsPathConfig value={docsPath} onChange={setDocsPath} />
               <div>
-                <label className="text-sm font-medium">engagement Repo (optional)</label>
+                <label className="text-sm font-medium">Engagement Repo (optional)</label>
                 <Input
                   value={engagementPath}
-                  onChange={(e) => setengagementPath(e.target.value)}
+                  onChange={(e) => setEngagementPath(e.target.value)}
                   placeholder="/path/to/engagement-repo"
                   className="mt-1"
                 />
@@ -241,7 +241,7 @@ export default function DashboardPage() {
         )}
       </div>
 
-      {/* Engagement Repo Integration for active discovery */}
+      {/* Engagement repo config for active discovery */}
       {activeDiscovery && (
         <EngagementConfig
           discovery={activeDiscovery}

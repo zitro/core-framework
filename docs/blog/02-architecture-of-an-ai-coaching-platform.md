@@ -66,15 +66,15 @@ The most important technical detail is how data moves between phases. When a pra
 
 This is not magic. The backend gathers context dynamically. When an AI agent runs, the context gathering utility pulls in the discovery session, its evidence, and (if configured) content from engagement repos and local documentation. Each agent receives the full accumulated context of the session, not a blank prompt.
 
-## engagement repo integration as a design case study
+## Engagement repo integration as a design case study
 
-One example of how the architecture stays modular: engagement repos. engagement is a separate system of record for customer engagements. CORE integrates with it bidirectionally, but the integration is entirely optional.
+One example of how the architecture stays modular: engagement repo integration. An engagement repo is a Git-backed markdown knowledge base for a project or customer. CORE integrates with it bidirectionally, but the integration is entirely optional.
 
-On ingest, a utility function scans a engagement repo path, auto-detects the customer directory, and parses YAML frontmatter from markdown files. It returns structured metadata grouped by type: call transcripts, decisions, stakeholders, architecture, and fifteen other categories. Size caps (200 KB per file, 500 KB total) prevent prompt overflow.
+On ingest, a utility function scans a repo path, auto-detects the content directory, and parses YAML frontmatter from markdown files. It returns structured metadata grouped by type, with labels derived dynamically from the frontmatter `type` field. Size caps (200 KB per file, 500 KB total) prevent prompt overflow.
 
-On export, CORE renders its deliverables (problem statements, use cases, blueprints) as engagement-compatible markdown with `type: decision` frontmatter. Drop the files into the engagement repo and they become part of the engagement record.
+On export, CORE renders its deliverables (problem statements, use cases, blueprints) as markdown with `type: decision` frontmatter. Drop the files into the engagement repo and they become part of the project record.
 
-Neither of these features touches the core routing or agent logic. The repo scanner is a utility. The exporter is a router. The context gatherer calls the scanner when the discovery session has a engagement path set. Remove the engagement feature and nothing else changes. That is the provider pattern applied at the feature level, not just the infrastructure level.
+Neither of these features touches the core routing or agent logic. The repo scanner is a utility. The exporter is a router. The context gatherer calls the scanner when the discovery session has an engagement repo path set. Remove the engagement feature and nothing else changes. That is the provider pattern applied at the feature level, not just the infrastructure level.
 
 ## What Pydantic buys you
 

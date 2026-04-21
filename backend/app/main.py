@@ -44,7 +44,7 @@ def create_app() -> FastAPI:
         questions,
         realtime,
         transcripts,
-        engagement-repo,
+        engagement,
     )
 
     app = FastAPI(
