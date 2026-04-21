@@ -28,6 +28,23 @@ class ConfidenceLevel(StrEnum):
     CONFLICTING = "conflicting"
 
 
+class EvidenceType(StrEnum):
+    """Design-thinking-aligned evidence taxonomy.
+
+    `GENERAL` is the legacy default for items captured before the taxonomy
+    existed. New items should pick a specific type.
+    """
+
+    GENERAL = "general"
+    OBSERVATION = "observation"  # something we watched happen
+    QUOTE = "quote"  # verbatim from a stakeholder
+    PAIN_POINT = "pain_point"  # named friction in the current state
+    JTBD = "jtbd"  # job-to-be-done statement
+    ASSUMPTION = "assumption"  # belief we hold but have not validated
+    HYPOTHESIS = "hypothesis"  # testable prediction
+    INSIGHT = "insight"  # synthesized takeaway across other evidence
+
+
 class Evidence(BaseModel):
     id: str = ""
     discovery_id: str = ""
@@ -35,6 +52,7 @@ class Evidence(BaseModel):
     content: str
     source: str = ""
     confidence: ConfidenceLevel = ConfidenceLevel.UNKNOWN
+    evidence_type: EvidenceType = EvidenceType.GENERAL
     tags: list[str] = Field(default_factory=list)
     created_at: datetime = Field(default_factory=_utcnow)
 
@@ -179,6 +197,7 @@ class EvidenceUpdate(BaseModel):
     content: str | None = None
     source: str | None = None
     confidence: ConfidenceLevel | None = None
+    evidence_type: EvidenceType | None = None
     tags: list[str] | None = None
 
 

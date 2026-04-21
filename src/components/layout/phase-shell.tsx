@@ -6,6 +6,7 @@ import type { CorePhase } from "@/types/core";
 import { PHASE_CONFIG } from "@/types/core";
 import { PhaseProgress, NextPhaseCTA } from "@/components/layout/phase-progress";
 import { PhaseEvidencePanel } from "@/components/layout/phase-evidence-panel";
+import { DtMethodsPanel } from "@/components/layout/dt-methods-panel";
 
 const PHASE_ICONS: Record<CorePhase, LucideIcon> = {
   capture: Search,
@@ -96,6 +97,9 @@ export function PhaseShell({ phase, discoveryId, children }: PhaseShellProps) {
 
       {/* Main Content */}
       {children}
+
+      {/* Design thinking methods for this phase */}
+      <DtMethodsPanel phase={phase} />
 
       {/* Phase Evidence Panel */}
       <PhaseEvidencePanel discoveryId={discoveryId} phase={phase} />

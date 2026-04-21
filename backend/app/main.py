@@ -35,21 +35,25 @@ def create_app() -> FastAPI:
 
     from app.routers import (
         advisor,
+        agents,
         blueprints,
         discovery,
         docs,
+        dt_templates,
         engagement,
         evidence,
         export,
+        narrative,
         problem_statements,
         questions,
         realtime,
+        search,
         transcripts,
     )
 
     app = FastAPI(
         title=settings.app_name,
-        version="0.1.0",
+        version="0.2.0",
         description="CORE Discovery Framework API",
     )
 
@@ -108,6 +112,10 @@ def create_app() -> FastAPI:
     )
     app.include_router(realtime.router, tags=["realtime"])
     app.include_router(engagement.router, prefix="/api/engagement", tags=["engagement"])
+    app.include_router(search.router, prefix="/api", tags=["search"])
+    app.include_router(narrative.router, prefix="/api/narrative", tags=["narrative"])
+    app.include_router(agents.router, prefix="/api/agents", tags=["agents"])
+    app.include_router(dt_templates.router, prefix="/api/dt-templates", tags=["dt-templates"])
 
     @app.get("/api/health")
     async def health():

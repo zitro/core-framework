@@ -200,5 +200,60 @@ export const api = {
         method: "POST",
         body: JSON.stringify(data),
       }),
+    ingestUpload: async (repoPath: string, file: File) => {
+      const form = new FormData();
+      form.append("repo_path", repoPath);
+      form.append("file", file);
+      const res = await fetch(`${API_URL}/api/engagement/ingest/upload`, {
+        method: "POST",
+        body: form,
+      });
+      if (!res.ok) {
+        const error = await res.json().catch(() => ({ detail: res.statusText }));
+        const message = error.detail || "Upload failed";
+        toast.error(message);
+        throw new Error(message);
+      }
+      return res.json() as Promise<
+        IngestClassification & { source_filename: string; extracted_chars: number }
+      >;
+    },
+    referencesRebuild: (path: string) =>
+      request<{ path: string; count: number }>("/api/engagement/references/rebuild", {
+        method: "POST",
+        body: JSON.stringify({ path }),
+      }),
+  },
+
+  // Web Search
+  search: (query: string, limit = 5) =>
+    request<{
+      query: string;
+      enabled: boolean;
+      results: Array<{ title: string; url: string; snippet: string; source: string }>;
+    }>("/api/search", {
+      method: "POST",
+      body: JSON.stringify({ query, limit }),
+    }),
+
+  // Discovery Narrative
+  narrative: {
+    generate: (data: {
+      discovery_id: string;
+      audience?: "executive" | "technical" | "customer" | "internal";
+      style?: "narrative" | "brief" | "outline";
+      focus?: string;
+    }) =>
+      request<{
+        discovery_id: string;
+        audience: string;
+        style: string;
+        headline: string;
+        summary: string;
+        sections: Array<{ title: string; body: string }>;
+      }>("/api/narrative/generate", {
+        method: "POST",
+        body: JSON.stringify(data),
+      }),
   },
 };
