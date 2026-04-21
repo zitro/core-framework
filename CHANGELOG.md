@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.0] - 2026-04-21
+
+### Added
+
+- Backend tests for the new HITL + scoping surfaces: `test_engagements.py`, `test_reviews.py`, `test_audit.py`, `test_review_gate.py`
+- Storybook scaffold (`.storybook/main.ts`, `.storybook/preview.ts`) plus opt-in `pnpm storybook` and `pnpm build-storybook` scripts
+- Initial stories for `Button`, `Badge`, and `Card` shadcn primitives
+
+### Changed
+
+- `StorageProvider.list` annotation updated under `from __future__ import annotations` so the abstract base loads cleanly when imported in isolation
+- Backend, frontend, and FastAPI versions bumped to `0.9.0`
+- `tsconfig.json` excludes `**/*.stories.tsx` and `.storybook` so Storybook deps stay opt-in
+
 ## [0.8.0] - 2026-04-21
 
 ### Added

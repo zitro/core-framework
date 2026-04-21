@@ -1,6 +1,6 @@
 {
   "name": "core-discovery",
-  "version": "0.8.0",
+  "version": "0.9.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -9,7 +9,9 @@
     "lint": "eslint",
     "test": "vitest run",
     "test:watch": "vitest",
-    "gen:api": "node scripts/gen-api-types.mjs"
+    "gen:api": "node scripts/gen-api-types.mjs",
+    "storybook": "storybook dev -p 6006",
+    "build-storybook": "storybook build"
   },
   "dependencies": {
     "@azure/msal-browser": "^4.30.0",
