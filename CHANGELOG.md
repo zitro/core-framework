@@ -7,6 +7,43 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.2] - 2026-04-21
+
+Second 5-pass review after v1.0.1 — focused on file-size discipline,
+security hardening, and operational reproducibility.
+
+### Added
+
+- `SECURITY.md` documenting the threat model, controls in place, known
+  authorization limitations, and out-of-scope items.
+- WebSocket per-room connection cap (50) and per-message size cap (64 KiB)
+  to prevent resource exhaustion.
+- Startup guard that refuses `CORS_ORIGINS=["*"]` when credentials are
+  enabled (CORS spec violation and credential exposure risk).
+- HEALTHCHECK directives in both backend and frontend Dockerfiles for
+  orchestrator-driven liveness probes.
+- `--proxy-headers --forwarded-allow-ips=*` on the backend uvicorn
+  command so client IPs reflect the real client behind a reverse proxy
+  (per-user rate limiting depends on this).
+
+### Changed
+
+- Backend startup migrated from deprecated `@app.on_event("startup")` to
+  the FastAPI `lifespan` context manager — removes deprecation warnings
+  in test output.
+- Frontend Dockerfile pins `pnpm` to `10.13.1` (matches the lockfile)
+  instead of floating to `latest` for reproducible builds.
+- `src/app/capture/page.tsx` refactored from 358 lines down to 212 lines
+  by extracting `QuestionList`, `TranscriptAnalysisResult`,
+  `PreviousAnalysesList`, and `ConfidenceBadge` into
+  `src/components/capture/`.
+- `CONTRIBUTING.md` documents the <300-line file rule and the single
+  exemption (`src/components/ui/sidebar.tsx`, vendored from shadcn/ui).
+
+### Removed
+
+- Stale unused `src/components/capture/transcript-results.tsx`.
+
 ## [1.0.1] - 2026-04-21
 
 Follow-up audit pass after v1.0.0 — 5 review passes (correctness, security, architecture, ops, docs) flagged consistency cleanups.

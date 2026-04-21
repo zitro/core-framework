@@ -1,5 +1,6 @@
 import logging
 import time
+from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -25,6 +26,23 @@ def _configure_logging() -> None:
 limiter = Limiter(key_func=user_or_ip_key, default_limits=[settings.rate_limit])
 
 
+@asynccontextmanager
+async def _lifespan(_app: FastAPI):
+    """Startup/shutdown hook — replaces deprecated `@app.on_event`."""
+    if settings.cosmos_ensure_collections:
+        from app.providers.storage import KNOWN_COLLECTIONS, get_storage_provider
+
+        try:
+            provider = get_storage_provider()
+            await provider.ensure_collections(KNOWN_COLLECTIONS)
+            logger.info("Storage ready (%d collections)", len(KNOWN_COLLECTIONS))
+        except Exception:  # noqa: BLE001
+            logger.exception("Storage ensure_collections failed")
+    else:
+        logger.info("Skipping ensure_collections (set COSMOS_ENSURE_COLLECTIONS=true to enable)")
+    yield
+
+
 def create_app() -> FastAPI:
     _configure_logging()
 
@@ -32,6 +50,16 @@ def create_app() -> FastAPI:
     warnings = settings.validate_providers()
     for w in warnings:
         logger.warning("Config: %s", w)
+
+    # CORS safety: wildcard origins with credentialed requests is forbidden by
+    # the CORS spec and a real attack surface (any site can read your API in
+    # the browser's authenticated context). Refuse the combination instead of
+    # silently accepting it.
+    if "*" in settings.cors_origins:
+        raise RuntimeError(
+            "CORS_ORIGINS must not contain '*' when credentials are enabled. "
+            "List the exact origins you want to allow."
+        )
 
     from app.routers import (
         advisor,
@@ -60,8 +88,9 @@ def create_app() -> FastAPI:
 
     app = FastAPI(
         title=settings.app_name,
-        version="1.0.1",
+        version="1.0.2",
         description="CORE Discovery Framework API",
+        lifespan=_lifespan,
     )
 
     # Rate limiting
@@ -134,22 +163,6 @@ def create_app() -> FastAPI:
     from app.utils.telemetry import configure_telemetry
 
     configure_telemetry(app)
-
-    @app.on_event("startup")
-    async def _ensure_storage() -> None:
-        if not settings.cosmos_ensure_collections:
-            logger.info(
-                "Skipping ensure_collections (set COSMOS_ENSURE_COLLECTIONS=true to enable)"
-            )
-            return
-        from app.providers.storage import KNOWN_COLLECTIONS, get_storage_provider
-
-        try:
-            provider = get_storage_provider()
-            await provider.ensure_collections(KNOWN_COLLECTIONS)
-            logger.info("Storage ready (%d collections)", len(KNOWN_COLLECTIONS))
-        except Exception:  # noqa: BLE001
-            logger.exception("Storage ensure_collections failed")
 
     @app.get("/api/health")
     async def health():
