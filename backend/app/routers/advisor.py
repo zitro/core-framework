@@ -46,13 +46,9 @@ class UseCaseRequest(BaseModel):
 )
 async def list_use_cases(discovery_id: str):
     storage = get_storage_provider()
-    items = await storage.list(
-        "use_cases", {"discoveryId": discovery_id}
-    )
+    items = await storage.list("use_cases", {"discoveryId": discovery_id})
     if not items:
-        items = await storage.list(
-            "use_cases", {"discovery_id": discovery_id}
-        )
+        items = await storage.list("use_cases", {"discovery_id": discovery_id})
     versions = [UseCaseVersion(**item) for item in items]
     versions.sort(key=lambda v: v.version)
     return versions
@@ -70,21 +66,14 @@ async def generate_use_case(request: UseCaseRequest):
             detail="No context yet. Add evidence or transcripts first.",
         )
 
-    existing = await storage.list(
-        "use_cases", {"discoveryId": request.discovery_id}
-    )
+    existing = await storage.list("use_cases", {"discoveryId": request.discovery_id})
     if not existing:
-        existing = await storage.list(
-            "use_cases", {"discovery_id": request.discovery_id}
-        )
+        existing = await storage.list("use_cases", {"discovery_id": request.discovery_id})
     next_version = len(existing) + 1
 
     user_block = ""
     if request.user_instructions:
-        user_block = (
-            f"\n\nUser guidance for this version:\n"
-            f"{request.user_instructions}"
-        )
+        user_block = f"\n\nUser guidance for this version:\n{request.user_instructions}"
 
     user_prompt = (
         f"Here is everything we know about this discovery:\n\n"
@@ -118,9 +107,7 @@ async def generate_use_case(request: UseCaseRequest):
     )
 
     try:
-        saved = await storage.create(
-            "use_cases", version.model_dump(mode="json")
-        )
+        saved = await storage.create("use_cases", version.model_dump(mode="json"))
     except Exception:
         logger.exception("Failed to save use case version")
         raise HTTPException(status_code=500, detail="Failed to save")

@@ -41,8 +41,7 @@ class ProblemAnalyst(BaseAgent):
     meta = AgentMeta(
         agent_id="problem-analyst",
         name="Problem Analyst",
-        role="Synthesises discovery context into evidence-backed problem "
-        "statements.",
+        role="Synthesises discovery context into evidence-backed problem statements.",
         description=(
             "Examines all evidence, transcripts, and sensemaking to "
             "produce a structured problem statement identifying who is "
@@ -74,10 +73,7 @@ class ProblemAnalyst(BaseAgent):
 
         user_block = ""
         if user_instructions:
-            user_block = (
-                f"\n\nUser instructions for this version:\n"
-                f"{user_instructions}"
-            )
+            user_block = f"\n\nUser instructions for this version:\n{user_instructions}"
 
         user_prompt = (
             f"Here is everything we know about this discovery:\n\n"
@@ -87,14 +83,10 @@ class ProblemAnalyst(BaseAgent):
         )
 
         try:
-            result = await self._llm().complete_json(
-                self.system_prompt, user_prompt
-            )
+            result = await self._llm().complete_json(self.system_prompt, user_prompt)
         except Exception:
             logger.exception("Problem Analyst LLM call failed")
-            raise HTTPException(
-                status_code=502, detail="AI service unavailable"
-            )
+            raise HTTPException(status_code=502, detail="AI service unavailable")
 
         version = ProblemStatementVersion(
             discovery_id=discovery_id,
@@ -112,9 +104,7 @@ class ProblemAnalyst(BaseAgent):
             saved = await self._save(version.model_dump(mode="json"))
         except Exception:
             logger.exception("Failed to persist problem statement")
-            raise HTTPException(
-                status_code=500, detail="Failed to save problem statement"
-            )
+            raise HTTPException(status_code=500, detail="Failed to save problem statement")
 
         # Also update the discovery's problem_statement field
         try:

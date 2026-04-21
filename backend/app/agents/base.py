@@ -58,13 +58,9 @@ class BaseAgent(ABC):
 
     async def _next_version(self, discovery_id: str) -> int:
         storage = self._storage()
-        items = await storage.list(
-            self.collection, {"discoveryId": discovery_id}
-        )
+        items = await storage.list(self.collection, {"discoveryId": discovery_id})
         if not items:
-            items = await storage.list(
-                self.collection, {"discovery_id": discovery_id}
-            )
+            items = await storage.list(self.collection, {"discovery_id": discovery_id})
         return len(items) + 1
 
     async def _save(self, data: dict) -> dict:
@@ -73,13 +69,9 @@ class BaseAgent(ABC):
 
     async def _list(self, discovery_id: str) -> list[dict]:
         storage = self._storage()
-        items = await storage.list(
-            self.collection, {"discoveryId": discovery_id}
-        )
+        items = await storage.list(self.collection, {"discoveryId": discovery_id})
         if not items:
-            items = await storage.list(
-                self.collection, {"discovery_id": discovery_id}
-            )
+            items = await storage.list(self.collection, {"discovery_id": discovery_id})
         return items
 
     # ── contract ──────────────────────────────────────────

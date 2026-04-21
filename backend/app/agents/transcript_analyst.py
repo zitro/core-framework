@@ -48,8 +48,7 @@ class TranscriptAnalystAgent(BaseAgent):
     meta = AgentMeta(
         agent_id="transcript-analyst",
         name="Transcript Analyst",
-        role="Analyses meeting transcripts to extract insights, evidence, "
-        "and sentiment.",
+        role="Analyses meeting transcripts to extract insights, evidence, and sentiment.",
         description=(
             "Processes meeting transcripts and produces structured "
             "insights with confidence levels, evidence mapped to CORE "
@@ -77,9 +76,7 @@ class TranscriptAnalystAgent(BaseAgent):
         **kwargs: Any,
     ) -> AgentResult:
         if not transcript_text.strip():
-            raise HTTPException(
-                status_code=422, detail="No transcript text provided."
-            )
+            raise HTTPException(status_code=422, detail="No transcript text provided.")
 
         storage = self._storage()
 
@@ -91,16 +88,11 @@ class TranscriptAnalystAgent(BaseAgent):
             if docs_path:
                 content = read_docs_content(docs_path)
                 if content:
-                    docs_context = (
-                        f"\n\nProject documents for context:\n{content}"
-                    )
+                    docs_context = f"\n\nProject documents for context:\n{content}"
         except Exception:
             pass
 
-        user_prompt = (
-            f"Analyze this transcript:\n\n"
-            f"{transcript_text[:15000]}{docs_context}"
-        )
+        user_prompt = f"Analyze this transcript:\n\n{transcript_text[:15000]}{docs_context}"
 
         try:
             result = await self._llm().complete_json(
@@ -108,9 +100,7 @@ class TranscriptAnalystAgent(BaseAgent):
             )
         except Exception:
             logger.exception("Transcript Analyst LLM call failed")
-            raise HTTPException(
-                status_code=502, detail="AI service unavailable"
-            )
+            raise HTTPException(status_code=502, detail="AI service unavailable")
 
         evidence_items = []
         for e in result.get("evidence", []):
@@ -121,9 +111,7 @@ class TranscriptAnalystAgent(BaseAgent):
                         phase=CorePhase(e.get("phase", "capture")),
                         content=e.get("content", ""),
                         source="transcript",
-                        confidence=ConfidenceLevel(
-                            e.get("confidence", "unknown")
-                        ),
+                        confidence=ConfidenceLevel(e.get("confidence", "unknown")),
                         tags=e.get("tags", []),
                     )
                 )
@@ -136,9 +124,7 @@ class TranscriptAnalystAgent(BaseAgent):
                 insights.append(
                     TranscriptInsight(
                         text=i.get("text", ""),
-                        confidence=ConfidenceLevel(
-                            i.get("confidence", "unknown")
-                        ),
+                        confidence=ConfidenceLevel(i.get("confidence", "unknown")),
                         phase=CorePhase(i.get("phase", "capture")),
                     )
                 )
@@ -158,9 +144,7 @@ class TranscriptAnalystAgent(BaseAgent):
             saved = await self._save(analysis.model_dump(mode="json"))
         except Exception:
             logger.exception("Failed to persist transcript analysis")
-            raise HTTPException(
-                status_code=500, detail="Failed to save analysis"
-            )
+            raise HTTPException(status_code=500, detail="Failed to save analysis")
 
         return AgentResult(
             agent_id=self.meta.agent_id,

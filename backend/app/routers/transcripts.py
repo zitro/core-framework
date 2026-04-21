@@ -71,9 +71,7 @@ async def analyze_transcript(request: TranscriptRequest):
         if docs_path:
             content = read_docs_content(docs_path)
             if content:
-                docs_context = (
-                    f"\n\nProject documents for context:\n{content}"
-                )
+                docs_context = f"\n\nProject documents for context:\n{content}"
     except Exception:
         pass  # non-critical
 

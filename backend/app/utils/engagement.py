@@ -21,9 +21,17 @@ MAX_TOTAL_SIZE = 500 * 1024  # 500 KB combined
 
 # Directories to skip when scanning for the main content directory.
 _SKIP_DIRS = {
-    "templates", "scripts", "docs", "artifact-templates",
-    "security-plan-outputs", "node_modules", "__pycache__",
-    ".github", ".vscode", ".cspell", ".git",
+    "templates",
+    "scripts",
+    "docs",
+    "artifact-templates",
+    "security-plan-outputs",
+    "node_modules",
+    "__pycache__",
+    ".github",
+    ".vscode",
+    ".cspell",
+    ".git",
 }
 
 
@@ -59,7 +67,7 @@ def _parse_frontmatter(text: str) -> tuple[dict[str, Any], str]:
                         if v.strip()
                     ]
                 fm[key] = val
-        body = text[match.end():]
+        body = text[match.end() :]
         return fm, body
     except Exception:
         return {}, text
@@ -150,19 +158,19 @@ def scan_engagement_repo(repo_path: str) -> dict[str, Any]:
             continue
         rel = str(md_file.relative_to(content_dir))
         try:
-            fm, _ = _parse_frontmatter(
-                md_file.read_text(encoding="utf-8", errors="ignore")
-            )
+            fm, _ = _parse_frontmatter(md_file.read_text(encoding="utf-8", errors="ignore"))
             file_type = fm.get("type", "")
             title = fm.get("title", fm.get("initiative", md_file.stem))
         except Exception:
             file_type = ""
             title = md_file.stem
-        result["files"].append({
-            "path": rel,
-            "type": file_type,
-            "title": title,
-        })
+        result["files"].append(
+            {
+                "path": rel,
+                "type": file_type,
+                "title": title,
+            }
+        )
 
     return result
 
@@ -297,14 +305,16 @@ def read_engagement_content_structured(repo_path: str) -> dict[str, Any]:
         parts = Path(rel).parts
         project = parts[0] if len(parts) > 1 and parts[0] in result["projects"] else None
 
-        result["content"].append({
-            "path": rel,
-            "type": file_type,
-            "type_label": type_label,
-            "title": title,
-            "frontmatter": fm,
-            "body": body.strip(),
-            "project": project,
-        })
+        result["content"].append(
+            {
+                "path": rel,
+                "type": file_type,
+                "type_label": type_label,
+                "title": title,
+                "frontmatter": fm,
+                "body": body.strip(),
+                "project": project,
+            }
+        )
 
     return result

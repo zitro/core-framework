@@ -42,8 +42,7 @@ class UseCaseAnalyst(BaseAgent):
     meta = AgentMeta(
         agent_id="use-case-analyst",
         name="Use Case Analyst",
-        role="Distils discovery data into structured use cases with "
-        "clear business value.",
+        role="Distils discovery data into structured use cases with clear business value.",
         description=(
             "Synthesises transcripts, evidence, and sensemaking into a "
             "use case definition with persona, goal, current/desired "
@@ -75,9 +74,7 @@ class UseCaseAnalyst(BaseAgent):
 
         user_block = ""
         if user_instructions:
-            user_block = (
-                f"\n\nUser guidance for this version:\n{user_instructions}"
-            )
+            user_block = f"\n\nUser guidance for this version:\n{user_instructions}"
 
         user_prompt = (
             f"Here is everything we know about this discovery:\n\n"
@@ -89,14 +86,10 @@ class UseCaseAnalyst(BaseAgent):
         )
 
         try:
-            result = await self._llm().complete_json(
-                self.system_prompt, user_prompt
-            )
+            result = await self._llm().complete_json(self.system_prompt, user_prompt)
         except Exception:
             logger.exception("Use Case Analyst LLM call failed")
-            raise HTTPException(
-                status_code=502, detail="AI service unavailable"
-            )
+            raise HTTPException(status_code=502, detail="AI service unavailable")
 
         version = UseCaseVersion(
             discovery_id=discovery_id,

@@ -58,8 +58,7 @@ class DiscoveryCoach(BaseAgent):
     meta = AgentMeta(
         agent_id="discovery-coach",
         name="Discovery Coach",
-        role="Generates phase-appropriate discovery questions to guide "
-        "customer conversations.",
+        role="Generates phase-appropriate discovery questions to guide customer conversations.",
         description=(
             "Adapts its questioning style to the current CORE phase — "
             "probing in Capture, pattern-seeking in Orient, validating "
@@ -107,20 +106,16 @@ class DiscoveryCoach(BaseAgent):
             f"{context}{docs_context}\n\n"
             f"Generate {num_questions} questions for the "
             f"{phase.value} phase.\n"
-            f'Return JSON with format:\n'
+            f"Return JSON with format:\n"
             f'{{"questions": [{{"text": "...", "purpose": "...", '
             f'"follow_ups": ["..."]}}]}}'
         )
 
         try:
-            result = await self._llm().complete_json(
-                system_prompt, user_prompt
-            )
+            result = await self._llm().complete_json(system_prompt, user_prompt)
         except Exception:
             logger.exception("Discovery Coach LLM call failed")
-            raise HTTPException(
-                status_code=502, detail="AI service unavailable"
-            )
+            raise HTTPException(status_code=502, detail="AI service unavailable")
 
         raw_questions = result.get("questions", [])
         questions = [
@@ -141,14 +136,10 @@ class DiscoveryCoach(BaseAgent):
         )
 
         try:
-            saved = await self._save(
-                question_set.model_dump(mode="json")
-            )
+            saved = await self._save(question_set.model_dump(mode="json"))
         except Exception:
             logger.exception("Failed to persist question set")
-            raise HTTPException(
-                status_code=500, detail="Failed to save questions"
-            )
+            raise HTTPException(status_code=500, detail="Failed to save questions")
 
         return AgentResult(
             agent_id=self.meta.agent_id,

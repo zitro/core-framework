@@ -128,11 +128,7 @@ async def export_to_repo(request: ExportRequest):
                 status_code=422,
                 detail="No content directory found in engagement repo",
             )
-        projects = [
-            d
-            for d in sorted(content_dir.iterdir())
-            if d.is_dir() and any(d.glob("*.md"))
-        ]
+        projects = [d for d in sorted(content_dir.iterdir()) if d.is_dir() and any(d.glob("*.md"))]
         if not projects:
             # Write directly to the content dir
             project_path = content_dir
@@ -140,9 +136,7 @@ async def export_to_repo(request: ExportRequest):
             project_path = projects[0]
 
     if not project_path.is_dir():
-        raise HTTPException(
-            status_code=400, detail="Project directory not found"
-        )
+        raise HTTPException(status_code=400, detail="Project directory not found")
 
     decisions_dir = project_path / "decisions"
     decisions_dir.mkdir(exist_ok=True)
@@ -152,9 +146,7 @@ async def export_to_repo(request: ExportRequest):
     discovery_name = disc.get("name", "CORE Discovery")
 
     # Export problem statements
-    ps_items = await storage.list(
-        "problem_statements", {"discoveryId": request.discovery_id}
-    )
+    ps_items = await storage.list("problem_statements", {"discoveryId": request.discovery_id})
     if not ps_items:
         ps_items = await storage.list(
             "problem_statements",
@@ -169,13 +161,9 @@ async def export_to_repo(request: ExportRequest):
         exported.append(str(filepath.relative_to(root)))
 
     # Export use cases
-    uc_items = await storage.list(
-        "use_cases", {"discoveryId": request.discovery_id}
-    )
+    uc_items = await storage.list("use_cases", {"discoveryId": request.discovery_id})
     if not uc_items:
-        uc_items = await storage.list(
-            "use_cases", {"discovery_id": request.discovery_id}
-        )
+        uc_items = await storage.list("use_cases", {"discovery_id": request.discovery_id})
     for uc in uc_items:
         version = uc.get("version", 1)
         filename = f"core-use-case-v{version}.md"
@@ -185,9 +173,7 @@ async def export_to_repo(request: ExportRequest):
         exported.append(str(filepath.relative_to(root)))
 
     # Export solution blueprints
-    bp_items = await storage.list(
-        "solution_blueprints", {"discoveryId": request.discovery_id}
-    )
+    bp_items = await storage.list("solution_blueprints", {"discoveryId": request.discovery_id})
     if not bp_items:
         bp_items = await storage.list(
             "solution_blueprints",
@@ -211,9 +197,7 @@ async def export_to_repo(request: ExportRequest):
 # ── Markdown renderers ───────────────────────────────────
 
 
-def _render_problem_statement(
-    ps: dict, discovery: str, date: str
-) -> str:
+def _render_problem_statement(ps: dict, discovery: str, date: str) -> str:
     return (
         f"---\n"
         f'title: "Problem Statement v{ps.get("version", 1)}"\n'
@@ -260,13 +244,11 @@ def _render_use_case(uc: dict, discovery: str, date: str) -> str:
 def _render_blueprint(bp: dict, discovery: str, date: str) -> str:
     services = bp.get("services", [])
     svc_rows = "\n".join(
-        f"| {s.get('service', '')} | {s.get('purpose', '')} "
-        f"| {s.get('rationale', '')} |"
+        f"| {s.get('service', '')} | {s.get('purpose', '')} | {s.get('rationale', '')} |"
         for s in services
     )
     svc_table = (
-        "| Service | Purpose | Rationale |\n"
-        "| ------- | ------- | --------- |\n" + svc_rows
+        "| Service | Purpose | Rationale |\n| ------- | ------- | --------- |\n" + svc_rows
         if services
         else "No services specified."
     )
