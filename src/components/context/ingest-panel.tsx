@@ -83,7 +83,7 @@ export function IngestPanel({ repoPath, onFileWritten }: IngestPanelProps) {
   }, []);
 
   return (
-    <Card className="overflow-hidden">
+    <Card className="overflow-hidden border-t-2 border-t-amber-500/40">
       <CardHeader className="pb-3">
         <CardTitle className="flex items-center gap-2 text-base">
           <Sparkles className="h-4 w-4 text-amber-500" />
@@ -113,7 +113,7 @@ export function IngestPanel({ repoPath, onFileWritten }: IngestPanelProps) {
               placeholder="Paste meeting notes, email threads, call transcripts, technical specs, or any unstructured content..."
               value={content}
               onChange={(e) => setContent(e.target.value)}
-              className="min-h-[180px] text-sm leading-relaxed resize-none"
+              className="min-h-[180px] text-sm leading-relaxed resize-none transition-colors duration-200 focus:border-amber-500/50"
             />
             <div className="flex items-center justify-between">
               <span className="text-xs text-muted-foreground">

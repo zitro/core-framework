@@ -72,18 +72,26 @@ export function ContentCard({
   search?: string;
 }) {
   const [expanded, setExpanded] = useState(!compact && shouldAutoExpand(file.type));
+  const [visible, setVisible] = useState(expanded);
   const Icon = getTypeIcon(file.type);
   const colorClass = getTypeColor(file.type);
   const bodyRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (!bodyRef.current) return;
     if (expanded) {
-      const el = bodyRef.current;
+      setVisible(true);
+    }
+  }, [expanded]);
+
+  useEffect(() => {
+    if (!bodyRef.current || !visible) return;
+    const el = bodyRef.current;
+    const transition = "height 300ms cubic-bezier(0.4,0,0.2,1), opacity 200ms ease";
+    if (expanded) {
       el.style.height = "0px";
       el.style.opacity = "0";
       requestAnimationFrame(() => {
-        el.style.transition = "height 300ms cubic-bezier(0.4,0,0.2,1), opacity 200ms ease";
+        el.style.transition = transition;
         el.style.height = `${el.scrollHeight}px`;
         el.style.opacity = "1";
         const onEnd = () => {
@@ -92,8 +100,21 @@ export function ContentCard({
         };
         el.addEventListener("transitionend", onEnd);
       });
+    } else {
+      el.style.height = `${el.scrollHeight}px`;
+      el.style.opacity = "1";
+      requestAnimationFrame(() => {
+        el.style.transition = transition;
+        el.style.height = "0px";
+        el.style.opacity = "0";
+        const onEnd = () => {
+          setVisible(false);
+          el.removeEventListener("transitionend", onEnd);
+        };
+        el.addEventListener("transitionend", onEnd);
+      });
     }
-  }, [expanded]);
+  }, [expanded, visible]);
 
   const snippet = useMemo(() => {
     const plain = file.body.replace(/[#*`|_\-[\]]/g, " ").replace(/\s+/g, " ").trim();
@@ -139,7 +160,7 @@ export function ContentCard({
           </div>
         </div>
       </CardHeader>
-      {expanded && (
+      {visible && (
         <div ref={bodyRef} className="overflow-hidden">
           <CardContent className="pt-0 pb-4">
             <FrontmatterTable frontmatter={file.frontmatter} />
