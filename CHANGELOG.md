@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.2.2] - 2026-04-21
+
+### Fixed
+
+- **Backend image:** Production Docker image was missing the `azure` extras
+  (`azure-cosmos`, `azure-identity`, `azure-storage-blob`, `aiohttp`,
+  `azure-cognitiveservices-speech`, `PyJWT[crypto]`,
+  `azure-monitor-opentelemetry`, OpenTelemetry instrumentations). Any
+  deployment configured with `STORAGE_PROVIDER=azure` or
+  `LLM_PROVIDER=azure` crashed at first API call with
+  `ModuleNotFoundError: No module named 'azure'`. Health endpoint reported
+  `providers=azure` because it only inspects config strings, not import
+  success. Dockerfile now installs both `.[local]` and `.[azure]` extras so
+  the image supports either provider out of the box.
+
 ## [1.2.1] - 2026-04-21
 
 ### Fixed
