@@ -75,10 +75,7 @@ ARTIFACT_TYPES: list[ArtifactType] = [
         label="Personas",
         description="Who we're designing for.",
         body_schema={
-            "personas": (
-                "List of {name, role, goals, frustrations, daily_workflow, "
-                "tools_used}"
-            ),
+            "personas": ("List of {name, role, goals, frustrations, daily_workflow, tools_used}"),
         },
         prompt=(
             "Describe 2–4 personas grounded in the corpus. No generic clip-art "
@@ -125,9 +122,7 @@ ARTIFACT_TYPES: list[ArtifactType] = [
         label="Outcome KPIs",
         description="The measurable results we're chasing.",
         body_schema={
-            "kpis": (
-                "List of {name, baseline, target, timeframe, measurement_method}"
-            ),
+            "kpis": ("List of {name, baseline, target, timeframe, measurement_method}"),
         },
         prompt=(
             "Pick 3–6 KPIs that prove value, not effort. Prefer outcome "
@@ -178,9 +173,7 @@ ARTIFACT_TYPES: list[ArtifactType] = [
         label="Workstreams",
         description="The parallel tracks of work.",
         body_schema={
-            "workstreams": (
-                "List of {name, goal, key_outcomes, owner_role, dependencies}"
-            ),
+            "workstreams": ("List of {name, goal, key_outcomes, owner_role, dependencies}"),
         },
         prompt=(
             "Decompose the engagement into 2–5 workstreams. Each must have a "
@@ -207,9 +200,7 @@ ARTIFACT_TYPES: list[ArtifactType] = [
         label="Candidate Features",
         description="Concrete features worth prototyping.",
         body_schema={
-            "features": (
-                "List of {name, user_story, acceptance, priority (must|should|could)}"
-            ),
+            "features": ("List of {name, user_story, acceptance, priority (must|should|could)}"),
         },
         prompt=(
             "Propose candidate features as user stories. Use MoSCoW priority. "
@@ -324,10 +315,7 @@ ARTIFACT_TYPES: list[ArtifactType] = [
         label="Technology Options",
         description="Candidate technical approaches with trade-offs.",
         body_schema={
-            "options": (
-                "List of {name, summary, pros, cons, fit_score (1-5), "
-                "azure_services}"
-            ),
+            "options": ("List of {name, summary, pros, cons, fit_score (1-5), azure_services}"),
         },
         prompt=(
             "Compare 2–4 candidate technical approaches. Be honest about the "
@@ -372,9 +360,7 @@ ARTIFACT_TYPES: list[ArtifactType] = [
         label="Risk Register",
         description="What could go wrong and what we'd do about it.",
         body_schema={
-            "risks": (
-                "List of {risk, likelihood (1-5), impact (1-5), mitigation, owner}"
-            ),
+            "risks": ("List of {risk, likelihood (1-5), impact (1-5), mitigation, owner}"),
         },
         prompt=(
             "Build a risk register for the engagement. Include execution, "

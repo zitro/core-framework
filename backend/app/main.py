@@ -175,9 +175,7 @@ def create_app() -> FastAPI:
     app.include_router(dynamics.router, prefix="/api/dynamics", tags=["dynamics"])
     app.include_router(grounding.router, prefix="/api/grounding", tags=["grounding"])
     app.include_router(audit.router, prefix="/api/audit", tags=["audit"])
-    app.include_router(
-        synthesis.router, prefix="/api/synthesis", tags=["synthesis"]
-    )
+    app.include_router(synthesis.router, prefix="/api/synthesis", tags=["synthesis"])
 
     from app.utils.telemetry import configure_telemetry
 

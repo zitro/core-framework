@@ -7,7 +7,8 @@ Microsoft FDE / TPM uses when talking to a customer:
     why    -> empathize  : the pain, the user, the context
     value  -> define     : the upside if we solve it
     what   -> ideate     : the things we'd actually build / do
-    scope  -> prototype  : how big, how fast, in which container (FDE / workshop / hackathon / MVE / MVP)
+    scope  -> prototype  : how big, how fast, in which container
+                          (FDE / workshop / hackathon / MVE / MVP)
     how    -> test       : the technical and operational shape, the risks
 """
 

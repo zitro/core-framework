@@ -139,7 +139,9 @@ class CosmosStorageProvider(StorageProvider):
             result = await container.read_item(item=item_id, partition_key=pk)
             return dict(result)
         except Exception:
-            logger.debug("Item %s not found in %s via direct PK; trying cross-partition", item_id, collection)
+            logger.debug(
+                "Item %s not found in %s via direct PK; trying cross-partition", item_id, collection
+            )
             return await self._find_doc_by_id(collection, item_id)
 
     async def list(self, collection: str, filters: dict[str, Any] | None = None) -> list[dict]:

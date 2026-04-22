@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from enum import StrEnum
 
 from pydantic import BaseModel, Field
@@ -11,7 +11,7 @@ from app.synthesis.categories import Category
 
 
 def _utcnow() -> datetime:
-    return datetime.now(timezone.utc)
+    return datetime.now(UTC)
 
 
 # ── sources ─────────────────────────────────────────────────────────────
@@ -31,9 +31,9 @@ class SourceDoc(BaseModel):
     id: str  # stable per-corpus id (e.g. "vertex:overview", "local:notes/x.md")
     kind: SourceKind
     title: str
-    uri: str = ""           # absolute path / URL when available
-    snippet: str = ""        # short representative excerpt
-    text: str = ""           # full text used for grounding
+    uri: str = ""  # absolute path / URL when available
+    snippet: str = ""  # short representative excerpt
+    text: str = ""  # full text used for grounding
     last_modified: str = ""  # ISO8601, best-effort
     metadata: dict = Field(default_factory=dict)
 
@@ -59,8 +59,8 @@ class Citation(BaseModel):
     """Pointer from an artifact claim back to a corpus document."""
 
     source_id: str
-    quote: str = ""          # short verbatim excerpt that supports the claim
-    note: str = ""           # optional reasoning / paraphrase
+    quote: str = ""  # short verbatim excerpt that supports the claim
+    note: str = ""  # optional reasoning / paraphrase
 
 
 class ArtifactStatus(StrEnum):
@@ -74,10 +74,10 @@ class Artifact(BaseModel):
 
     id: str = ""
     project_id: str
-    type_id: str             # ArtifactType.id
+    type_id: str  # ArtifactType.id
     category: Category
     title: str
-    summary: str = ""        # 1–3 sentence executive summary
+    summary: str = ""  # 1–3 sentence executive summary
     body: dict = Field(default_factory=dict)  # type-specific structured payload
     citations: list[Citation] = Field(default_factory=list)
     status: ArtifactStatus = ArtifactStatus.DRAFT
@@ -106,9 +106,9 @@ class IssueSeverity(StrEnum):
 
 class CritiqueIssue(BaseModel):
     severity: IssueSeverity
-    dimension: str           # grounding | completeness | clarity | contradiction
+    dimension: str  # grounding | completeness | clarity | contradiction
     message: str
-    field: str = ""          # body field path when known
+    field: str = ""  # body field path when known
 
 
 class Critique(BaseModel):
@@ -116,7 +116,7 @@ class Critique(BaseModel):
     project_id: str
     artifact_id: str
     artifact_type_id: str
-    score: float = 0.0       # 0.0–1.0 overall confidence
+    score: float = 0.0  # 0.0–1.0 overall confidence
     issues: list[CritiqueIssue] = Field(default_factory=list)
     model: str = ""
     created_at: datetime = Field(default_factory=_utcnow)
@@ -133,7 +133,7 @@ class Question(BaseModel):
     text: str
     rationale: str = ""
     target_artifact_type_id: str = ""  # which artifact this would unblock
-    priority: int = 3                  # 1 = ask first, 5 = nice-to-have
+    priority: int = 3  # 1 = ask first, 5 = nice-to-have
     answered: bool = False
     answer: str = ""
     created_at: datetime = Field(default_factory=_utcnow)

@@ -24,6 +24,7 @@ from __future__ import annotations
 
 import json
 import logging
+from datetime import UTC
 from pathlib import Path
 
 from app.synthesis.models import SourceDoc, SourceKind
@@ -32,8 +33,8 @@ from app.utils.project_paths import resolve_project_repo_path
 
 logger = logging.getLogger(__name__)
 
-_MAX_FILE_BYTES = 256 * 1024   # skip pathological files
-_MAX_TEXT_CHARS = 32 * 1024    # truncate per-file text fed into LLM
+_MAX_FILE_BYTES = 256 * 1024  # skip pathological files
+_MAX_TEXT_CHARS = 32 * 1024  # truncate per-file text fed into LLM
 
 
 class VertexSourceAdapter(SourceAdapter):
@@ -72,7 +73,7 @@ class VertexSourceAdapter(SourceAdapter):
         title = str(data.get("name") or data.get("customer") or "vertex.json")
         return [
             SourceDoc(
-                id=f"vertex:vertex.json",
+                id="vertex:vertex.json",
                 kind=SourceKind.VERTEX,
                 title=f"vertex.json — {title}",
                 uri=str(path),
@@ -130,10 +131,10 @@ class VertexSourceAdapter(SourceAdapter):
 
     @staticmethod
     def _mtime_iso(path: Path) -> str:
-        from datetime import datetime, timezone
+        from datetime import datetime
 
         try:
             ts = path.stat().st_mtime
-            return datetime.fromtimestamp(ts, tz=timezone.utc).isoformat()
+            return datetime.fromtimestamp(ts, tz=UTC).isoformat()
         except Exception:
             return ""

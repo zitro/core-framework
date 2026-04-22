@@ -137,9 +137,7 @@ class CriticAgent:
         return score, issues
 
     @staticmethod
-    def _combine_score(
-        deterministic: list[CritiqueIssue], llm_score: float
-    ) -> float:
+    def _combine_score(deterministic: list[CritiqueIssue], llm_score: float) -> float:
         # one blocker -> cap at 0.4; warns shave 0.05 each
         cap = 1.0
         if any(i.severity == IssueSeverity.BLOCKER for i in deterministic):

@@ -244,9 +244,7 @@ async def regenerate_artifact(project_id: str, type_id: str, payload: ArtifactCr
     critic = CriticAgent()
 
     try:
-        artifact = await generator.generate(
-            project, type_id, payload.instructions, corpus=corpus
-        )
+        artifact = await generator.generate(project, type_id, payload.instructions, corpus=corpus)
     except KeyError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     except Exception as exc:

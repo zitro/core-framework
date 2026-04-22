@@ -38,10 +38,7 @@ def render_corpus_block(corpus: Corpus, *, max_chars: int = 24_000) -> str:
         snippet = (doc.text or doc.snippet or "").strip()
         if not snippet:
             continue
-        chunk = (
-            f"[source id={doc.id} kind={doc.kind.value} title={doc.title!r}]\n"
-            f"{snippet}\n"
-        )
+        chunk = f"[source id={doc.id} kind={doc.kind.value} title={doc.title!r}]\n{snippet}\n"
         if used + len(chunk) > max_chars:
             blocks.append("[corpus truncated for length]")
             break
@@ -83,14 +80,21 @@ Return strict JSON with this shape:
   "summary": "1-3 sentence executive summary",
   "body": {{ ...fields matching REQUIRED BODY FIELDS above... }},
   "citations": [
-    {{ "source_id": "...", "quote": "verbatim excerpt from the source", "note": "why this supports the claim" }}
+    {{
+      "source_id": "...",
+      "quote": "verbatim excerpt from the source",
+      "note": "why this supports the claim"
+    }}
   ]
 }}
 
 Rules:
-- Every concrete claim in 'summary' or 'body' must be supported by at least one citation.
-- 'citations[].source_id' MUST be one of the source ids shown in the CORPUS block.
-- If the corpus has no support for a field, write null (or empty list) and add a citation-free note in 'summary' explaining the gap.
+- Every concrete claim in 'summary' or 'body' must be supported by at least
+  one citation.
+- 'citations[].source_id' MUST be one of the source ids shown in the
+  CORPUS block.
+- If the corpus has no support for a field, write null (or empty list) and
+  add a citation-free note in 'summary' explaining the gap.
 - Do NOT invent customer names, numbers, or quotes."""
     return SYSTEM_FRAME, user
 
@@ -111,7 +115,12 @@ Return strict JSON:
 {{
   "score": 0.0,
   "issues": [
-    {{ "severity": "info|warn|blocker", "dimension": "grounding|completeness|clarity|contradiction", "message": "...", "field": "optional body field path" }}
+    {{
+      "severity": "info|warn|blocker",
+      "dimension": "grounding|completeness|clarity|contradiction",
+      "message": "...",
+      "field": "optional body field path"
+    }}
   ]
 }}"""
     return CRITIC_FRAME, user
@@ -123,7 +132,7 @@ def questions_prompt(
     summaries = []
     for a in artifacts:
         summaries.append(
-            f"- {a.get('type_id')}: {a.get('title','')}  — {a.get('summary','')[:200]}"
+            f"- {a.get('type_id')}: {a.get('title', '')}  — {a.get('summary', '')[:200]}"
         )
     artifact_block = "\n".join(summaries) if summaries else "(no artifacts yet)"
     missing_block = ", ".join(missing_type_ids) if missing_type_ids else "(none)"
@@ -160,9 +169,7 @@ def list_source_ids(corpus: Corpus) -> set[str]:
     return {d.id for d in corpus.docs}
 
 
-def filter_citations(
-    raw_citations: list[dict] | None, valid_ids: set[str]
-) -> list[dict]:
+def filter_citations(raw_citations: list[dict] | None, valid_ids: set[str]) -> list[dict]:
     """Drop citations that reference unknown source ids."""
     if not raw_citations:
         return []
