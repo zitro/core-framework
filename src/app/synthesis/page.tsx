@@ -17,6 +17,7 @@ import {
 } from "@/lib/api-synthesis";
 import { ArtifactCard } from "@/components/synthesis/artifact-card";
 import { ChatPanel } from "@/components/synthesis/chat-panel";
+import { CompassPanel } from "@/components/synthesis/compass-panel";
 import { QuestionsPanel } from "@/components/synthesis/questions-panel";
 import { SignalsPanel } from "@/components/synthesis/signals-panel";
 import { SourcesPanel } from "@/components/synthesis/sources-panel";
@@ -35,6 +36,7 @@ export default function SynthesisPage() {
   const [synthesizing, setSynthesizing] = useState(false);
   const [busyTypeId, setBusyTypeId] = useState<string | null>(null);
   const [vertexEnabled, setVertexEnabled] = useState(false);
+  const [autoRebuild, setAutoRebuild] = useState(false);
 
   const loadAll = useCallback(async () => {
     if (!projectId) return;
@@ -53,9 +55,12 @@ export default function SynthesisPage() {
       setArtifacts(a.artifacts);
       setSources(s);
       setQuestions(q.questions);
-      const meta = ((p as { metadata?: { vertex?: { write_enabled?: boolean } } } | null)
+      const meta = ((p as { metadata?: { vertex?: { write_enabled?: boolean }; auto_rebuild?: boolean } } | null)
         ?.metadata?.vertex?.write_enabled) ?? false;
       setVertexEnabled(!!meta);
+      const ar = ((p as { metadata?: { auto_rebuild?: boolean } } | null)
+        ?.metadata?.auto_rebuild) ?? false;
+      setAutoRebuild(!!ar);
     } catch (err) {
       toast.error(`Failed to load synthesis: ${(err as Error).message}`);
     } finally {
@@ -258,6 +263,37 @@ export default function SynthesisPage() {
         </div>
 
         <aside className="space-y-6">
+          <CompassPanel
+            projectId={projectId}
+            refreshKey={artifacts.length}
+            autoRebuild={autoRebuild}
+            onToggleAutoRebuild={async (enabled) => {
+              try {
+                const res = await synthesisApi.updateOperationalSettings(
+                  projectId,
+                  enabled,
+                );
+                setAutoRebuild(res.auto_rebuild);
+              } catch (err) {
+                toast.error(`Failed to update setting: ${(err as Error).message}`);
+              }
+            }}
+            onRefreshSources={async () => {
+              try {
+                const res = await synthesisApi.refreshSources(projectId);
+                if (res.regenerated.length > 0) {
+                  toast.success(
+                    `Refreshed ${res.source_count} sources, regenerated ${res.regenerated.length} artifact(s)`,
+                  );
+                  await loadAll();
+                } else {
+                  toast.success(`Refreshed ${res.source_count} sources`);
+                }
+              } catch (err) {
+                toast.error(`Refresh failed: ${(err as Error).message}`);
+              }
+            }}
+          />
           <SignalsPanel
             projectId={projectId}
             onRegenerate={onRegenerate}
