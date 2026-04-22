@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.2.1] - 2026-04-21
+
+### Fixed
+
+- **Frontend:** Project switcher dropdown crashed with Base UI error #31
+  (`MenuGroupRootContext is missing`). `DropdownMenuLabel` now wrapped in
+  `DropdownMenuGroup` per Base UI contract.
+- **Backend:** Named volumes mounted at `/data/storage` were created
+  root-owned, blocking writes from non-root `appuser`. Dockerfile now
+  pre-creates `/data/{storage,projects,prompts,extensions}` with
+  `appuser:appuser` so volumes inherit correct ownership on first mount.
+
 ## [1.2.0] - 2026-04-21
 
 Per-project Cosmos partitioning (opt-in) + extension API for per-customer
