@@ -1,6 +1,6 @@
 "use client";
 
-import { CheckCircle2, ChevronRight, FileText, FolderOpen } from "lucide-react";
+import { CheckCircle2, ChevronRight, FileText } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
 /* ------------------------------------------------------------------ */
