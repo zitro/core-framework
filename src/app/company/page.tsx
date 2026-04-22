@@ -53,7 +53,7 @@ export default function CompanyResearchPage() {
         </CardHeader>
         <CardContent className="space-y-3">
           <Input
-            placeholder="Company name (e.g. Contoso Energy)"
+            placeholder="Company name (e.g. CUSTOMER)"
             value={company}
             onChange={(e) => setCompany(e.target.value)}
           />
