@@ -165,6 +165,12 @@ export function AppSidebar() {
                 </SidebarMenuButton>
               </SidebarMenuItem>
               <SidebarMenuItem>
+                <SidebarMenuButton render={<Link href="/synthesis" />} isActive={pathname === "/synthesis"}>
+                  <Wand2 className="h-4 w-4 text-violet-500" />
+                  <span>Synthesis</span>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
                 <SidebarMenuButton render={<Link href="/search" />} isActive={pathname === "/search"}>
                   <Globe className="h-4 w-4 text-cyan-500" />
                   <span>Web Search</span>
