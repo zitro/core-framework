@@ -1,0 +1,35 @@
+{
+  "name": "create-core-app",
+  "version": "1.0.0",
+  "description": "Scaffold a new CORE Discovery customer repository (compose-based deploy of zitro/core-framework)",
+  "keywords": ["core-discovery", "scaffold", "cli", "create-app"],
+  "homepage": "https://github.com/zitro/core-framework/tree/master/packages/create-core-app",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/zitro/core-framework.git",
+    "directory": "packages/create-core-app"
+  },
+  "license": "MIT",
+  "type": "module",
+  "bin": {
+    "create-core-app": "dist/cli.js"
+  },
+  "files": ["dist", "templates", "README.md"],
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsx src/cli.ts",
+    "prepublishOnly": "npm run build"
+  },
+  "dependencies": {
+    "@clack/prompts": "^0.7.0",
+    "picocolors": "^1.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "tsx": "^4.0.0",
+    "typescript": "^5.4.0"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
