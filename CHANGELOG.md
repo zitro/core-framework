@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.2.4] - 2026-04-21
+
+### Added
+
+- **UI:** Trash icon on each card in the **All Discoveries** page
+  (`/discoveries`) with the same confirm prompt used on the Dashboard. Closes
+  the gap where the dedicated Discoveries view had no delete affordance.
+
 ## [1.2.3] - 2026-04-21
 
 ### Added
