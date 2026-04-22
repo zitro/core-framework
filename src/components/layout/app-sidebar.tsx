@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/sidebar";
 import { Badge } from "@/components/ui/badge";
 import { ThemeToggle } from "@/components/layout/theme-toggle";
+import { ProjectSwitcher } from "@/components/layout/project-switcher";
 import { useDiscovery } from "@/stores/discovery-store";
 import { PHASE_CONFIG } from "@/types/core";
 
@@ -90,6 +91,9 @@ export function AppSidebar() {
             </p>
           </div>
         </Link>
+        <div className="mt-2">
+          <ProjectSwitcher />
+        </div>
       </SidebarHeader>
 
       <SidebarContent>

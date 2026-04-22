@@ -7,15 +7,36 @@ from app.models.core import Engagement, EngagementUpdate
 from app.providers.storage import get_storage_provider
 from app.utils.audit import stamp_create, stamp_update
 from app.utils.audit_log import audit
+from app.utils.slug import slugify
 
 router = APIRouter(dependencies=[Depends(get_current_user)])
 COLLECTION = "engagements"
 
 
+async def _ensure_unique_slug(base: str, exclude_id: str = "") -> str:
+    """Return ``base`` if free, else suffix ``-2``, ``-3`` … until unique."""
+    storage = get_storage_provider()
+    existing = await storage.list(COLLECTION)
+    taken = {
+        str(e.get("slug", "")).lower()
+        for e in existing
+        if e.get("id") != exclude_id and e.get("slug")
+    }
+    if base not in taken:
+        return base
+    n = 2
+    while f"{base}-{n}" in taken:
+        n += 1
+    return f"{base}-{n}"
+
+
 @router.post("/", response_model=Engagement, status_code=201)
 async def create_engagement(engagement: Engagement) -> Engagement:
     storage = get_storage_provider()
-    item = await storage.create(COLLECTION, stamp_create(engagement.model_dump(mode="json")))
+    payload = engagement.model_dump(mode="json")
+    raw_slug = payload.get("slug") or payload.get("name", "")
+    payload["slug"] = await _ensure_unique_slug(slugify(raw_slug))
+    item = await storage.create(COLLECTION, stamp_create(payload))
     await audit(
         "create",
         collection=COLLECTION,
@@ -42,12 +63,26 @@ async def get_engagement(engagement_id: str) -> Engagement:
     return Engagement(**item)
 
 
+@router.get("/by-slug/{slug}", response_model=Engagement)
+async def get_engagement_by_slug(slug: str) -> Engagement:
+    storage = get_storage_provider()
+    items = await storage.list(COLLECTION)
+    for item in items:
+        if str(item.get("slug", "")).lower() == slug.lower():
+            return Engagement(**item)
+    raise HTTPException(status_code=404, detail="Engagement not found")
+
+
 @router.patch("/{engagement_id}", response_model=Engagement)
 async def update_engagement(engagement_id: str, updates: EngagementUpdate) -> Engagement:
     storage = get_storage_provider()
     update_data = updates.model_dump(exclude_none=True, mode="json")
     if not update_data:
         raise HTTPException(status_code=422, detail="No valid fields to update")
+    if "slug" in update_data:
+        update_data["slug"] = await _ensure_unique_slug(
+            slugify(update_data["slug"]), exclude_id=engagement_id
+        )
     stamp_update(update_data)
     try:
         item = await storage.update(COLLECTION, engagement_id, update_data)

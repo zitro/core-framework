@@ -638,6 +638,8 @@ the sidebar, every phase page and the Evidence Board operate within that discove
 
 ## Documentation
 
+- [Project model](docs/PROJECT_MODEL.md): one-customer-per-deploy, many-projects-per-customer
+  architecture (v1.1+)
 - [Business Requirements Document](docs/BRD/core-discovery-brd.md): stakeholder needs and success
   criteria
 - [Technical Requirements Document](docs/TRD/core-discovery-trd.md): technical design and constraints
