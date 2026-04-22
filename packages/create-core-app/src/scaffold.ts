@@ -19,6 +19,8 @@ export interface ScaffoldOptions {
   storage: "local" | "azure";
   auth: "none" | "azure";
   initialProject?: string;
+  contentSource: "local" | "vertex" | "custom";
+  projectsSource: string;
 }
 
 /** Write the customer-repo scaffold to disk. */

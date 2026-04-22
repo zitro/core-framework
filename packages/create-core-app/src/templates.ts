@@ -21,7 +21,9 @@ services:
       LOCAL_STORAGE_PATH: /data/storage
       EXTENSIONS_DIR: /data/extensions
     volumes:
-      - ./projects:/data/projects:ro
+      # Source of project content. Override via PROJECTS_SOURCE in .env to point
+      # at a vertex repo, a plain folder, or any other host path.
+      - \${PROJECTS_SOURCE:-./projects}:/data/projects:ro
       - ./config/prompts:/data/prompts:ro
       - ./extensions:/data/extensions:ro
       - backend-storage:/data/storage
@@ -93,6 +95,13 @@ EXTENSIONS_DIR=/data/extensions
 export function gitignore(): string {
   return `# data + secrets
 .env
+.env.*
+!.env.example
+*.env.bak
+secrets/
+*.key
+*.pem
+*.secret
 data/
 projects/*/storage/
 

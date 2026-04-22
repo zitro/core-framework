@@ -68,6 +68,27 @@ async function main(): Promise<void> {
     initialValue: "",
   }));
 
+  const contentSource = (await prompt(select({
+    message: "Where will this customer's content live?",
+    options: [
+      { value: "local", label: "local folder in this repo (./projects)", hint: "default — drop markdown right here" },
+      { value: "vertex", label: "vertex repo (sibling clone of mcaps-microsoft/<customer>)", hint: "git-backed shared notes" },
+      { value: "custom", label: "custom host path (any folder of markdown)" },
+    ],
+    initialValue: "local" as "local" | "vertex" | "custom",
+  }))) as "local" | "vertex" | "custom";
+
+  let projectsSource = "./projects";
+  if (contentSource === "vertex") {
+    projectsSource = `../${name}/${name}`;
+  } else if (contentSource === "custom") {
+    projectsSource = (await prompt(text({
+      message: "Host path to mount as /data/projects (absolute or relative to this repo):",
+      placeholder: "../my-customer-content",
+      validate: (v) => (!v ? "Path required" : undefined),
+    }))) as string;
+  }
+
   const proceed = await prompt(confirm({
     message: `Create ${pc.bold("./" + name)} pinned to v${version}?`,
     initialValue: true,
@@ -87,6 +108,8 @@ async function main(): Promise<void> {
       version: version as string,
       llm, storage, auth,
       initialProject: (initialProject as string).trim() || undefined,
+      contentSource,
+      projectsSource,
     });
     s.stop("Scaffolded ✔");
   } catch (err) {
@@ -95,15 +118,23 @@ async function main(): Promise<void> {
     process.exit(1);
   }
 
-  note(
-    [
-      `${pc.bold("cd")} ${name}`,
-      `${pc.bold("docker compose pull")}`,
-      `${pc.bold("docker compose up -d")}`,
-      `${pc.bold("start")} http://localhost:3000`,
-    ].join("\n"),
-    "Next steps",
+  const nextSteps = [
+    `${pc.bold("cd")} ${name}`,
+  ];
+  if (contentSource === "vertex") {
+    nextSteps.push(
+      pc.dim(`# clone the vertex repo as a sibling so PROJECTS_SOURCE resolves:`),
+      `${pc.bold("cd ..")}`,
+      `${pc.bold(`git clone https://github.com/mcaps-microsoft/${name}.git`)}`,
+      `${pc.bold("cd")} ${name}-discovery  ${pc.dim("# back to the app dir")}`,
+    );
+  }
+  nextSteps.push(
+    `${pc.bold("docker compose pull")}`,
+    `${pc.bold("docker compose up -d")}`,
+    `${pc.bold("start")} http://localhost:3000`,
   );
+  note(nextSteps.join("\n"), "Next steps");
   outro(pc.green("Done."));
 }
 
