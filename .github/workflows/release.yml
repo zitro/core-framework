@@ -110,9 +110,6 @@ jobs:
           echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
           echo "is_prerelease=${IS_PRERELEASE}" >> "$GITHUB_OUTPUT"
 
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@49b3bc8e6bdd4a60e6116a5414239cba5943d3cf # v3.2.0
-
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@c47758b77c9736f4b2ef4073d4d51994fabfe349 # v3.7.1
 
@@ -159,7 +156,7 @@ jobs:
           annotations: ${{ steps.meta.outputs.annotations }}
           cache-from: type=gha,scope=${{ matrix.component }}
           cache-to: type=gha,scope=${{ matrix.component }},mode=max
-          platforms: linux/amd64,linux/arm64
+          platforms: linux/amd64
           provenance: true
           sbom: true
 
