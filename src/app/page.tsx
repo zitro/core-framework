@@ -112,7 +112,7 @@ export default function DashboardPage() {
         <div>
           <h1 className="text-2xl font-bold tracking-tight">CORE</h1>
           <p className="text-muted-foreground text-sm mt-1">
-            Capture · Orient · Refine · Execute â€” your project workbench.
+            Capture · Orient · Refine · Execute — your project workbench.
           </p>
         </div>
         <Button onClick={() => setOpen(true)} className="gap-2">
@@ -135,7 +135,7 @@ export default function DashboardPage() {
                   </CardTitle>
                   <CardDescription className="text-xs truncate">
                     {activeProject.customer || "No customer"} ·{" "}
-                    {activeProject.industry || "â€”"}
+                    {activeProject.industry || "—"}
                   </CardDescription>
                 </div>
               </div>
@@ -255,7 +255,7 @@ export default function DashboardPage() {
               <Briefcase className="h-8 w-8 text-muted-foreground" aria-hidden />
               <div>
                 <p className="font-medium">
-                  {projectsLoading ? "Loading projectsâ€¦" : "No project selected"}
+                  {projectsLoading ? "Loading projects…" : "No project selected"}
                 </p>
                 <p className="text-sm text-muted-foreground">
                   {projects.length === 0
