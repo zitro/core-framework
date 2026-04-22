@@ -126,14 +126,12 @@ function SignalRow({
   onAct: (sig: SynthesisSignal) => Promise<void> | void;
   busy: boolean;
 }) {
-  const Icon = iconForSeverity(signal.severity);
-  const tone = toneForSeverity(signal.severity);
   const canAct = signal.action === "regenerate" && !!signal.artifact_type_id;
 
   return (
     <div className="rounded-md border bg-muted/30 p-2">
       <div className="flex items-start gap-2">
-        <Icon className={`size-4 mt-0.5 shrink-0 ${tone.icon}`} />
+        <SeverityIcon severity={signal.severity} />
         <div className="flex-1 min-w-0 space-y-1">
           <p className="text-xs font-medium">{signal.title}</p>
           <p className="text-[11px] text-muted-foreground">{signal.message}</p>
@@ -159,24 +157,14 @@ function SignalRow({
   );
 }
 
-function iconForSeverity(sev: SynthesisSignalSeverity) {
-  switch (sev) {
+function SeverityIcon({ severity }: { severity: SynthesisSignalSeverity }) {
+  const className = "size-4 mt-0.5 shrink-0";
+  switch (severity) {
     case "blocker":
-      return ShieldAlert;
+      return <ShieldAlert className={`${className} text-rose-600`} />;
     case "warn":
-      return AlertTriangle;
+      return <AlertTriangle className={`${className} text-amber-600`} />;
     default:
-      return Info;
-  }
-}
-
-function toneForSeverity(sev: SynthesisSignalSeverity) {
-  switch (sev) {
-    case "blocker":
-      return { icon: "text-rose-600" };
-    case "warn":
-      return { icon: "text-amber-600" };
-    default:
-      return { icon: "text-sky-600" };
+      return <Info className={`${className} text-sky-600`} />;
   }
 }
