@@ -92,6 +92,38 @@ class CosmosStorageProvider(StorageProvider):
             return pid
         return item_id
 
+    async def _find_doc_by_id(self, collection: str, item_id: str) -> dict | None:
+        """Cross-partition lookup by ``id`` for legacy/mismatched containers.
+
+        Used as a fallback when direct partition-key reads/deletes miss because
+        the container was created with a different partition-key path than the
+        current strategy expects (e.g. legacy ``/discoveryId``).
+        """
+        container = self._container(collection)
+        try:
+            items = container.query_items(
+                query="SELECT * FROM c WHERE c.id = @id",
+                parameters=[{"name": "@id", "value": item_id}],
+            )
+            async for item in items:
+                return dict(item)
+        except Exception:  # noqa: BLE001
+            logger.debug("Cross-partition fallback query failed for %s/%s", collection, item_id)
+        return None
+
+    async def _resolve_pk_value(self, collection: str, doc: dict) -> str | None:
+        """Pick the partition-key value from ``doc`` based on the container's PK path."""
+        try:
+            container = self._container(collection)
+            props = await container.read()
+            paths = (props.get("partitionKey") or {}).get("paths") or ["/id"]
+            field = paths[0].lstrip("/")
+            value = doc.get(field)
+            return str(value) if value is not None else None
+        except Exception:  # noqa: BLE001
+            logger.debug("Failed to read container properties for %s", collection)
+            return None
+
     async def create(self, collection: str, item: dict) -> dict:
         if not item.get("id"):
             item["id"] = str(uuid.uuid4())
@@ -107,8 +139,8 @@ class CosmosStorageProvider(StorageProvider):
             result = await container.read_item(item=item_id, partition_key=pk)
             return dict(result)
         except Exception:
-            logger.debug("Item %s not found in %s", item_id, collection)
-            return None
+            logger.debug("Item %s not found in %s via direct PK; trying cross-partition", item_id, collection)
+            return await self._find_doc_by_id(collection, item_id)
 
     async def list(self, collection: str, filters: dict[str, Any] | None = None) -> list[dict]:
         container = self._container(collection)
@@ -136,7 +168,11 @@ class CosmosStorageProvider(StorageProvider):
         # project_id is part of the partition key — never allow it to change.
         if is_project_partitioned(collection):
             existing["project_id"] = self._pk_for_read(collection, item_id)
+        # Use the doc's actual PK value so legacy containers (custom PK paths)
+        # still work via the cross-partition fallback in get().
+        pk_value = await self._resolve_pk_value(collection, existing) or item_id
         result = await container.replace_item(item=item_id, body=existing)
+        _ = pk_value  # replace_item infers PK from body; kept for clarity
         return dict(result)
 
     async def delete(self, collection: str, item_id: str) -> bool:
@@ -146,5 +182,27 @@ class CosmosStorageProvider(StorageProvider):
             await container.delete_item(item=item_id, partition_key=pk)
             return True
         except Exception:
-            logger.debug("Failed to delete %s from %s", item_id, collection)
+            logger.debug(
+                "Direct delete failed for %s/%s; trying cross-partition lookup",
+                collection,
+                item_id,
+            )
+        # Fallback: find the doc cross-partition, then delete with its real PK.
+        doc = await self._find_doc_by_id(collection, item_id)
+        if not doc:
+            return False
+        pk_value = await self._resolve_pk_value(collection, doc)
+        if pk_value is None:
+            return False
+        try:
+            await container.delete_item(item=item_id, partition_key=pk_value)
+            return True
+        except Exception:  # noqa: BLE001
+            logger.warning(
+                "Cross-partition delete failed for %s/%s with pk=%s",
+                collection,
+                item_id,
+                pk_value,
+                exc_info=True,
+            )
             return False
