@@ -43,7 +43,7 @@ export default function GroundingPage() {
         </CardHeader>
         <CardContent className="space-y-3">
           <Textarea
-            placeholder="e.g. What is Contoso's stated strategy for AI?"
+            placeholder="e.g. What is CUSTOMER's stated strategy for AI?"
             rows={3}
             value={q}
             onChange={(e) => setQ(e.target.value)}

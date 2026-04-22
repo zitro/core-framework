@@ -19,12 +19,12 @@ interface ConnectorsPanelProps {
 
 const SAMPLE_CONFIG: Record<string, string> = {
   github: JSON.stringify(
-    { repos: [{ owner: "octocat", repo: "hello-world", paths: ["docs/"] }] },
+    { repos: [{ owner: "CUSTOMER", repo: "REPO", paths: ["docs/"] }] },
     null,
     2,
   ),
   web: JSON.stringify(
-    { urls: ["https://example.com/roadmap"] },
+    { urls: ["https://customer.com/roadmap"] },
     null,
     2,
   ),
@@ -32,7 +32,7 @@ const SAMPLE_CONFIG: Record<string, string> = {
     {
       endpoints: [
         {
-          url: "https://api.example.com/issues",
+          url: "https://api.customer.com/issues",
           items_path: "issues",
           id_field: "key",
           title_field: "summary",
@@ -75,9 +75,14 @@ export function ConnectorsPanel({
     };
   }, []);
 
+  // Sync external `initialSources` only when its contents actually change.
+  // Comparing the prop reference would loop forever because callers often
+  // pass an inline `{}` default, which is a fresh object on every render.
+  const initialSourcesKey = JSON.stringify(initialSources ?? {});
   useEffect(() => {
-    setSources(initialSources);
-  }, [initialSources]);
+    setSources(initialSources ?? {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialSourcesKey]);
 
   const draftFor = useCallback(
     (kind: string) => {
