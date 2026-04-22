@@ -56,9 +56,15 @@ export default function SynthesisPage() {
       setArtifacts(a.artifacts);
       setSources(s);
       setQuestions(q.questions);
-      const meta = ((p as { metadata?: { vertex?: { write_enabled?: boolean }; auto_rebuild?: boolean } } | null)
-        ?.metadata?.vertex?.write_enabled) ?? false;
-      setVertexEnabled(!!meta);
+      // Default vertex write-back ON when a repo is connected and the user
+      // hasn't explicitly opted out.
+      const project = p as {
+        repo_path?: string;
+        metadata?: { vertex?: { write_enabled?: boolean }; auto_rebuild?: boolean };
+      } | null;
+      const explicit = project?.metadata?.vertex?.write_enabled;
+      const hasRepo = !!project?.repo_path;
+      setVertexEnabled(explicit ?? hasRepo);
       const ar = ((p as { metadata?: { auto_rebuild?: boolean } } | null)
         ?.metadata?.auto_rebuild) ?? false;
       setAutoRebuild(!!ar);
