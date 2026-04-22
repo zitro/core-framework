@@ -7,6 +7,45 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.9.0] - 2026-04-22
+
+Enterprise source connectors: GitHub, Web URLs, and generic HTTP JSON.
+
+### Added
+
+- **GitHub source adapter** (`backend/app/synthesis/sources/github.py`):
+  walks one or more repositories via the GitHub REST API, decodes
+  markdown blobs, and emits `SourceDoc`s. Optional PAT for private
+  repos.
+- **Web source adapter** (`backend/app/synthesis/sources/web.py`):
+  fetches a small list of URLs and strips HTML to plain text using only
+  the stdlib (`html.parser`); plain-text/markdown responses pass
+  through unchanged.
+- **HTTP JSON source adapter**
+  (`backend/app/synthesis/sources/http_json.py`): generic JSON endpoint
+  reader for Jira/ADO/Confluence-style APIs. Maps records to docs via
+  simple dot-paths (`items_path`, `id_field`, `title_field`,
+  `text_field`).
+- **Connector marketplace** (`backend/app/synthesis/connectors.py`):
+  static registry with JSON-schema for every shipped adapter, exposed
+  at `GET /api/synthesis/connectors`. Per-project config can now be
+  set via `PUT /api/synthesis/{project_id}/connectors`.
+- **ConnectorsPanel** in the synthesis aside: lists configurable
+  connectors, lets the user paste/edit per-project JSON config, save,
+  or clear.
+- `SourceKind.GITHUB`, `SourceKind.WEB`, `SourceKind.HTTP_JSON` enum
+  values.
+- 9 new backend tests (`tests/test_connectors.py`) using
+  `httpx.MockTransport` — no live network.
+
+### Changed
+
+- `corpus.get_adapters()` now returns six adapters; new ones are safe
+  no-ops when the project has no matching `metadata.sources.<kind>`
+  block.
+- Backend `1.8.0` → `1.9.0`; frontend `1.8.0` → `1.9.0`; FastAPI app
+  version `1.8.0` → `1.9.0`.
+
 ## [1.8.0] - 2026-04-22
 
 Operational close: weekly emails, wrap-ups, DT Compass, and auto-rebuild

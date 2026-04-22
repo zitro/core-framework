@@ -228,7 +228,28 @@ export const synthesisApi = {
         body: JSON.stringify({ auto_rebuild: autoRebuild }),
       },
     ),
+
+  connectors: () =>
+    request<{ connectors: SynthesisConnector[] }>(`/api/synthesis/connectors`),
+
+  updateConnectorConfig: (projectId: string, kind: string, config: Record<string, unknown>) =>
+    request<{ sources: Record<string, unknown> }>(
+      `/api/synthesis/${encodeURIComponent(projectId)}/connectors`,
+      {
+        method: "PUT",
+        body: JSON.stringify({ kind, config }),
+      },
+    ),
 };
+
+export interface SynthesisConnector {
+  kind: string;
+  label: string;
+  description: string;
+  config_path: string;
+  config_schema: Record<string, unknown>;
+  builtin: boolean;
+}
 
 export type SynthesisSignalSeverity = "info" | "warn" | "blocker";
 

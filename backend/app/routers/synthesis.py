@@ -25,6 +25,7 @@ from app.synthesis.categories import (
 )
 from app.synthesis.chat import CHATS_COLLECTION, ChatAgent
 from app.synthesis.compass import compute_compass, types_to_auto_regenerate
+from app.synthesis.connectors import list_connectors
 from app.synthesis.corpus import build_corpus
 from app.synthesis.critic import CriticAgent
 from app.synthesis.detectors import run_detectors, summarise
@@ -548,4 +549,45 @@ async def refresh_sources(project_id: str) -> dict:
         "auto_rebuild": auto,
         "regenerated": regenerated,
         "failures": failures,
+    }
+
+
+# ── connector marketplace ───────────────────────────────────
+
+
+@router.get("/connectors")
+async def get_connectors() -> dict:
+    """Static metadata + JSON-schema for every shipped source adapter."""
+    return {"connectors": list_connectors()}
+
+
+class ConnectorConfigUpdate(BaseModel):
+    kind: str
+    config: dict
+
+
+@router.put("/{project_id}/connectors")
+async def update_connector_config(project_id: str, payload: ConnectorConfigUpdate) -> dict:
+    """Set per-project config for a single connector kind.
+
+    Stored under ``project.metadata.sources.<kind>``. Pass an empty
+    config dict to clear.
+    """
+    valid_kinds = {c["kind"] for c in list_connectors()}
+    if payload.kind not in valid_kinds:
+        raise HTTPException(status_code=422, detail=f"unknown connector: {payload.kind}")
+
+    project = await _load_project(project_id)
+    storage = get_storage_provider()
+    metadata = dict(project.get("metadata") or {})
+    sources = dict(metadata.get("sources") or {})
+    if payload.config:
+        sources[payload.kind] = payload.config
+    else:
+        sources.pop(payload.kind, None)
+    metadata["sources"] = sources
+    project["metadata"] = metadata
+    saved = await storage.update(PROJECTS_COLLECTION, project_id, project)
+    return {
+        "sources": (saved.get("metadata") or {}).get("sources") or {},
     }

@@ -23,6 +23,9 @@ class SourceKind(StrEnum):
     MS_GRAPH_FILE = "ms_graph_file"
     MS_GRAPH_MAIL = "ms_graph_mail"
     MS_GRAPH_MEETING = "ms_graph_meeting"
+    GITHUB = "github"
+    WEB = "web"
+    HTTP_JSON = "http_json"
 
 
 class SourceDoc(BaseModel):
