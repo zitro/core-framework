@@ -7,6 +7,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.9.1] - 2026-04-22
+
+Project-first information architecture; legacy CORE phase pages removed.
+
+### Changed
+
+- Sidebar restructured around active project: project switcher in header, four phase groups (Capture / Orient / Refine / Execute) each containing the relevant tools.
+- Header simplified to active project name plus active discovery phase badge.
+- Discovery store now wraps the project store; the discoveries list and active discovery are auto-scoped to the active project (active discovery persisted per-project in localStorage, falling back to the most recently updated discovery).
+- Root layout nests `DiscoveryProvider` inside `ProjectProvider`; document title `CORE Discovery` shortened to `CORE`.
+- Dashboard rebuilt as a project-first overview (hero card, four phase entry-point cards, scoped discoveries grid, new-project dialog).
+
+### Added
+
+- `src/app/connectors/page.tsx` (project-scoped Connectors entry under Capture).
+- `src/components/dashboard/new-project-dialog.tsx` (extracted form for project creation).
+
+### Removed
+
+- `src/app/{capture,orient,refine,execute,discoveries}/` route trees.
+- `src/components/{capture,orient,refine,execute}/` legacy phase widgets.
+- `src/components/layout/phase-shell.tsx` and `src/components/layout/phase-evidence-panel.tsx`.
+
+### Notes
+
+- Backend Discovery routers, agents, and models are unchanged in this release.
+- No API or schema changes; SemVer patch bump.
+
 ## [1.9.0] - 2026-04-22
 
 Enterprise source connectors: GitHub, Web URLs, and generic HTTP JSON.
