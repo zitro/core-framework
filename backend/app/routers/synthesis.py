@@ -26,6 +26,7 @@ from app.synthesis.categories import (
 from app.synthesis.chat import CHATS_COLLECTION, ChatAgent
 from app.synthesis.corpus import build_corpus
 from app.synthesis.critic import CriticAgent
+from app.synthesis.detectors import run_detectors, summarise
 from app.synthesis.exporters import export_docx, export_pptx
 from app.synthesis.generator import ARTIFACTS_COLLECTION, GeneratorEngine
 from app.synthesis.models import (
@@ -447,3 +448,26 @@ async def update_vertex_settings(project_id: str, payload: VertexSettings) -> di
     project["metadata"] = metadata
     saved = await storage.update(PROJECTS_COLLECTION, project_id, project)
     return {"vertex": (saved.get("metadata") or {}).get("vertex") or {}}
+
+
+# ── detectors / signals ───────────────────────────────────────
+
+
+@router.get("/{project_id}/signals")
+async def get_signals(project_id: str) -> dict:
+    """Run all detector rules and return signals sorted by severity.
+
+    Computed on-demand from the current artifacts, critiques, and corpus
+    — not persisted. Each signal carries a deterministic id so the UI
+    can de-duplicate across refreshes.
+    """
+    project = await _load_project(project_id)
+    artifacts = await _project_artifacts(project_id)
+    critiques = await _project_critiques(project_id)
+    corpus = await build_corpus(project)
+    signals = run_detectors(artifacts, critiques, corpus)
+    return {
+        "project_id": project_id,
+        "counts": summarise(signals),
+        "signals": [s.model_dump(mode="json") for s in signals],
+    }

@@ -18,6 +18,7 @@ import {
 import { ArtifactCard } from "@/components/synthesis/artifact-card";
 import { ChatPanel } from "@/components/synthesis/chat-panel";
 import { QuestionsPanel } from "@/components/synthesis/questions-panel";
+import { SignalsPanel } from "@/components/synthesis/signals-panel";
 import { SourcesPanel } from "@/components/synthesis/sources-panel";
 import { VertexWriteBackToggle } from "@/components/synthesis/vertex-toggle";
 import { engagementsApi } from "@/lib/api-fde";
@@ -257,6 +258,11 @@ export default function SynthesisPage() {
         </div>
 
         <aside className="space-y-6">
+          <SignalsPanel
+            projectId={projectId}
+            onRegenerate={onRegenerate}
+            refreshKey={artifacts.length}
+          />
           <ChatPanel projectId={projectId} />
           <QuestionsPanel
             questions={questions}

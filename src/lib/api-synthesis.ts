@@ -202,7 +202,31 @@ export const synthesisApi = {
         body: JSON.stringify(settings),
       },
     ),
+
+  signals: (projectId: string) =>
+    request<SynthesisSignalsResponse>(
+      `/api/synthesis/${encodeURIComponent(projectId)}/signals`,
+    ),
 };
+
+export type SynthesisSignalSeverity = "info" | "warn" | "blocker";
+
+export interface SynthesisSignal {
+  id: string;
+  kind: string;
+  severity: SynthesisSignalSeverity;
+  title: string;
+  message: string;
+  artifact_id: string;
+  artifact_type_id: string;
+  action: string;
+}
+
+export interface SynthesisSignalsResponse {
+  project_id: string;
+  counts: Record<SynthesisSignalSeverity, number>;
+  signals: SynthesisSignal[];
+}
 
 export interface SynthesisChatTurn {
   id?: string;

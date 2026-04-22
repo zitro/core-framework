@@ -7,6 +7,42 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.7.0] - 2026-04-22
+
+Detector pass: cheap, deterministic rules that surface what to fix next.
+Builds on v1.6.0; no breaking changes.
+
+### Added
+
+- **Detector subsystem** (`backend/app/synthesis/detectors.py`) — six
+  pure-function rules computed on demand from
+  `(artifacts, critiques, corpus)`:
+  - `missing-critical` — a `critical=True` artifact type has no artifact
+  - `low-grounding` — critic score < 0.5 or any blocker issue
+  - `broken-citation` — citations reference source ids absent from corpus
+  - `contradiction` — critic flagged dimension `contradiction`
+  - `thin-coverage` — required body schema fields are empty/null
+  - `stale-vs-corpus` — a cited source was updated after the artifact
+- **Signal model** with deterministic id (sha1[:16]), severity reused
+  from `IssueSeverity` (info/warn/blocker), action hint
+  (`regenerate` for now). No persistence — signals recompute every
+  request.
+- **API**: `GET /api/synthesis/{project_id}/signals` returns `counts`
+  (per-severity) plus the sorted signal list (blocker > warn > info).
+- **Tests**: 15 new unit tests in `tests/test_detectors.py` pinning
+  each rule's contract. Brings backend test count to 106.
+- **Frontend**: `components/synthesis/signals-panel.tsx` — top of the
+  Synthesis aside; per-severity badges in header; per-signal
+  "Regenerate" action wires straight into the existing
+  `regenerate(typeId)` handler. Auto-refreshes when artifacts change.
+- `lib/api-synthesis.ts` adds `signals()` plus `SynthesisSignal`,
+  `SynthesisSignalsResponse`, `SynthesisSignalSeverity` types.
+
+### Changed
+
+- Backend `1.6.0` → `1.7.0`; frontend `1.6.0` → `1.7.0`; FastAPI app
+  version updated.
+
 ## [1.6.0] - 2026-04-22
 
 Chat over corpus and a UI toggle for vertex bidirectional write-back.
