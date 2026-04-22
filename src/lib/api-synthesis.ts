@@ -8,7 +8,13 @@
 
 import { request } from "@/lib/http";
 
-export type SynthesisCategoryId = "why" | "value" | "what" | "scope" | "how";
+export type SynthesisCategoryId =
+  | "why"
+  | "value"
+  | "what"
+  | "scope"
+  | "how"
+  | "story";
 
 export interface SynthesisCatalogType {
   id: string;
@@ -98,12 +104,21 @@ export interface SynthesisSources {
   docs: SynthesisSourceDoc[];
 }
 
+export interface SynthesisWriteBackResult {
+  target: string;
+  enabled: boolean;
+  written: string[];
+  skipped: string[];
+  errors: string[];
+}
+
 export interface SynthesisRunResult {
   project_id: string;
   corpus_doc_count: number;
   artifact_count: number;
   question_count: number;
   failures: { type_id: string; error: string }[];
+  writeback?: { vertex?: SynthesisWriteBackResult };
 }
 
 export const synthesisApi = {
@@ -144,4 +159,16 @@ export const synthesisApi = {
       `/api/synthesis/${encodeURIComponent(projectId)}/questions/refresh`,
       { method: "POST" },
     ),
+
+  writebackVertex: (projectId: string) =>
+    request<SynthesisWriteBackResult>(
+      `/api/synthesis/${encodeURIComponent(projectId)}/writeback/vertex`,
+      { method: "POST" },
+    ),
+
+  exportDocxUrl: (projectId: string) =>
+    `/api/synthesis/${encodeURIComponent(projectId)}/export/docx`,
+
+  exportPptxUrl: (projectId: string) =>
+    `/api/synthesis/${encodeURIComponent(projectId)}/export/pptx`,
 };

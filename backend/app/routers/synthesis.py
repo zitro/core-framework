@@ -9,8 +9,10 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import re
 
 from fastapi import APIRouter, Depends, HTTPException
+from fastapi.responses import Response
 
 from app.dependencies import get_current_user
 from app.providers.storage import get_storage_provider
@@ -21,6 +23,7 @@ from app.synthesis.categories import (
 )
 from app.synthesis.corpus import build_corpus
 from app.synthesis.critic import CriticAgent
+from app.synthesis.exporters import export_docx, export_pptx
 from app.synthesis.generator import ARTIFACTS_COLLECTION, GeneratorEngine
 from app.synthesis.models import (
     Artifact,
@@ -30,6 +33,7 @@ from app.synthesis.models import (
 )
 from app.synthesis.question_agent import QUESTIONS_COLLECTION, QuestionAgent
 from app.synthesis.types import ARTIFACT_TYPES
+from app.synthesis.writers import VertexWriteBack
 
 logger = logging.getLogger(__name__)
 
@@ -224,12 +228,15 @@ async def synthesize(project_id: str) -> dict:
 
     questions = await question_agent.generate(project, artifacts, corpus)
 
+    writeback = await VertexWriteBack().push(project, artifacts)
+
     return {
         "project_id": project_id,
         "corpus_doc_count": len(corpus.docs),
         "artifact_count": len(artifacts),
         "question_count": len(questions),
         "failures": failures,
+        "writeback": {"vertex": writeback.to_dict()},
     }
 
 
@@ -270,3 +277,58 @@ async def refresh_questions(project_id: str) -> dict:
     artifacts = await _project_artifacts(project_id)
     questions = await QuestionAgent().generate(project, artifacts, corpus)
     return {"questions": [q.model_dump(mode="json") for q in questions]}
+
+
+# ── exports ─────────────────────────────────────────────────────────────
+
+
+def _safe_filename(name: str) -> str:
+    cleaned = re.sub(r"[^A-Za-z0-9._-]+", "-", name).strip("-") or "synthesis"
+    return cleaned[:80]
+
+
+def _filename(project: dict, ext: str) -> str:
+    base = str(project.get("slug") or project.get("name") or project.get("id") or "synthesis")
+    return f"{_safe_filename(base)}-synthesis.{ext}"
+
+
+@router.get("/{project_id}/export/docx")
+async def export_docx_endpoint(project_id: str) -> Response:
+    project = await _load_project(project_id)
+    artifacts = await _project_artifacts(project_id)
+    if not artifacts:
+        raise HTTPException(status_code=404, detail="No artifacts to export")
+    payload = export_docx(project, artifacts)
+    return Response(
+        content=payload,
+        media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        headers={"Content-Disposition": f'attachment; filename="{_filename(project, "docx")}"'},
+    )
+
+
+@router.get("/{project_id}/export/pptx")
+async def export_pptx_endpoint(project_id: str) -> Response:
+    project = await _load_project(project_id)
+    artifacts = await _project_artifacts(project_id)
+    if not artifacts:
+        raise HTTPException(status_code=404, detail="No artifacts to export")
+    payload = export_pptx(project, artifacts)
+    return Response(
+        content=payload,
+        media_type="application/vnd.openxmlformats-officedocument.presentationml.presentation",
+        headers={"Content-Disposition": f'attachment; filename="{_filename(project, "pptx")}"'},
+    )
+
+
+# ── write-back ──────────────────────────────────────────────────────────
+
+
+@router.post("/{project_id}/writeback/vertex")
+async def writeback_vertex(project_id: str) -> dict:
+    """Push the current set of generated artifacts back to the connected
+    vertex repo. No-op (with explanatory payload) when write-back is not
+    enabled in ``project.metadata.vertex.write_enabled``."""
+    project = await _load_project(project_id)
+    artifacts = await _project_artifacts(project_id)
+    result = await VertexWriteBack().push(project, artifacts)
+    return result.to_dict()

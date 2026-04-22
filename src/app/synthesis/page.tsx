@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Wand2, AlertCircle } from "lucide-react";
+import { Wand2, AlertCircle, FileText, Presentation, UploadCloud } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -108,6 +108,28 @@ export default function SynthesisPage() {
     }
   };
 
+  const onWriteBackVertex = async () => {
+    if (!projectId) return;
+    try {
+      const res = await synthesisApi.writebackVertex(projectId);
+      if (!res.enabled) {
+        toast.warning(
+          "Vertex write-back disabled. Set metadata.vertex.write_enabled=true on the project.",
+        );
+        return;
+      }
+      if (res.errors.length > 0) {
+        toast.error(`Write-back: ${res.errors.length} error(s) — wrote ${res.written.length}`);
+      } else {
+        toast.success(`Pushed ${res.written.length} file(s) to vertex`);
+      }
+    } catch (err) {
+      toast.error(`Write-back failed: ${(err as Error).message}`);
+    }
+  };
+
+  const hasArtifacts = artifacts.length > 0;
+
   if (!projectId) {
     return (
       <main className="container mx-auto p-6 max-w-4xl">
@@ -139,10 +161,66 @@ export default function SynthesisPage() {
             {(sources?.doc_count ?? 0) === 1 ? "" : "s"}
           </p>
         </div>
-        <Button onClick={onSynthesize} disabled={synthesizing || loading}>
-          <Wand2 className="size-4 mr-2" />
-          {artifacts.length === 0 ? "Synthesize project" : "Resynthesize"}
-        </Button>
+        <div className="flex flex-wrap items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={!hasArtifacts}
+            asChild={hasArtifacts}
+          >
+            {hasArtifacts ? (
+              <a
+                href={synthesisApi.exportDocxUrl(projectId)}
+                target="_blank"
+                rel="noreferrer"
+              >
+                <FileText className="size-4 mr-2" />
+                .docx
+              </a>
+            ) : (
+              <span>
+                <FileText className="size-4 mr-2" />
+                .docx
+              </span>
+            )}
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={!hasArtifacts}
+            asChild={hasArtifacts}
+          >
+            {hasArtifacts ? (
+              <a
+                href={synthesisApi.exportPptxUrl(projectId)}
+                target="_blank"
+                rel="noreferrer"
+              >
+                <Presentation className="size-4 mr-2" />
+                .pptx
+              </a>
+            ) : (
+              <span>
+                <Presentation className="size-4 mr-2" />
+                .pptx
+              </span>
+            )}
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={onWriteBackVertex}
+            disabled={!hasArtifacts}
+            title="Push artifacts as markdown into the connected vertex repo"
+          >
+            <UploadCloud className="size-4 mr-2" />
+            Push to vertex
+          </Button>
+          <Button onClick={onSynthesize} disabled={synthesizing || loading}>
+            <Wand2 className="size-4 mr-2" />
+            {hasArtifacts ? "Resynthesize" : "Synthesize project"}
+          </Button>
+        </div>
       </header>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

@@ -7,6 +7,51 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.5.0] - 2026-04-22
+
+Story category, customer-ready Office exports, and bidirectional vertex
+write-back. Builds on the v1.4.0 synthesis platform; no breaking changes.
+
+### Added
+
+- **Story category** (`backend/app/synthesis/categories.py`,
+  `synthesis/types.py`) — five new artifact types tuned for customer-facing
+  narrative: `executive-brief` (SCRA one-pager), `elevator-pitch`,
+  `deck-outline` (slide-by-slide story arc), `customer-readout` (long-form
+  prose), `press-release` (Amazon-style future PR). Brings the catalog to
+  30 types across 6 categories.
+- **Office exporters** (`backend/app/synthesis/exporters/`) —
+  `export_docx` builds a single readout document grouped by category;
+  `export_pptx` prefers a generated `deck-outline` artifact when present,
+  otherwise falls back to one slide per artifact. Both use the
+  `python-docx` / `python-pptx` deps already in `pyproject.toml`.
+- **Vertex bidirectional write-back** (`backend/app/synthesis/writers/`) —
+  `VertexWriteBack` pushes generated artifacts back into the connected
+  vertex repo as markdown under `<repo>/synthesis/<category>/<type>.md`,
+  plus an auto-maintained `_index.md`. Opt-in per project via
+  `metadata.vertex.write_enabled` (default `false`); never touches files
+  outside its own subfolder so customer-authored vertex content is safe.
+- **Synthesis API surface**
+  - `GET /api/synthesis/{project_id}/export/docx` — download readout.
+  - `GET /api/synthesis/{project_id}/export/pptx` — download deck.
+  - `POST /api/synthesis/{project_id}/writeback/vertex` — push artifacts.
+  - `POST /api/synthesis/{project_id}/synthesize` now also runs vertex
+    write-back as part of a full synthesize cycle and returns the result
+    in `writeback.vertex`.
+- **Frontend** — Synthesis page header gains `.docx`, `.pptx`, and
+  **Push to vertex** buttons (alongside Resynthesize). Typed client adds
+  `writebackVertex`, `exportDocxUrl`, `exportPptxUrl` and the new `story`
+  category. Disabled-state messaging when no artifacts exist or when
+  vertex write-back is not enabled on the project.
+
+### Changed
+
+- `Category` enum extended with `STORY`; `CATEGORY_ORDER`,
+  `CATEGORY_LABELS`, `CATEGORY_DESCRIPTIONS` updated in lockstep.
+- `synthesize` endpoint return shape includes `writeback` block.
+- Backend version `1.4.0` → `1.5.0`; frontend `package.json` `1.4.0` →
+  `1.5.0`; FastAPI app version updated.
+
 ## [1.4.0] - 2026-04-22
 
 First cut of the project-first synthesis platform described in

@@ -23,6 +23,7 @@ class Category(StrEnum):
     WHAT = "what"
     SCOPE = "scope"
     HOW = "how"
+    STORY = "story"
 
 
 CATEGORY_ORDER: tuple[Category, ...] = (
@@ -31,6 +32,7 @@ CATEGORY_ORDER: tuple[Category, ...] = (
     Category.WHAT,
     Category.SCOPE,
     Category.HOW,
+    Category.STORY,
 )
 
 
@@ -40,6 +42,7 @@ CATEGORY_LABELS: dict[Category, str] = {
     Category.WHAT: "What",
     Category.SCOPE: "Scope",
     Category.HOW: "How",
+    Category.STORY: "Story",
 }
 
 
@@ -49,4 +52,5 @@ CATEGORY_DESCRIPTIONS: dict[Category, str] = {
     Category.WHAT: "The work we'd actually do — workstreams, capabilities, features.",
     Category.SCOPE: "How big and how fast — FDE, workshop, hackathon, MVE, MVP.",
     Category.HOW: "Technical shape, data flow, and the risks worth naming.",
+    Category.STORY: "Customer-ready narrative — the deck, the brief, the one-pager.",
 }
