@@ -47,6 +47,7 @@ class EvidenceType(StrEnum):
 
 class Evidence(BaseModel):
     id: str = ""
+    project_id: str = ""
     discovery_id: str = ""
     phase: CorePhase
     content: str
@@ -130,6 +131,7 @@ class DiscoveryUpdate(BaseModel):
 
 class Discovery(BaseModel):
     id: str = ""
+    project_id: str = ""
     name: str
     description: str = ""
     mode: DiscoveryMode = DiscoveryMode.STANDARD
@@ -157,6 +159,7 @@ class Question(BaseModel):
 
 class QuestionSet(BaseModel):
     id: str = ""
+    project_id: str = ""
     discovery_id: str
     phase: CorePhase
     context: str = ""
@@ -172,6 +175,7 @@ class TranscriptInsight(BaseModel):
 
 class TranscriptAnalysis(BaseModel):
     id: str = ""
+    project_id: str = ""
     discovery_id: str
     transcript_text: str
     insights: list[TranscriptInsight] = Field(default_factory=list)
@@ -183,6 +187,7 @@ class TranscriptAnalysis(BaseModel):
 
 class ProblemStatementVersion(BaseModel):
     id: str = ""
+    project_id: str = ""
     discovery_id: str
     version: int = 1
     who: str = ""
@@ -210,6 +215,7 @@ class EvidenceUpdate(BaseModel):
 
 class UseCaseVersion(BaseModel):
     id: str = ""
+    project_id: str = ""
     discovery_id: str
     version: int = 1
     title: str = ""
@@ -234,6 +240,7 @@ class ServiceRecommendation(BaseModel):
 
 class SolutionBlueprint(BaseModel):
     id: str = ""
+    project_id: str = ""
     discovery_id: str
     version: int = 1
     approach_title: str = ""
@@ -311,6 +318,7 @@ class Review(BaseModel):
     """Human-in-the-loop review of any artifact (collection + item_id)."""
 
     id: str = ""
+    project_id: str = ""
     discovery_id: str = ""
     artifact_collection: str
     artifact_id: str
