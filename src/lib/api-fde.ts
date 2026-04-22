@@ -11,11 +11,13 @@ import { toast } from "sonner";
 export const engagementsApi = {
   list: () => request<Engagement[]>("/api/engagements/"),
   get: (id: string) => request<Engagement>(`/api/engagements/${id}`),
+  getBySlug: (slug: string) => request<Engagement>(`/api/engagements/by-slug/${slug}`),
   create: (data: Partial<Engagement>) =>
     request<Engagement>("/api/engagements/", {
       method: "POST",
       body: JSON.stringify({
         name: data.name,
+        slug: data.slug ?? "",
         customer: data.customer ?? "",
         industry: data.industry ?? "",
         summary: data.summary ?? "",
@@ -62,6 +64,9 @@ export const engagementsApi = {
       { method: "DELETE" },
     ),
 };
+
+/** ``Project`` is the canonical name for an engagement; this alias matches v1.1+ vocabulary. */
+export const projectsApi = engagementsApi;
 
 export const reviewsApi = {
   list: (params?: { discovery_id?: string; status?: ReviewStatus }) => {

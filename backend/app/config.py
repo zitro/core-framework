@@ -40,6 +40,12 @@ class Settings(BaseSettings):
     local_storage_path: str = "./data"
     local_db_path: str = "./data/core.db"
 
+    # Project artifacts mount root. Per-project ``repo_path`` values that are
+    # not absolute are resolved relative to this directory. Customer deploys
+    # mount their ``./projects`` folder here so engagements can reference
+    # subdirectories by name (e.g. ``repo_path: "allstate-claims"``).
+    projects_root: str = "./data/projects"
+
     # When true, FastAPI startup will (re)create Cosmos containers. Default off so
     # production restarts don't pay the round-trip on every pod boot.
     cosmos_ensure_collections: bool = False

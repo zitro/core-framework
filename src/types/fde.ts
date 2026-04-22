@@ -17,6 +17,7 @@ export const ENGAGEMENT_STATUS_LABELS: Record<EngagementStatus, string> = {
 
 export interface Engagement {
   id: string;
+  slug: string;
   name: string;
   customer: string;
   industry: string;
@@ -29,6 +30,9 @@ export interface Engagement {
   created_at: string;
   updated_at: string;
 }
+
+/** Project is the canonical name for an Engagement (one customer, many projects). */
+export type Project = Engagement;
 
 export type ReviewStatus =
   | "pending"

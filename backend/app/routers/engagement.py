@@ -30,6 +30,7 @@ from app.utils.file_extract import (
     extract_to_markdown,
 )
 from app.utils.ingest import classify_and_place, write_classified_content
+from app.utils.project_paths import resolve_project_repo_path
 from app.utils.references import regenerate_references
 from app.utils.review_gate import latest_status
 
@@ -64,20 +65,23 @@ class IngestWriteRequest(BaseModel):
 
 @router.post("/scan")
 async def scan_repo(request: RepoPathRequest):
-    """Scan an engagement repo directory and return its structure."""
-    root = Path(request.path)
+    """Scan an engagement repo directory and return its structure.
+
+    ``path`` may be absolute or relative to ``settings.projects_root``.
+    """
+    root = resolve_project_repo_path(request.path)
     if not root.is_dir():
         raise HTTPException(status_code=400, detail="Directory not found")
-    return scan_engagement_repo(request.path)
+    return scan_engagement_repo(str(root))
 
 
 @router.post("/content")
 async def get_content(request: RepoPathRequest):
     """Return full parsed content from an engagement repo for frontend rendering."""
-    root = Path(request.path)
+    root = resolve_project_repo_path(request.path)
     if not root.is_dir():
         raise HTTPException(status_code=400, detail="Directory not found")
-    result = read_engagement_content_structured(request.path)
+    result = read_engagement_content_structured(str(root))
     if "error" in result:
         raise HTTPException(status_code=400, detail=result["error"])
     return result
@@ -86,12 +90,12 @@ async def get_content(request: RepoPathRequest):
 @router.post("/ingest/classify")
 async def ingest_classify(request: IngestClassifyRequest):
     """AI-classify raw content and suggest placement in the repo."""
-    root = Path(request.repo_path)
+    root = resolve_project_repo_path(request.repo_path)
     if not root.is_dir():
         raise HTTPException(status_code=400, detail="Directory not found")
     if not request.content.strip():
         raise HTTPException(status_code=422, detail="No content provided")
-    result = await classify_and_place(request.repo_path, request.content)
+    result = await classify_and_place(str(root), request.content)
     if "error" in result:
         raise HTTPException(status_code=502, detail=result["error"])
     return result
@@ -108,7 +112,7 @@ async def ingest_upload(
     Returns the same shape as `/ingest/classify` plus an `extracted_chars`
     field. The caller still needs to POST to `/ingest/write` to persist.
     """
-    root = Path(repo_path)
+    root = resolve_project_repo_path(repo_path)
     if not root.is_dir():
         raise HTTPException(status_code=400, detail="Directory not found")
 
@@ -127,7 +131,7 @@ async def ingest_upload(
     except ExtractionError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
 
-    classification = await classify_and_place(repo_path, markdown)
+    classification = await classify_and_place(str(root), markdown)
     if "error" in classification:
         raise HTTPException(status_code=502, detail=classification["error"])
     return {
@@ -162,7 +166,7 @@ async def ingest_write(request: IngestWriteRequest):
 @router.post("/references/rebuild")
 async def references_rebuild(request: RepoPathRequest):
     """Force a rebuild of `references.md` for an engagement repo's content dir."""
-    root = Path(request.path)
+    root = resolve_project_repo_path(request.path)
     if not root.is_dir():
         raise HTTPException(status_code=400, detail="Directory not found")
     content_dir = _find_content_dir(root)
@@ -201,7 +205,7 @@ async def export_to_repo(request: ExportRequest):
     or `rejected` are skipped and reported under `skipped`.
     """
     storage = get_storage_provider()
-    root = Path(request.repo_path)
+    root = resolve_project_repo_path(request.repo_path)
     if not root.is_dir():
         raise HTTPException(status_code=400, detail="Engagement repo not found")
 
