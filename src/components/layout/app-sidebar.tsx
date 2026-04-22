@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import pkg from "../../../package.json";
 import {
   BookMarked,
   BookOpen,
@@ -104,7 +105,7 @@ const PHASE_GROUPS: PhaseGroup[] = [
   },
 ];
 
-const FRAMEWORK_VERSION = "1.9.3";
+const FRAMEWORK_VERSION = pkg.version;
 
 export function AppSidebar() {
   const pathname = usePathname();
