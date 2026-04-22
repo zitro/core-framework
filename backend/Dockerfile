@@ -8,7 +8,8 @@ RUN addgroup --system --gid 1001 appuser && \
 COPY pyproject.toml ./
 RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir . && \
-    pip install --no-cache-dir ".[local]"
+    pip install --no-cache-dir ".[local]" && \
+    pip install --no-cache-dir ".[azure]"
 
 COPY app ./app
 
