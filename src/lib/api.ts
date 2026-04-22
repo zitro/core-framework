@@ -86,6 +86,10 @@ export const api = {
         method: "POST",
         body: JSON.stringify(data),
       }),
+    delete: (id: string) =>
+      request<{ deleted: boolean }>(`/api/transcripts/analysis/${id}`, {
+        method: "DELETE",
+      }),
   },
 
   // Evidence

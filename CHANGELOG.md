@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.2.3] - 2026-04-21
+
+### Added
+
+- **API:** `DELETE /api/transcripts/analysis/{id}` removes a saved transcript
+  analysis. Evidence imported from the analysis is left intact (already on
+  the Evidence Board) and must be deleted separately via the Evidence API.
+- **UI:** Trash icon on each Discovery card on the dashboard with a confirm
+  prompt. Active discovery is cleared if it was the one deleted.
+- **UI:** Trash icon on each "Previous Analyses" card on the Capture page
+  with a confirm prompt.
+
 ## [1.2.2] - 2026-04-21
 
 ### Fixed
