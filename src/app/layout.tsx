@@ -23,8 +23,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "CORE Discovery",
-  description: "AI-powered product discovery coaching — Capture, Orient, Refine, Execute",
+  title: "CORE",
+  description: "AI-powered product discovery — Capture, Orient, Refine, Execute",
 };
 
 export default function RootLayout({
@@ -41,8 +41,8 @@ export default function RootLayout({
       <body className="min-h-full flex flex-col">
         <ThemeProvider>
           <AuthProvider>
-            <DiscoveryProvider>
-              <ProjectProvider>
+            <ProjectProvider>
+              <DiscoveryProvider>
                 <TooltipProvider>
                   <SidebarProvider>
                     <AppSidebar />
@@ -55,8 +55,8 @@ export default function RootLayout({
                   </SidebarProvider>
                 </TooltipProvider>
                 <Toaster richColors position="bottom-right" />
-              </ProjectProvider>
-            </DiscoveryProvider>
+              </DiscoveryProvider>
+            </ProjectProvider>
           </AuthProvider>
         </ThemeProvider>
       </body>
