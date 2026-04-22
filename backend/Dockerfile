@@ -12,7 +12,10 @@ RUN pip install --no-cache-dir --upgrade pip && \
 
 COPY app ./app
 
-RUN mkdir -p /app/data && chown -R appuser:appuser /app
+# Pre-create /data subdirs with appuser ownership so named volumes / bind
+# mounts inherit correct perms on first creation (avoids root-owned volumes).
+RUN mkdir -p /app/data /data/storage /data/projects /data/prompts /data/extensions && \
+    chown -R appuser:appuser /app /data
 
 USER appuser
 
