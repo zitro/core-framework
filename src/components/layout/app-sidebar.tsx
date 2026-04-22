@@ -104,7 +104,7 @@ const PHASE_GROUPS: PhaseGroup[] = [
   },
 ];
 
-const FRAMEWORK_VERSION = "1.9.0";
+const FRAMEWORK_VERSION = "1.9.1";
 
 export function AppSidebar() {
   const pathname = usePathname();
