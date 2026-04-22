@@ -24,6 +24,8 @@ KNOWN_COLLECTIONS: list[str] = [
     "critiques",
     "synthesis_questions",
     "source_indexes",
+    # v1.6.0 chat over corpus
+    "synthesis_chats",
 ]
 
 # Collections partitioned by ``project_id`` when
@@ -53,6 +55,7 @@ PARTITIONED_COLLECTIONS: frozenset[str] = frozenset(
         "critiques",
         "synthesis_questions",
         "source_indexes",
+        "synthesis_chats",
     }
 )
 

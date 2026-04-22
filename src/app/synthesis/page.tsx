@@ -16,8 +16,11 @@ import {
   type SynthesisSources,
 } from "@/lib/api-synthesis";
 import { ArtifactCard } from "@/components/synthesis/artifact-card";
+import { ChatPanel } from "@/components/synthesis/chat-panel";
 import { QuestionsPanel } from "@/components/synthesis/questions-panel";
 import { SourcesPanel } from "@/components/synthesis/sources-panel";
+import { VertexWriteBackToggle } from "@/components/synthesis/vertex-toggle";
+import { engagementsApi } from "@/lib/api-fde";
 
 export default function SynthesisPage() {
   const { activeProject } = useProject();
@@ -30,21 +33,28 @@ export default function SynthesisPage() {
   const [loading, setLoading] = useState(false);
   const [synthesizing, setSynthesizing] = useState(false);
   const [busyTypeId, setBusyTypeId] = useState<string | null>(null);
+  const [vertexEnabled, setVertexEnabled] = useState(false);
 
   const loadAll = useCallback(async () => {
     if (!projectId) return;
     setLoading(true);
     try {
-      const [c, a, s, q] = await Promise.all([
+      const [c, a, s, q, p] = await Promise.all([
         synthesisApi.catalog(),
         synthesisApi.artifacts(projectId),
         synthesisApi.sources(projectId).catch(() => null),
         synthesisApi.questions(projectId),
+        engagementsApi
+          .get(projectId)
+          .catch(() => null),
       ]);
       setCatalog(c);
       setArtifacts(a.artifacts);
       setSources(s);
       setQuestions(q.questions);
+      const meta = ((p as { metadata?: { vertex?: { write_enabled?: boolean } } } | null)
+        ?.metadata?.vertex?.write_enabled) ?? false;
+      setVertexEnabled(!!meta);
     } catch (err) {
       toast.error(`Failed to load synthesis: ${(err as Error).message}`);
     } finally {
@@ -180,6 +190,11 @@ export default function SynthesisPage() {
             <Presentation className="size-4 mr-2" />
             .pptx
           </Button>
+          <VertexWriteBackToggle
+            projectId={projectId}
+            enabled={vertexEnabled}
+            onChange={setVertexEnabled}
+          />
           <Button
             variant="outline"
             size="sm"
@@ -242,6 +257,7 @@ export default function SynthesisPage() {
         </div>
 
         <aside className="space-y-6">
+          <ChatPanel projectId={projectId} />
           <QuestionsPanel
             questions={questions}
             onRefresh={onRefreshQuestions}

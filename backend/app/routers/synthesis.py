@@ -10,9 +10,11 @@ from __future__ import annotations
 import asyncio
 import logging
 import re
+import uuid
 
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import Response
+from pydantic import BaseModel, Field
 
 from app.dependencies import get_current_user
 from app.providers.storage import get_storage_provider
@@ -21,6 +23,7 @@ from app.synthesis.categories import (
     CATEGORY_LABELS,
     CATEGORY_ORDER,
 )
+from app.synthesis.chat import CHATS_COLLECTION, ChatAgent
 from app.synthesis.corpus import build_corpus
 from app.synthesis.critic import CriticAgent
 from app.synthesis.exporters import export_docx, export_pptx
@@ -332,3 +335,115 @@ async def writeback_vertex(project_id: str) -> dict:
     artifacts = await _project_artifacts(project_id)
     result = await VertexWriteBack().push(project, artifacts)
     return result.to_dict()
+
+
+# ── chat over corpus ────────────────────────────────────────────────────
+
+
+class ChatTurn(BaseModel):
+    message: str = Field(min_length=1, max_length=4000)
+    session_id: str = ""
+
+
+@router.post("/{project_id}/chat")
+async def chat(project_id: str, payload: ChatTurn) -> dict:
+    """Answer a user message strictly from the project corpus. Persists
+    both the user turn and the assistant reply in ``synthesis_chats``."""
+    project = await _load_project(project_id)
+    corpus = await build_corpus(project)
+
+    session_id = payload.session_id.strip() or str(uuid.uuid4())
+    history = await _chat_history(project_id, session_id)
+
+    agent = ChatAgent()
+    try:
+        result = await agent.reply(
+            project,
+            session_id,
+            payload.message,
+            corpus,
+            history=[
+                {"role": h.get("role", "user"), "content": h.get("content", "")} for h in history
+            ],
+        )
+    except Exception as exc:
+        logger.exception("chat: agent reply failed")
+        raise HTTPException(status_code=500, detail=f"Chat failed: {exc}") from exc
+    return result
+
+
+@router.get("/{project_id}/chat/{session_id}")
+async def get_chat(project_id: str, session_id: str) -> dict:
+    await _load_project(project_id)
+    turns = await _chat_history(project_id, session_id)
+    return {"session_id": session_id, "turns": turns}
+
+
+@router.get("/{project_id}/chat")
+async def list_chats(project_id: str) -> dict:
+    """Return distinct session ids with their first/last turn timestamps."""
+    await _load_project(project_id)
+    turns = await _chat_history(project_id)
+    sessions: dict[str, dict] = {}
+    for t in turns:
+        sid = str(t.get("session_id") or "")
+        if not sid:
+            continue
+        s = sessions.setdefault(
+            sid,
+            {"session_id": sid, "started_at": t.get("created_at"), "turns": 0, "last_at": ""},
+        )
+        s["turns"] += 1
+        ts = t.get("created_at") or ""
+        if ts > s.get("last_at", ""):
+            s["last_at"] = ts
+        if ts < (s.get("started_at") or ts):
+            s["started_at"] = ts
+    return {"sessions": sorted(sessions.values(), key=lambda s: s["last_at"], reverse=True)}
+
+
+async def _chat_history(project_id: str, session_id: str | None = None) -> list[dict]:
+    storage = get_storage_provider()
+    for key in ("project_id", "projectId"):
+        try:
+            if session_id:
+                items = await storage.list(
+                    CHATS_COLLECTION,
+                    {key: project_id, "session_id": session_id},
+                )
+            else:
+                items = await storage.list(CHATS_COLLECTION, {key: project_id})
+        except Exception:
+            items = []
+        if items:
+            return sorted(items, key=lambda i: i.get("created_at", ""))
+    return []
+
+
+# ── project metadata (vertex toggles, etc.) ────────────────────────────
+
+
+class VertexSettings(BaseModel):
+    write_enabled: bool
+    write_subdir: str | None = None
+
+
+@router.put("/{project_id}/settings/vertex")
+async def update_vertex_settings(project_id: str, payload: VertexSettings) -> dict:
+    """Update the project's vertex write-back metadata.
+
+    Stored at ``project.metadata.vertex`` so the existing read paths
+    (``VertexWriteBack``) pick it up without further wiring.
+    """
+    project = await _load_project(project_id)
+    storage = get_storage_provider()
+    metadata = dict(project.get("metadata") or {})
+    vertex_meta = dict(metadata.get("vertex") or {})
+    vertex_meta["write_enabled"] = bool(payload.write_enabled)
+    if payload.write_subdir is not None:
+        cleaned = payload.write_subdir.strip().strip("/\\")
+        vertex_meta["write_subdir"] = cleaned or None
+    metadata["vertex"] = vertex_meta
+    project["metadata"] = metadata
+    saved = await storage.update(PROJECTS_COLLECTION, project_id, project)
+    return {"vertex": (saved.get("metadata") or {}).get("vertex") or {}}

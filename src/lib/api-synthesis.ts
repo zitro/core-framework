@@ -171,4 +171,62 @@ export const synthesisApi = {
 
   exportPptxUrl: (projectId: string) =>
     `/api/synthesis/${encodeURIComponent(projectId)}/export/pptx`,
+
+  chat: (projectId: string, message: string, sessionId = "") =>
+    request<SynthesisChatReply>(
+      `/api/synthesis/${encodeURIComponent(projectId)}/chat`,
+      {
+        method: "POST",
+        body: JSON.stringify({ message, session_id: sessionId }),
+      },
+    ),
+
+  chatHistory: (projectId: string, sessionId: string) =>
+    request<{ session_id: string; turns: SynthesisChatTurn[] }>(
+      `/api/synthesis/${encodeURIComponent(projectId)}/chat/${encodeURIComponent(sessionId)}`,
+    ),
+
+  chatSessions: (projectId: string) =>
+    request<{ sessions: SynthesisChatSession[] }>(
+      `/api/synthesis/${encodeURIComponent(projectId)}/chat`,
+    ),
+
+  updateVertexSettings: (
+    projectId: string,
+    settings: { write_enabled: boolean; write_subdir?: string | null },
+  ) =>
+    request<{ vertex: { write_enabled: boolean; write_subdir?: string | null } }>(
+      `/api/synthesis/${encodeURIComponent(projectId)}/settings/vertex`,
+      {
+        method: "PUT",
+        body: JSON.stringify(settings),
+      },
+    ),
 };
+
+export interface SynthesisChatTurn {
+  id?: string;
+  project_id: string;
+  session_id: string;
+  role: "user" | "assistant";
+  content: string;
+  citations: SynthesisCitation[];
+  follow_up_questions: string[];
+  model: string;
+  created_at: string;
+}
+
+export interface SynthesisChatReply {
+  session_id: string;
+  turn: SynthesisChatTurn;
+  answer: string;
+  citations: SynthesisCitation[];
+  follow_up_questions: string[];
+}
+
+export interface SynthesisChatSession {
+  session_id: string;
+  started_at: string;
+  last_at: string;
+  turns: number;
+}

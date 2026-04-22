@@ -7,6 +7,49 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.6.0] - 2026-04-22
+
+Chat over corpus and a UI toggle for vertex bidirectional write-back.
+Builds on v1.5.0; no breaking changes.
+
+### Added
+
+- **Chat agent** (`backend/app/synthesis/chat.py`) — `ChatAgent` answers
+  user questions strictly from a project's corpus. Citations are
+  validated against `corpus.docs[].id` exactly like the generator;
+  unknown source ids are dropped before the response is returned. New
+  `synthesis_chats` collection persists each turn (partitioned by
+  `project_id`); replaying a session is `list({project_id, session_id})`
+  ordered by `created_at`.
+- **Chat API surface**
+  - `POST /api/synthesis/{project_id}/chat` — answer one user message,
+    persists user + assistant turn, returns reply + citations +
+    follow_up_questions.
+  - `GET  /api/synthesis/{project_id}/chat` — list chat sessions for the
+    project (id, started_at, last_at, turn count).
+  - `GET  /api/synthesis/{project_id}/chat/{session_id}` — return the
+    full ordered turn list for a session.
+- **Vertex settings endpoint**
+  - `PUT /api/synthesis/{project_id}/settings/vertex` — set
+    `metadata.vertex.write_enabled` and optional `write_subdir` without
+    hand-editing project JSON.
+- **Frontend**
+  - `components/synthesis/chat-panel.tsx` — chat surface with grounded
+    citations + follow-ups, Ctrl/Cmd+Enter send.
+  - `components/synthesis/vertex-toggle.tsx` — one-click ON/OFF toggle
+    for vertex write-back, persists via the new settings endpoint.
+  - Synthesis page mounts the chat panel in the right-hand aside and
+    the vertex toggle in the header alongside Push to vertex.
+  - `lib/api-synthesis.ts` extended with `chat`, `chatHistory`,
+    `chatSessions`, `updateVertexSettings`, and `SynthesisChat*` types.
+
+### Changed
+
+- Storage `KNOWN_COLLECTIONS` + `PARTITIONED_COLLECTIONS` add
+  `synthesis_chats`.
+- Backend `1.5.0` → `1.6.0`; frontend `1.5.0` → `1.6.0`; FastAPI app
+  version updated.
+
 ## [1.5.0] - 2026-04-22
 
 Story category, customer-ready Office exports, and bidirectional vertex
