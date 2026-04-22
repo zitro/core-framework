@@ -7,6 +7,60 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-04-21
+
+Per-project Cosmos partitioning (opt-in) + extension API for per-customer
+agents and providers. Builds on the v1.1.0 project model foundation.
+
+### Added
+
+- `settings.cosmos_partition_strategy` — `"id"` (legacy default) or
+  `"project_id"` (v1.2+). When set to `project_id`, collections in
+  `PARTITIONED_COLLECTIONS` are created with `/project_id` as the Cosmos
+  partition key for hard per-project isolation.
+- `app.utils.project_context.current_project_id` — request-scoped ContextVar
+  populated by middleware reading the `X-Project-Id` header.
+- Project-context middleware in `create_app` — propagates the active project
+  id into the storage layer transparently (no router changes required).
+- `app.providers.storage.partitioning` — single source of truth for partition
+  key path/value selection per collection.
+- Storage providers (Cosmos + local) now auto-stamp `project_id` on writes to
+  partitioned collections and auto-scope `list()` results to the active
+  project. Reads/updates/deletes use `project_id` as the partition key value.
+- `project_id` field on `Discovery`, `Evidence`, `QuestionSet`,
+  `TranscriptAnalysis`, `ProblemStatementVersion`, `UseCaseVersion`,
+  `SolutionBlueprint`, and `Review` models so the field round-trips cleanly.
+- `app.extensions.load_extensions` — startup loader that discovers `*.py`
+  plugins in `settings.extensions_dir` and calls each module's
+  `register(app, settings)`.
+- Example extension at `examples/extensions/hello_extension.py` plus a
+  README explaining the contract.
+- `settings.extensions_dir` (default `./extensions`) — mount point for
+  per-customer plugins.
+- 11 new tests: `test_partitioning.py`, `test_project_context.py`,
+  `test_extensions.py` (90 backend tests total).
+
+### Changed
+
+- API + package version bumped to `1.2.0`.
+- `PARTITIONED_COLLECTIONS` registry exposed from `app.providers.storage`.
+- Cosmos provider raises a clear `ValueError` when a write to a project-
+  partitioned collection is attempted without an active `X-Project-Id` —
+  fail-fast instead of silent cross-tenant leakage.
+
+### Migration notes
+
+- **Existing Cosmos deployments are unaffected** — the strategy default
+  remains `"id"`. To opt in, set `COSMOS_PARTITION_STRATEGY=project_id` in a
+  fresh Cosmos account (or fresh database) and let `ensure_collections`
+  create the partitioned containers.
+- **Cosmos partition keys are immutable.** Switching strategy on an existing
+  account requires recreating the affected containers and re-uploading data.
+  No automated migration is shipped in v1.2.
+- The `engagements` and `audit` collections are intentionally never
+  partitioned by `project_id` — engagements *are* the projects, and audit is
+  a cross-project log.
+
 ## [1.1.0] - 2026-04-21
 
 First-class **Project model** — the foundation for multi-project, per-customer

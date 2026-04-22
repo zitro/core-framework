@@ -50,6 +50,20 @@ class Settings(BaseSettings):
     # production restarts don't pay the round-trip on every pod boot.
     cosmos_ensure_collections: bool = False
 
+    # Cosmos partition strategy:
+    #   "id"          — legacy; every container partitioned by /id (one logical
+    #                   partition per item). Safe for existing deployments.
+    #   "project_id"  — v1.2+; collections in PARTITIONED_COLLECTIONS use
+    #                   /project_id as the partition key for hard per-project
+    #                   isolation. Cosmos partition keys are immutable, so this
+    #                   must be set BEFORE the containers are created.
+    cosmos_partition_strategy: str = "id"
+
+    # Extension API: directory scanned on startup for ``*.py`` plugin modules.
+    # Each module may expose a ``register(app, settings)`` function to add
+    # routers, agents, or providers without modifying core source.
+    extensions_dir: str = "./extensions"
+
     # Azure Blob Storage
     azure_storage_account: str = ""
     azure_storage_connection_string: str = ""

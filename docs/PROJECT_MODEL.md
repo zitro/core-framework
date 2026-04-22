@@ -77,7 +77,21 @@ import { useProject } from "@/stores/project-store";
 const { activeProject } = useProject();
 ```
 
+## Partitioning (v1.2+)
+
+When `COSMOS_PARTITION_STRATEGY=project_id`, every collection in `PARTITIONED_COLLECTIONS` (discoveries, evidence, question sets, transcripts, problem statements, use cases, blueprints, empathy maps, HMW boards, ideation, assumption maps, company profiles, reviews) is created with `/project_id` as the Cosmos partition key. Items are auto-stamped with the active project on write and queries auto-scope on read — no router changes required.
+
+Two collections opt out and stay partitioned by `/id`:
+
+- **`engagements`** — the project record itself; cross-project listing is by design.
+- **`audit`** — cross-project log.
+
+Partition keys are immutable in Cosmos, so the strategy must be set **before** containers are created. See the v1.2 CHANGELOG entry for migration guidance.
+
+## Extensions (v1.2+)
+
+Per-customer plugin modules can add agents, providers, prompts, and routers without forking framework source. See [EXTENSIONS.md](EXTENSIONS.md) for the contract and example.
+
 ## Roadmap
 
-- **v1.2** — Per-project Cosmos partition keys (hard isolation), extension API for per-customer agents and providers.
 - **v1.3** — Per-project RBAC (membership + role-gated routes/UI).

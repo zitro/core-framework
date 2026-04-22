@@ -21,6 +21,32 @@ KNOWN_COLLECTIONS: list[str] = [
     "audit",
 ]
 
+# Collections partitioned by ``project_id`` when
+# ``settings.cosmos_partition_strategy == "project_id"``. Items in these
+# collections are scoped to a single project — listing automatically filters by
+# the active ``current_project_id`` ContextVar.
+#
+# Excluded by design:
+#   - ``engagements``: the project record itself; partitioned by ``/id``.
+#   - ``audit``: cross-project log; partitioned by ``/id``.
+PARTITIONED_COLLECTIONS: frozenset[str] = frozenset(
+    {
+        "discoveries",
+        "evidence",
+        "question_sets",
+        "transcript_analyses",
+        "problem_statements",
+        "use_cases",
+        "solution_blueprints",
+        "empathy_maps",
+        "hmw_boards",
+        "ideation_sessions",
+        "assumption_maps",
+        "company_profiles",
+        "reviews",
+    }
+)
+
 
 @lru_cache(maxsize=1)
 def get_storage_provider() -> StorageProvider:
