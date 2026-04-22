@@ -7,7 +7,7 @@ import { scaffold } from "./scaffold.js";
 import { LATEST_VERSION } from "./version.js";
 
 async function main(): Promise<void> {
-  intro(pc.cyan("◆ create-core-app"));
+  intro(pc.cyan("◆ create-core-discovery-app"));
 
   const argName = process.argv[2]?.trim();
   const name = argName ?? (await prompt(text({

@@ -1,9 +1,9 @@
-# create-core-app
+# create-core-discovery-app
 
 Scaffold a new CORE Discovery customer repository in seconds.
 
 ```bash
-npx create-core-app acme
+npx create-core-discovery-app acme
 ```
 
 You'll be prompted for:
