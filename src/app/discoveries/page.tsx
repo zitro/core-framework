@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { FolderOpen, Search, Clock, ArrowRight } from "lucide-react";
+import { FolderOpen, Search, Clock, ArrowRight, Trash2 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -18,7 +18,7 @@ const PHASE_COLORS: Record<string, string> = {
 };
 
 export default function DiscoveriesPage() {
-  const { discoveries, loadDiscoveries, setActiveDiscovery, loading } = useDiscovery();
+  const { discoveries, loadDiscoveries, setActiveDiscovery, deleteDiscovery, loading } = useDiscovery();
   const [filter, setFilter] = useState("");
   const router = useRouter();
 
@@ -108,6 +108,24 @@ export default function DiscoveriesPage() {
               </div>
               <Button variant="ghost" size="icon" className="shrink-0">
                 <ArrowRight className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="shrink-0 text-muted-foreground hover:text-destructive"
+                aria-label={`Delete ${d.name}`}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (
+                    window.confirm(
+                      `Delete discovery "${d.name}"? Evidence and analyses linked to it will become orphaned but are not deleted automatically.`,
+                    )
+                  ) {
+                    deleteDiscovery(d.id).catch(() => {});
+                  }
+                }}
+              >
+                <Trash2 className="h-4 w-4" />
               </Button>
             </CardContent>
           </Card>
