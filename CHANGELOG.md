@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.2.5] - 2026-04-21
+
+### Fixed
+
+- **Cosmos:** `get`, `update`, and `delete` now fall back to a cross-partition
+  query by `id` when the direct partition-key lookup misses. This unblocks
+  customers whose containers were provisioned by older framework versions
+  with custom partition-key paths (e.g. `/discoveryId`) — previously every
+  delete returned 404 even when the document existed.
+
 ## [1.2.4] - 2026-04-21
 
 ### Added
