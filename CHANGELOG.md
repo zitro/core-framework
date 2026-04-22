@@ -7,6 +7,59 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.4.0] - 2026-04-22
+
+First cut of the project-first synthesis platform described in
+`docs/PRD/v1.3-to-v2.0.md`. Discovery routes are unchanged; everything new
+lives under `/api/synthesis` and `/synthesis`.
+
+### Added
+
+- **Synthesis subsystem (`backend/app/synthesis/`)**
+  - 25 artifact types across 5 categories (Why / Value / What / Scope / How).
+    Registry lives in `synthesis/types.py` — adding a type is one entry.
+  - Pluggable source adapters: `vertex` (walks the project's vertex repo for
+    `vertex.json` + every markdown file), `local_dir` (additional paths from
+    `project.metadata.local_dirs` or `localdir:` tags), `ms_graph` (wraps the
+    existing `GraphProvider` for files / mail / meetings).
+  - `GeneratorEngine` produces drafts with citations validated against the
+    corpus; unknown source ids are dropped before persistence.
+  - `CriticAgent` scores each artifact 0.0–1.0 across grounding,
+    completeness, clarity, and contradiction. Deterministic checks
+    (citations exist + valid, required body fields filled, summary present)
+    cap the LLM score so a missing citation cannot pass review.
+  - `QuestionAgent` ranks customer questions whose answers would unblock
+    missing or weak artifacts.
+- **Routes (`/api/synthesis`)**
+  - `GET  /catalog` — full artifact-type registry, grouped by category.
+  - `GET  /{project_id}/artifacts` — artifacts + per-artifact critique.
+  - `GET  /{project_id}/sources` — current corpus manifest.
+  - `GET  /{project_id}/questions` — open questions, ordered by priority.
+  - `GET  /{project_id}/critique` — raw critic results.
+  - `POST /{project_id}/synthesize` — generate every critical artifact +
+    critique + questions.
+  - `POST /{project_id}/artifacts/{type_id}/regenerate` — regenerate one.
+  - `POST /{project_id}/questions/refresh` — recompute questions only.
+- **Storage:** new partitioned collections `artifacts`, `critiques`,
+  `synthesis_questions`, `source_indexes`. Registered in
+  `KNOWN_COLLECTIONS` and `PARTITIONED_COLLECTIONS`.
+- **Frontend (`/synthesis`)**
+  - New page that loads the active project's artifacts grouped by category.
+  - `ArtifactCard` shows summary, expandable body / citations / critic
+    findings, and a per-artifact regenerate button.
+  - `QuestionsPanel` lists ranked customer questions with a refresh action.
+  - `SourcesPanel` summarises the corpus.
+  - `CritiqueChip` renders score + blocker / warning counts.
+  - Synthesis link added to the sidebar.
+  - `src/lib/api-synthesis.ts` typed client.
+
+### Notes
+
+- The methodology page (`/methodology`) and the existing 4-phase IA are
+  unchanged. Synthesis is additive.
+- Microsoft Graph is wired through the existing provider; if
+  `graph_provider=none` the adapter yields nothing instead of failing.
+
 ## [1.2.5] - 2026-04-21
 
 ### Fixed

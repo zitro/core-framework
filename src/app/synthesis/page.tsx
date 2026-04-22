@@ -1,0 +1,203 @@
+"use client";
+
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { Wand2, AlertCircle } from "lucide-react";
+import { toast } from "sonner";
+
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { useProject } from "@/stores/project-store";
+import {
+  synthesisApi,
+  type SynthesisArtifact,
+  type SynthesisCatalog,
+  type SynthesisQuestion,
+  type SynthesisSources,
+} from "@/lib/api-synthesis";
+import { ArtifactCard } from "@/components/synthesis/artifact-card";
+import { QuestionsPanel } from "@/components/synthesis/questions-panel";
+import { SourcesPanel } from "@/components/synthesis/sources-panel";
+
+export default function SynthesisPage() {
+  const { activeProject } = useProject();
+  const projectId = activeProject?.id ?? "";
+
+  const [catalog, setCatalog] = useState<SynthesisCatalog | null>(null);
+  const [artifacts, setArtifacts] = useState<SynthesisArtifact[]>([]);
+  const [sources, setSources] = useState<SynthesisSources | null>(null);
+  const [questions, setQuestions] = useState<SynthesisQuestion[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [synthesizing, setSynthesizing] = useState(false);
+  const [busyTypeId, setBusyTypeId] = useState<string | null>(null);
+
+  const loadAll = useCallback(async () => {
+    if (!projectId) return;
+    setLoading(true);
+    try {
+      const [c, a, s, q] = await Promise.all([
+        synthesisApi.catalog(),
+        synthesisApi.artifacts(projectId),
+        synthesisApi.sources(projectId).catch(() => null),
+        synthesisApi.questions(projectId),
+      ]);
+      setCatalog(c);
+      setArtifacts(a.artifacts);
+      setSources(s);
+      setQuestions(q.questions);
+    } catch (err) {
+      toast.error(`Failed to load synthesis: ${(err as Error).message}`);
+    } finally {
+      setLoading(false);
+    }
+  }, [projectId]);
+
+  useEffect(() => {
+    void loadAll();
+  }, [loadAll]);
+
+  const artifactsByCategory = useMemo(() => {
+    const map: Record<string, SynthesisArtifact[]> = {};
+    for (const a of artifacts) {
+      (map[a.category] ??= []).push(a);
+    }
+    return map;
+  }, [artifacts]);
+
+  const onSynthesize = async () => {
+    if (!projectId) return;
+    setSynthesizing(true);
+    try {
+      const res = await synthesisApi.synthesize(projectId);
+      toast.success(
+        `Generated ${res.artifact_count} artifacts from ${res.corpus_doc_count} sources`,
+      );
+      if (res.failures.length > 0) {
+        toast.warning(`${res.failures.length} type(s) failed — see logs`);
+      }
+      await loadAll();
+    } catch (err) {
+      toast.error(`Synthesize failed: ${(err as Error).message}`);
+    } finally {
+      setSynthesizing(false);
+    }
+  };
+
+  const onRegenerate = async (typeId: string) => {
+    if (!projectId) return;
+    setBusyTypeId(typeId);
+    try {
+      await synthesisApi.regenerate(projectId, typeId);
+      toast.success(`Regenerated ${typeId}`);
+      await loadAll();
+    } catch (err) {
+      toast.error(`Regenerate failed: ${(err as Error).message}`);
+    } finally {
+      setBusyTypeId(null);
+    }
+  };
+
+  const onRefreshQuestions = async () => {
+    if (!projectId) return;
+    try {
+      const res = await synthesisApi.refreshQuestions(projectId);
+      setQuestions(res.questions);
+      toast.success(`Generated ${res.questions.length} questions`);
+    } catch (err) {
+      toast.error(`Question refresh failed: ${(err as Error).message}`);
+    }
+  };
+
+  if (!projectId) {
+    return (
+      <main className="container mx-auto p-6 max-w-4xl">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <AlertCircle className="size-5 text-amber-500" />
+              No active project
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="text-sm text-muted-foreground">
+            Pick a project from the switcher in the sidebar to see its
+            synthesis.
+          </CardContent>
+        </Card>
+      </main>
+    );
+  }
+
+  return (
+    <main className="container mx-auto p-6 max-w-6xl space-y-6">
+      <header className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-semibold tracking-tight">Synthesis</h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            {activeProject?.name} ·{" "}
+            {artifacts.length} artifact{artifacts.length === 1 ? "" : "s"} ·{" "}
+            {sources?.doc_count ?? 0} source
+            {(sources?.doc_count ?? 0) === 1 ? "" : "s"}
+          </p>
+        </div>
+        <Button onClick={onSynthesize} disabled={synthesizing || loading}>
+          <Wand2 className="size-4 mr-2" />
+          {artifacts.length === 0 ? "Synthesize project" : "Resynthesize"}
+        </Button>
+      </header>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2 space-y-6">
+          {!catalog || loading ? (
+            <Card>
+              <CardContent className="p-6 text-sm text-muted-foreground">
+                Loading…
+              </CardContent>
+            </Card>
+          ) : artifacts.length === 0 ? (
+            <Card>
+              <CardContent className="p-6 text-sm text-muted-foreground">
+                No artifacts yet. Click <strong>Synthesize project</strong> to
+                build the first cut.
+              </CardContent>
+            </Card>
+          ) : (
+            catalog.categories.map((cat) => {
+              const items = artifactsByCategory[cat.id] ?? [];
+              if (items.length === 0) return null;
+              return (
+                <section key={cat.id} className="space-y-3">
+                  <div className="flex items-baseline gap-3">
+                    <h2 className="text-lg font-semibold">{cat.label}</h2>
+                    <Badge variant="outline">{items.length}</Badge>
+                    <span className="text-xs text-muted-foreground">
+                      {cat.description}
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {items.map((a) => (
+                      <ArtifactCard
+                        key={a.id}
+                        artifact={a}
+                        onRegenerate={onRegenerate}
+                        busy={busyTypeId === a.type_id}
+                      />
+                    ))}
+                  </div>
+                </section>
+              );
+            })
+          )}
+        </div>
+
+        <aside className="space-y-6">
+          <QuestionsPanel
+            questions={questions}
+            onRefresh={onRefreshQuestions}
+            busy={loading}
+          />
+          <SourcesPanel sources={sources} />
+        </aside>
+      </div>
+    </main>
+  );
+}

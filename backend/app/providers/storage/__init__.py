@@ -19,6 +19,11 @@ KNOWN_COLLECTIONS: list[str] = [
     "company_profiles",
     "reviews",
     "audit",
+    # v1.4.0 synthesis subsystem
+    "artifacts",
+    "critiques",
+    "synthesis_questions",
+    "source_indexes",
 ]
 
 # Collections partitioned by ``project_id`` when
@@ -44,6 +49,10 @@ PARTITIONED_COLLECTIONS: frozenset[str] = frozenset(
         "assumption_maps",
         "company_profiles",
         "reviews",
+        "artifacts",
+        "critiques",
+        "synthesis_questions",
+        "source_indexes",
     }
 )
 
