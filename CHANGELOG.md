@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.9.3] - 2026-04-22
+
+CI: drop dependency caches that depend on the degraded Azure-hosted GitHub Actions cache, and add a 15-minute timeout to the test job so future infra hangs fail fast.
+
+### Changed
+
+- `.github/workflows/release.yml`: removed `cache: pip` from `actions/setup-python` and `cache: pnpm` from `actions/setup-node`; added `timeout-minutes: 15` to the test matrix.
+
 ## [1.9.2] - 2026-04-22
 
 Republish of 1.9.1 release after a GitHub Actions cache outage hung the original release run. No source changes beyond version metadata.
