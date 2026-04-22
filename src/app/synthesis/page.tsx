@@ -166,45 +166,19 @@ export default function SynthesisPage() {
             variant="outline"
             size="sm"
             disabled={!hasArtifacts}
-            asChild={hasArtifacts}
+            onClick={() => window.open(synthesisApi.exportDocxUrl(projectId), "_blank")}
           >
-            {hasArtifacts ? (
-              <a
-                href={synthesisApi.exportDocxUrl(projectId)}
-                target="_blank"
-                rel="noreferrer"
-              >
-                <FileText className="size-4 mr-2" />
-                .docx
-              </a>
-            ) : (
-              <span>
-                <FileText className="size-4 mr-2" />
-                .docx
-              </span>
-            )}
+            <FileText className="size-4 mr-2" />
+            .docx
           </Button>
           <Button
             variant="outline"
             size="sm"
             disabled={!hasArtifacts}
-            asChild={hasArtifacts}
+            onClick={() => window.open(synthesisApi.exportPptxUrl(projectId), "_blank")}
           >
-            {hasArtifacts ? (
-              <a
-                href={synthesisApi.exportPptxUrl(projectId)}
-                target="_blank"
-                rel="noreferrer"
-              >
-                <Presentation className="size-4 mr-2" />
-                .pptx
-              </a>
-            ) : (
-              <span>
-                <Presentation className="size-4 mr-2" />
-                .pptx
-              </span>
-            )}
+            <Presentation className="size-4 mr-2" />
+            .pptx
           </Button>
           <Button
             variant="outline"
