@@ -53,7 +53,93 @@ Beyond the four phases, the platform includes:
   users can work on a discovery session simultaneously without losing state on token expiry.
 - JSON, CSV, and structured markdown export for sharing discovery outputs externally.
 
-## Architecture
+## Deploying for a customer
+
+This repo is the **framework source**. Customer engagements run as separate "instance" repos that pull signed framework images from GHCR rather than forking source. One repo per customer, multiple discovery projects per repo.
+
+```text
+┌──────────────────────────┐         ┌──────────────────────────┐
+│  zitro/core-framework    │  build  │  ghcr.io/zitro/          │
+│  (this repo)             ├────────▶│  core-framework-backend  │
+│                          │  push   │  core-framework-frontend │
+│  Tagged release v1.2.x   │         │  (signed, SLSA, Trivy)   │
+└──────────────────────────┘         └──────────┬───────────────┘
+                                                │
+                                                │ docker compose pull
+                                                ▼
+                                     ┌──────────────────────────┐
+                                     │  core-<customer> repo    │
+                                     │                          │
+                                     │  compose.yaml (pinned)   │
+                                     │  .env (provider knobs)   │
+                                     │  projects/<slug>/        │
+                                     │  extensions/*.py         │
+                                     │  config/prompts/         │
+                                     │  Renovate auto-bumps     │
+                                     └──────────────────────────┘
+```
+
+### Spinning up a new customer
+
+Two ways. Both produce the same layout.
+
+**Option A — CLI (recommended)**
+
+```bash
+npx create-core-discovery-app acme
+cd acme
+docker compose pull
+docker compose up -d
+```
+
+The CLI prompts for display name, LLM/storage/auth providers, framework version pin, and an optional initial project slug. It writes a self-contained customer repo with `compose.yaml`, `.env`, `renovate.json`, and the right scaffold directories — no manual editing.
+
+Source: <https://www.npmjs.com/package/create-core-discovery-app> · <packages/create-core-app/>
+
+**Option B — GitHub template**
+
+Click "Use this template" on <https://github.com/zitro/core-discovery-template>, name your repo (e.g. `core-acme`), then clone and search-and-replace the `Your Customer` / `your-customer` placeholders.
+
+The template repo is regenerated from the CLI to stay in sync, so both paths converge.
+
+### What lives in a customer repo (and what doesn't)
+
+| Lives in customer repo | Lives in framework (this repo) |
+|---|---|
+| `compose.yaml` pinned to image tags | Backend (`backend/`) and frontend (`src/`) source |
+| `.env` with provider credentials | All AI agents, providers, models |
+| `projects/<slug>/` markdown content | OpenAPI schema, types, UI components |
+| `extensions/*.py` per-customer plugins | Container build, release pipeline |
+| `config/prompts/` overrides | Default prompts |
+| `infra/` (IaC for cloud deploy) | — |
+
+This split means customer repos stay tiny (~20 files) and framework upgrades are a single Renovate PR bumping image tags.
+
+### Adding a project to a customer
+
+Drop content into `projects/<slug>/`, then register it with the running backend:
+
+```powershell
+$body = @{ name = "My Project"; slug = "my-project"; repo_path = "my-project" } | ConvertTo-Json
+Invoke-RestMethod -Uri http://localhost:8000/api/projects -Method Post `
+  -ContentType "application/json" -Body $body
+```
+
+The backend mounts `./projects` read-only and a `ContextVar`-scoped `project_id` flows through every request so each project sees its own evidence, agents, and exports.
+
+### Updating the framework in a customer repo
+
+Renovate watches the GHCR image tags pinned in `compose.yaml` and opens grouped PRs when new releases ship. Patch bumps (`v1.2.1 → v1.2.2`) auto-merge after CI; minor and major need human review.
+
+### Framework releases
+
+Tagging this repo with `vX.Y.Z` triggers the release pipeline: lint → test → build amd64 → push to GHCR → cosign keyless sign → SLSA provenance → Trivy scan. Customer repos pick up the new images on the next Renovate run.
+
+---
+
+The rest of this README covers **framework development**: running the dev stack against your own backend source, contributing changes, and configuring Azure for end-to-end tests. If you just want to deploy CORE Discovery for a customer, the CLI flow above is all you need.
+
+
 
 ```text
 ┌─────────────────────────┐     ┌──────────────────────────┐
