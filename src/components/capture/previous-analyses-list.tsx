@@ -1,13 +1,36 @@
+import { Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import type { TranscriptAnalysis } from "@/types/core";
+import { api } from "@/lib/api";
+import { toast } from "sonner";
 import { ConfidenceBadge } from "./confidence-badge";
 
 const MAX_INSIGHTS_PREVIEW = 3;
 
-export function PreviousAnalysesList({ analyses }: { analyses: TranscriptAnalysis[] }) {
+interface Props {
+  analyses: TranscriptAnalysis[];
+  onDeleted?: (id: string) => void;
+}
+
+export function PreviousAnalysesList({ analyses, onDeleted }: Props) {
   if (analyses.length === 0) return null;
+
+  const handleDelete = async (id: string) => {
+    if (!window.confirm("Delete this transcript analysis? Evidence imported from it stays on the Evidence Board.")) {
+      return;
+    }
+    try {
+      await api.transcripts.delete(id);
+      toast.success("Analysis deleted");
+      onDeleted?.(id);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed to delete");
+    }
+  };
+
   return (
     <Card>
       <CardHeader>
@@ -37,9 +60,20 @@ export function PreviousAnalysesList({ analyses }: { analyses: TranscriptAnalysi
                       </Badge>
                     ))}
                   </div>
-                  <span className="text-[10px] text-muted-foreground">
-                    {new Date(a.created_at).toLocaleDateString()}
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] text-muted-foreground">
+                      {new Date(a.created_at).toLocaleDateString()}
+                    </span>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive"
+                      aria-label="Delete analysis"
+                      onClick={() => handleDelete(a.id)}
+                    >
+                      <Trash2 className="h-3 w-3" />
+                    </Button>
+                  </div>
                 </div>
                 <p className="text-xs text-muted-foreground line-clamp-2">{a.transcript_text}</p>
                 {a.insights.length > 0 && (

@@ -59,3 +59,27 @@ async def test_analyze_transcript_llm_failure(client: AsyncClient, mock_llm: Asy
         )
 
     assert resp.status_code == 502
+
+
+@pytest.mark.asyncio
+async def test_delete_analysis(client: AsyncClient, mock_llm: AsyncMock):
+    mock_llm.complete_json.return_value = {
+        "insights": [],
+        "evidence": [],
+        "sentiment": "neutral",
+        "key_themes": [],
+    }
+    with patch("app.routers.transcripts.get_llm_provider", return_value=mock_llm):
+        created = await client.post(
+            "/api/transcripts/analyze",
+            json={"discovery_id": "test-disc", "transcript_text": "x"},
+        )
+    analysis_id = created.json()["id"]
+
+    resp = await client.delete(f"/api/transcripts/analysis/{analysis_id}")
+    assert resp.status_code == 200
+    assert resp.json() == {"deleted": True}
+
+    # Subsequent delete returns 404
+    missing = await client.delete(f"/api/transcripts/analysis/{analysis_id}")
+    assert missing.status_code == 404

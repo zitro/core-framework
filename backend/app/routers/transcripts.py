@@ -58,6 +58,18 @@ async def list_analyses(discovery_id: str):
     return [TranscriptAnalysis(**item) for item in items]
 
 
+@router.delete("/analysis/{analysis_id}")
+async def delete_analysis(analysis_id: str):
+    """Delete a saved transcript analysis. Does not remove evidence items
+    that were imported from it — those are deleted separately via the
+    Evidence API."""
+    storage = get_storage_provider()
+    deleted = await storage.delete("transcript_analyses", analysis_id)
+    if not deleted:
+        raise HTTPException(status_code=404, detail="Analysis not found")
+    return {"deleted": True}
+
+
 @router.post("/analyze", response_model=TranscriptAnalysis)
 async def analyze_transcript(request: TranscriptRequest):
     llm = get_llm_provider()

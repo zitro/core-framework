@@ -21,6 +21,7 @@ interface DiscoveryState {
 interface DiscoveryActions {
   loadDiscoveries: () => Promise<void>;
   createDiscovery: (data: Partial<Discovery>) => Promise<Discovery>;
+  deleteDiscovery: (id: string) => Promise<void>;
   setActiveDiscovery: (discovery: Discovery | null) => void;
   updatePhase: (id: string, phase: CorePhase) => Promise<void>;
   refreshActive: () => Promise<void>;
@@ -78,6 +79,22 @@ export function DiscoveryProvider({ children }: { children: ReactNode }) {
     setState((s) => ({ ...s, activeDiscovery: discovery }));
   }, []);
 
+  const deleteDiscovery = useCallback(async (id: string) => {
+    try {
+      await api.discoveries.delete(id);
+      setState((s) => ({
+        ...s,
+        discoveries: s.discoveries.filter((d) => d.id !== id),
+        activeDiscovery: s.activeDiscovery?.id === id ? null : s.activeDiscovery,
+      }));
+      toast.success("Discovery deleted");
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "Failed to delete";
+      toast.error(msg);
+      throw e;
+    }
+  }, []);
+
   const updatePhase = useCallback(
     async (id: string, phase: CorePhase) => {
       const updated = await api.discoveries.update(id, {
@@ -106,6 +123,7 @@ export function DiscoveryProvider({ children }: { children: ReactNode }) {
         ...state,
         loadDiscoveries,
         createDiscovery,
+        deleteDiscovery,
         setActiveDiscovery,
         updatePhase,
         refreshActive,

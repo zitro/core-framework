@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Search, Compass, Lightbulb, Rocket, Plus } from "lucide-react";
+import { Search, Compass, Lightbulb, Rocket, Plus, Trash2 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -39,7 +39,7 @@ const PHASE_COLORS = {
 } as const;
 
 export default function DashboardPage() {
-  const { discoveries, loadDiscoveries, createDiscovery, setActiveDiscovery, activeDiscovery, loading } = useDiscovery();
+  const { discoveries, loadDiscoveries, createDiscovery, deleteDiscovery, setActiveDiscovery, activeDiscovery, loading } = useDiscovery();
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
@@ -215,10 +215,30 @@ export default function DashboardPage() {
                   <CardHeader className="pb-2">
                     <div className="flex items-center justify-between">
                       <CardTitle className="text-base">{d.name}</CardTitle>
-                      <Badge variant="outline" className="flex items-center gap-1">
-                        <PhaseIcon className="h-3 w-3" />
-                        {phaseConfig.label}
-                      </Badge>
+                      <div className="flex items-center gap-1">
+                        <Badge variant="outline" className="flex items-center gap-1">
+                          <PhaseIcon className="h-3 w-3" />
+                          {phaseConfig.label}
+                        </Badge>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 w-7 p-0 text-muted-foreground hover:text-destructive"
+                          aria-label={`Delete ${d.name}`}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (
+                              window.confirm(
+                                `Delete discovery "${d.name}"? Evidence and analyses linked to it will become orphaned but are not deleted automatically.`,
+                              )
+                            ) {
+                              deleteDiscovery(d.id).catch(() => {});
+                            }
+                          }}
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
                     </div>
                     <CardDescription className="text-xs">
                       {d.description}

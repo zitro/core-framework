@@ -204,7 +204,10 @@ export default function CapturePage() {
             />
           )}
 
-          <PreviousAnalysesList analyses={savedAnalyses} />
+          <PreviousAnalysesList
+            analyses={savedAnalyses}
+            onDeleted={(id) => setSavedAnalyses((prev) => prev.filter((a) => a.id !== id))}
+          />
         </TabsContent>
       </Tabs>
     </PhaseShell>
