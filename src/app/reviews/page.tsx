@@ -41,6 +41,8 @@ export default function ReviewsPage() {
 
   useEffect(() => {
     reload();
+    // reload is a stable closure over filter; eslint can't see that
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filter]);
 
   const decide = async (id: string, status: ReviewStatus) => {
