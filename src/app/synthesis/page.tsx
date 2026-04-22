@@ -18,6 +18,7 @@ import {
 import { ArtifactCard } from "@/components/synthesis/artifact-card";
 import { ChatPanel } from "@/components/synthesis/chat-panel";
 import { CompassPanel } from "@/components/synthesis/compass-panel";
+import { ConnectorsPanel } from "@/components/synthesis/connectors-panel";
 import { QuestionsPanel } from "@/components/synthesis/questions-panel";
 import { SignalsPanel } from "@/components/synthesis/signals-panel";
 import { SourcesPanel } from "@/components/synthesis/sources-panel";
@@ -300,6 +301,7 @@ export default function SynthesisPage() {
             refreshKey={artifacts.length}
           />
           <ChatPanel projectId={projectId} />
+          <ConnectorsPanel projectId={projectId} />
           <QuestionsPanel
             questions={questions}
             onRefresh={onRefreshQuestions}

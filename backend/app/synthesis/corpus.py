@@ -12,9 +12,12 @@ import logging
 from app.providers.storage import get_storage_provider
 from app.synthesis.models import Corpus, SourceDoc
 from app.synthesis.sources.base import SourceAdapter
+from app.synthesis.sources.github import GitHubSourceAdapter
+from app.synthesis.sources.http_json import HttpJsonSourceAdapter
 from app.synthesis.sources.local_dir import LocalDirSourceAdapter
 from app.synthesis.sources.msgraph import MsGraphSourceAdapter
 from app.synthesis.sources.vertex import VertexSourceAdapter
+from app.synthesis.sources.web import WebSourceAdapter
 from app.utils.audit import stamp_create
 
 logger = logging.getLogger(__name__)
@@ -28,6 +31,9 @@ def get_adapters() -> list[SourceAdapter]:
         VertexSourceAdapter(),
         LocalDirSourceAdapter(),
         MsGraphSourceAdapter(),
+        GitHubSourceAdapter(),
+        WebSourceAdapter(),
+        HttpJsonSourceAdapter(),
     ]
 
 
