@@ -89,7 +89,7 @@ def create_app() -> FastAPI:
 
     app = FastAPI(
         title=settings.app_name,
-        version="1.1.0",
+        version="1.2.0",
         description="CORE Discovery Framework API",
         lifespan=_lifespan,
     )
@@ -125,6 +125,19 @@ def create_app() -> FastAPI:
             duration_ms,
         )
         return response
+
+    # Project context middleware — propagate X-Project-Id into a ContextVar
+    # so storage and audit helpers can scope reads/writes per-project.
+    from app.utils.project_context import current_project_id
+
+    @app.middleware("http")
+    async def project_context_middleware(request: Request, call_next):
+        project_id = request.headers.get("x-project-id") or None
+        token = current_project_id.set(project_id)
+        try:
+            return await call_next(request)
+        finally:
+            current_project_id.reset(token)
 
     app.include_router(discovery.router, prefix="/api/discovery", tags=["discovery"])
     app.include_router(questions.router, prefix="/api/questions", tags=["questions"])
@@ -165,6 +178,14 @@ def create_app() -> FastAPI:
     from app.utils.telemetry import configure_telemetry
 
     configure_telemetry(app)
+
+    # Per-customer extensions — load AFTER core routers so plugins can rely on
+    # framework state but BEFORE the health endpoint logs startup.
+    from app.extensions import load_extensions
+
+    loaded = load_extensions(app, settings.extensions_dir, settings)
+    if loaded:
+        logger.info("Extensions loaded: %s", ", ".join(loaded))
 
     @app.get("/api/health")
     async def health():
