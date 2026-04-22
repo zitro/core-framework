@@ -100,6 +100,108 @@ ARTIFACT_TYPES: list[ArtifactType] = [
             "about the low-emotion moments — those are where value lives."
         ),
     ),
+    ArtifactType(
+        id="interview-guide",
+        category=Category.WHY,
+        label="Interview Guide",
+        description="Pre-call prep: who, what to ask, what to listen for.",
+        body_schema={
+            "audience": "Role / persona being interviewed.",
+            "objectives": "List of what we need to learn from this conversation.",
+            "questions": (
+                "List of {question, intent, follow_ups}. Open-ended; never "
+                "leading. 8-12 questions max."
+            ),
+            "listen_for": "List of signals or quotes that would change our framing.",
+        },
+        prompt=(
+            "Draft a stakeholder interview guide. Questions must be open and "
+            "non-leading. Order from broad context to specific pain. Each "
+            "question states the intent so the interviewer knows when the "
+            "answer satisfies it. Pull audience and objectives from the "
+            "corpus when possible."
+        ),
+    ),
+    ArtifactType(
+        id="empathy-map",
+        category=Category.WHY,
+        label="Empathy Map",
+        description="What the user says, thinks, does, and feels.",
+        body_schema={
+            "persona": "Persona this map represents.",
+            "says": "List of direct quotes or paraphrased statements from the corpus.",
+            "thinks": "List of inferred thoughts; mark each as {text, evidence}.",
+            "does": "List of observed or reported behaviours.",
+            "feels": "List of emotional states with the trigger that caused them.",
+        },
+        prompt=(
+            "Build an empathy map for the primary persona. `says` must be "
+            "direct quotes when available. `thinks` are inferences and must "
+            "cite the evidence that justifies them. Do not invent emotions; "
+            "if the corpus does not support a feeling, omit it."
+        ),
+    ),
+    ArtifactType(
+        id="jtbd",
+        category=Category.WHY,
+        label="Jobs to be Done",
+        description="When [situation], I want to [motivation], so I can [outcome].",
+        body_schema={
+            "jobs": (
+                "List of {situation, motivation, outcome, evidence}. 3-6 jobs. "
+                "One sentence each in the When/I want/So I can shape."
+            ),
+        },
+        prompt=(
+            "Extract the jobs the user is hiring this work to do. Each job "
+            "is a triplet of situation, motivation, outcome — phrased as the "
+            "user would say it, not as the team interprets it. Cite the "
+            "corpus passage for each job."
+        ),
+    ),
+    ArtifactType(
+        id="emerging-themes",
+        category=Category.WHY,
+        label="Emerging Themes",
+        description="Recurring patterns in the corpus that may seed future engagements.",
+        body_schema={
+            "themes": (
+                "List of {theme, frequency (1-5), supporting_evidence, "
+                "potential_engagement (yes|maybe|no), rationale}"
+            ),
+            "watchlist": ("Single-line items worth monitoring but not yet a full theme."),
+        },
+        prompt=(
+            "Scan the corpus for recurring patterns that are NOT already "
+            "covered by a current artifact. Surface 3-7 themes that appear "
+            "in multiple sources. For each, judge whether it could seed a "
+            "future engagement (yes / maybe / no) and explain why. This is "
+            "an opportunity radar, not a deliverable — be conservative; do "
+            "not invent themes from a single mention."
+        ),
+    ),
+    ArtifactType(
+        id="root-cause",
+        category=Category.WHY,
+        label="Root Cause Analysis",
+        description="Five Whys from a visible symptom to a defensible root.",
+        body_schema={
+            "symptom": "The observable problem as it shows up to the user.",
+            "whys": (
+                "Ordered list of {why_question, answer, evidence}. 3-5 entries; "
+                "each answer must cite a corpus passage."
+            ),
+            "root_cause": "One-sentence statement of the root cause.",
+            "confidence": "low|medium|high — based on evidence strength.",
+        },
+        prompt=(
+            "Push from symptom to root cause by asking why up to five times. "
+            "Stop when the next 'why' would require speculation beyond the "
+            "corpus. Every answer must cite evidence. If evidence is thin, "
+            "set confidence to low and say so explicitly. Do not fabricate "
+            "causal chains."
+        ),
+    ),
     # ── VALUE ─────────────────────────────────────────────────────────
     ArtifactType(
         id="value-hypothesis",
@@ -233,6 +335,28 @@ ARTIFACT_TYPES: list[ArtifactType] = [
         ),
         critical=True,
     ),
+    ArtifactType(
+        id="quick-win",
+        category=Category.WHAT,
+        label="Quick Win",
+        description="Smallest scoped delivery that proves value in weeks, not months.",
+        body_schema={
+            "scope": "One paragraph: what is in, what is out, what it produces.",
+            "value": "One sentence: which pain it relieves and for whom.",
+            "effort_weeks": "Integer estimate (1-8 weeks; if more, it isn't a quick win).",
+            "success_metric": "Single measurable indicator that this worked.",
+            "owner_role": "Role accountable for delivery (not a name).",
+            "dependencies": "List of blockers that must be cleared before kickoff.",
+        },
+        prompt=(
+            "Define the smallest valuable thing this engagement could ship. "
+            "It must be deliverable in 1-8 weeks, tied to one named pain, and "
+            "have one measurable success indicator. If you cannot define a "
+            "quick win, the problem is not framed sharply enough — say so "
+            "explicitly rather than padding scope."
+        ),
+        critical=True,
+    ),
     # ── SCOPE ─────────────────────────────────────────────────────────
     ArtifactType(
         id="phase-plan",
@@ -266,6 +390,30 @@ ARTIFACT_TYPES: list[ArtifactType] = [
             "reason — deferred, owned by another team, requires more discovery."
         ),
         critical=True,
+    ),
+    ArtifactType(
+        id="assumption-matrix",
+        category=Category.SCOPE,
+        label="Assumption Matrix",
+        description="Assumptions plotted by risk and certainty; test the riskiest first.",
+        body_schema={
+            "assumptions": (
+                "List of {statement, risk (1-5 — impact if wrong), "
+                "certainty (1-5 — how sure we are it's true), test_idea, "
+                "evidence}. Order by risk descending."
+            ),
+            "riskiest_unknowns": (
+                "Top 3 assumptions where risk is high and certainty is low — "
+                "these are what to test next."
+            ),
+        },
+        prompt=(
+            "List the assumptions this engagement rests on. For each, score "
+            "the risk if it's wrong (1-5) and our certainty it's true (1-5). "
+            "Propose a cheap way to test each high-risk / low-certainty item. "
+            "Do not pad with safe assumptions; the value is in the dangerous "
+            "ones we have not yet proven."
+        ),
     ),
     ArtifactType(
         id="timeline",
@@ -464,6 +612,29 @@ ARTIFACT_TYPES: list[ArtifactType] = [
             "must sound like the personas we wrote, not like marketing."
         ),
     ),
+    ArtifactType(
+        id="storyboard",
+        category=Category.STORY,
+        label="Storyboard",
+        description="Visual narrative of how the solution plays out, frame by frame.",
+        body_schema={
+            "persona": "Persona this story follows.",
+            "frames": (
+                "Ordered list of {caption, description, persona_action, "
+                "image_prompt, image_url}. 4-8 frames. image_prompt is the "
+                "text passed to the image generator; image_url is filled in "
+                "after generation runs."
+            ),
+            "takeaway": "One-sentence summary the audience should leave with.",
+        },
+        prompt=(
+            "Tell the solution as a 4-8 frame visual story for a non-technical "
+            "audience. Each frame describes one moment in the persona's day. "
+            "For each frame write an image_prompt suitable for an AI image "
+            "generator: concise, concrete, no proper nouns, no trademarks. "
+            "Keep image_url empty — the generator fills it in afterward."
+        ),
+    ),
     # ── operational ──────────────────────────────────────────────────
     ArtifactType(
         id="status-update",
@@ -528,6 +699,27 @@ ARTIFACT_TYPES: list[ArtifactType] = [
             "honest \u2014 do not flatter."
         ),
         critical=True,
+    ),
+    ArtifactType(
+        id="retro",
+        category=Category.OPERATIONAL,
+        label="Retrospective",
+        description="Short, candid review: start / stop / continue + action items.",
+        body_schema={
+            "start": "Bullets — practices to begin doing.",
+            "stop": "Bullets — practices to discontinue.",
+            "continue": "Bullets — practices to keep.",
+            "action_items": (
+                "List of {action, owner_role, due_week_offset}. Each action "
+                "must have a single owning role and a relative due date."
+            ),
+        },
+        prompt=(
+            "Run the retrospective for this engagement or sprint. Pull from "
+            "corpus signals about what worked and what did not. Be candid; "
+            "flattery wastes the team's time. Every action item must have an "
+            "owning role and a relative due date."
+        ),
     ),
 ]
 
