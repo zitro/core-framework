@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { RefreshCw, ChevronDown, ChevronRight } from "lucide-react";
+import { RefreshCw, ChevronDown, ChevronRight, Mail, Copy } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -56,6 +57,9 @@ export function ArtifactCard({ artifact, onRegenerate, busy }: Props) {
             </div>
           </div>
           <div className="flex items-center gap-2">
+            {artifact.type_id === "weekly-email-update" && (
+              <EmailActions artifact={artifact} />
+            )}
             <Button
               size="sm"
               variant="outline"
@@ -138,5 +142,44 @@ export function ArtifactCard({ artifact, onRegenerate, busy }: Props) {
         )}
       </CardContent>
     </Card>
+  );
+}
+
+function buildEmailParts(artifact: SynthesisArtifact): {
+  subject: string;
+  body: string;
+} {
+  const body = (artifact.body ?? {}) as Record<string, unknown>;
+  const get = (k: string) => (typeof body[k] === "string" ? (body[k] as string) : "");
+  const subject = get("subject") || artifact.title || "Weekly update";
+  const parts = [
+    get("greeting"),
+    get("body"),
+    get("signoff"),
+  ].filter(Boolean);
+  return { subject, body: parts.join("\n\n") };
+}
+
+function EmailActions({ artifact }: { artifact: SynthesisArtifact }) {
+  const onCopy = async () => {
+    const { subject, body } = buildEmailParts(artifact);
+    await navigator.clipboard.writeText(`Subject: ${subject}\n\n${body}`);
+    toast.success("Email copied to clipboard");
+  };
+  const onMail = () => {
+    const { subject, body } = buildEmailParts(artifact);
+    const url = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+    window.open(url, "_blank");
+  };
+  return (
+    <>
+      <Button size="sm" variant="ghost" onClick={onCopy} title="Copy email text">
+        <Copy className="size-3.5" />
+      </Button>
+      <Button size="sm" variant="outline" onClick={onMail}>
+        <Mail className="size-3.5 mr-1.5" />
+        Open in mail
+      </Button>
+    </>
   );
 }

@@ -14,7 +14,8 @@ export type SynthesisCategoryId =
   | "what"
   | "scope"
   | "how"
-  | "story";
+  | "story"
+  | "operational";
 
 export interface SynthesisCatalogType {
   id: string;
@@ -207,6 +208,26 @@ export const synthesisApi = {
     request<SynthesisSignalsResponse>(
       `/api/synthesis/${encodeURIComponent(projectId)}/signals`,
     ),
+
+  compass: (projectId: string) =>
+    request<SynthesisCompass>(
+      `/api/synthesis/${encodeURIComponent(projectId)}/compass`,
+    ),
+
+  refreshSources: (projectId: string) =>
+    request<SynthesisRefreshResponse>(
+      `/api/synthesis/${encodeURIComponent(projectId)}/sources/refresh`,
+      { method: "POST" },
+    ),
+
+  updateOperationalSettings: (projectId: string, autoRebuild: boolean) =>
+    request<{ auto_rebuild: boolean }>(
+      `/api/synthesis/${encodeURIComponent(projectId)}/settings/operational`,
+      {
+        method: "PUT",
+        body: JSON.stringify({ auto_rebuild: autoRebuild }),
+      },
+    ),
 };
 
 export type SynthesisSignalSeverity = "info" | "warn" | "blocker";
@@ -226,6 +247,33 @@ export interface SynthesisSignalsResponse {
   project_id: string;
   counts: Record<SynthesisSignalSeverity, number>;
   signals: SynthesisSignal[];
+}
+
+export type CompassHealth = "green" | "amber" | "red";
+
+export interface CompassCategoryHealth {
+  category: SynthesisCategoryId;
+  label: string;
+  present: number;
+  draft: number;
+  critical_missing: number;
+  blocker_signals: number;
+  warn_signals: number;
+  health: CompassHealth;
+}
+
+export interface SynthesisCompass {
+  project_id: string;
+  categories: CompassCategoryHealth[];
+  overall: CompassHealth;
+}
+
+export interface SynthesisRefreshResponse {
+  project_id: string;
+  source_count: number;
+  auto_rebuild: boolean;
+  regenerated: string[];
+  failures: { type_id: string; error: string }[];
 }
 
 export interface SynthesisChatTurn {

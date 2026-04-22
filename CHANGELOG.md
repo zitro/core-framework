@@ -7,6 +7,55 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.8.0] - 2026-04-22
+
+Operational close: weekly emails, wrap-ups, DT Compass, and auto-rebuild
+on source refresh. Builds on v1.7.0 detectors; no breaking changes.
+
+### Added
+
+- **OPERATIONAL category** in `synthesis/categories.py` for engagement-running
+  artifacts (status updates, wrap-ups, weekly emails). Compass renders it
+  alongside the five DT categories plus Story.
+- **Three operational artifact types** in `synthesis/types.py`:
+  - `status-update` — weekly status (shipped / blocked / next / risks)
+  - `weekly-email-update` — send-ready customer email scoped to the past
+    7 days only; `subject + greeting + body + signoff` body schema
+  - `wrap-up` (critical) — engagement closing artifact with outcomes,
+    decisions, open items, learnings, handoff
+- **DT Compass** (`backend/app/synthesis/compass.py`):
+  - Per-category health snapshot (`green` / `amber` / `red`) computed
+    from artifacts + detector signals. Pure function, no persistence.
+  - Health rule: red if any blocker_signals or critical_missing; amber
+    if any warn_signals or draft > present; green otherwise.
+  - `GET /api/synthesis/{project_id}/compass` returns per-category
+    counts plus overall health.
+- **Auto-rebuild** on source refresh:
+  - `POST /api/synthesis/{project_id}/sources/refresh` rebuilds the
+    corpus and, when `metadata.auto_rebuild` is true, regenerates
+    artifacts tied to `stale-vs-corpus` or `broken-citation` signals
+    only. Low-grounding and contradiction signals are intentionally
+    skipped — those need human input.
+  - `PUT /api/synthesis/{project_id}/settings/operational` toggles the
+    flag from the UI.
+- **CompassPanel** at the top of the synthesis aside: per-category dots
+  with severity tone, overall badge, refresh-sources button, and
+  auto-rebuild checkbox.
+- **EmailActions** on `weekly-email-update` artifact cards: "Open in
+  mail" (mailto: link) and "Copy" (clipboard) buttons.
+- **9 new tests** in `tests/test_compass.py` for compass health, overall
+  rollup, and `types_to_auto_regenerate` selection. Backend total: 115.
+
+### Changed
+
+- Backend `1.7.0` → `1.8.0`; frontend `1.7.0` → `1.8.0`; FastAPI app
+  version updated.
+- `SynthesisCategoryId` adds `"operational"`.
+- `api-synthesis.ts` adds `compass()`, `refreshSources()`,
+  `updateOperationalSettings()` plus `SynthesisCompass`,
+  `CompassCategoryHealth`, `CompassHealth`, `SynthesisRefreshResponse`
+  types.
+
 ## [1.7.0] - 2026-04-22
 
 Detector pass: cheap, deterministic rules that surface what to fix next.

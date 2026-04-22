@@ -24,6 +24,7 @@ from app.synthesis.categories import (
     CATEGORY_ORDER,
 )
 from app.synthesis.chat import CHATS_COLLECTION, ChatAgent
+from app.synthesis.compass import compute_compass, types_to_auto_regenerate
 from app.synthesis.corpus import build_corpus
 from app.synthesis.critic import CriticAgent
 from app.synthesis.detectors import run_detectors, summarise
@@ -470,4 +471,81 @@ async def get_signals(project_id: str) -> dict:
         "project_id": project_id,
         "counts": summarise(signals),
         "signals": [s.model_dump(mode="json") for s in signals],
+    }
+
+
+# ── compass / operational ─────────────────────────────────────
+
+
+@router.get("/{project_id}/compass")
+async def get_compass(project_id: str) -> dict:
+    """Per-category health snapshot. Pure function of artifacts + signals."""
+    project = await _load_project(project_id)
+    artifacts = await _project_artifacts(project_id)
+    critiques = await _project_critiques(project_id)
+    corpus = await build_corpus(project)
+    signals = run_detectors(artifacts, critiques, corpus)
+    snapshot = compute_compass(project_id, artifacts, signals)
+    return snapshot.model_dump(mode="json")
+
+
+class OperationalSettings(BaseModel):
+    auto_rebuild: bool
+
+
+@router.put("/{project_id}/settings/operational")
+async def update_operational_settings(project_id: str, payload: OperationalSettings) -> dict:
+    """Toggle the project's auto-rebuild flag.
+
+    Stored at ``project.metadata.auto_rebuild`` so ``sources/refresh``
+    picks it up on the next call.
+    """
+    project = await _load_project(project_id)
+    storage = get_storage_provider()
+    metadata = dict(project.get("metadata") or {})
+    metadata["auto_rebuild"] = bool(payload.auto_rebuild)
+    project["metadata"] = metadata
+    saved = await storage.update(PROJECTS_COLLECTION, project_id, project)
+    return {
+        "auto_rebuild": bool((saved.get("metadata") or {}).get("auto_rebuild")),
+    }
+
+
+@router.post("/{project_id}/sources/refresh")
+async def refresh_sources(project_id: str) -> dict:
+    """Rebuild the corpus from configured sources, then optionally auto-regen.
+
+    When ``project.metadata.auto_rebuild`` is true, any artifact tied to
+    a stale-vs-corpus or broken-citation signal is regenerated against
+    the freshly built corpus. We deliberately leave low-grounding and
+    contradiction signals alone — those usually need human input.
+    """
+    project = await _load_project(project_id)
+    corpus = await build_corpus(project)
+
+    auto = bool((project.get("metadata") or {}).get("auto_rebuild"))
+    regenerated: list[str] = []
+    failures: list[dict] = []
+
+    if auto:
+        artifacts = await _project_artifacts(project_id)
+        critiques = await _project_critiques(project_id)
+        signals = run_detectors(artifacts, critiques, corpus)
+        targets = types_to_auto_regenerate(signals)
+        if targets:
+            generator = GeneratorEngine()
+            for type_id in targets:
+                try:
+                    await generator.generate(project, type_id, "", corpus=corpus)
+                    regenerated.append(type_id)
+                except Exception as exc:  # pragma: no cover - logged below
+                    logger.warning("sources/refresh: regen %s failed", type_id, exc_info=True)
+                    failures.append({"type_id": type_id, "error": str(exc)})
+
+    return {
+        "project_id": project_id,
+        "source_count": len(corpus.docs),
+        "auto_rebuild": auto,
+        "regenerated": regenerated,
+        "failures": failures,
     }
