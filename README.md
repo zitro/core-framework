@@ -139,7 +139,7 @@ Tagging this repo with `vX.Y.Z` triggers the release pipeline: lint → test →
 
 The rest of this README covers **framework development**: running the dev stack against your own backend source, contributing changes, and configuring Azure for end-to-end tests. If you just want to deploy CORE Discovery for a customer, the CLI flow above is all you need.
 
-
+## Architecture
 
 ```text
 ┌─────────────────────────┐     ┌──────────────────────────┐
@@ -190,9 +190,9 @@ The backend uses a provider abstraction pattern. Swap between local development 
 | Tooling      | OpenAPI typed-client generation (`pnpm gen:api`), Storybook scaffold |
 | CI/CD        | GitHub Actions (lint, test, build), tag-driven multi-arch release pipeline |
 
-## Prerequisites
+## Framework development prerequisites
 
-You need these installed before proceeding:
+You only need these if you're contributing to the framework itself or running the dev stack from source. Customer deployments use Docker Compose and don't need any of this.
 
 | Tool       | Version  | Purpose                              |
 |------------|----------|--------------------------------------|
@@ -207,13 +207,15 @@ For local-only development (no Azure), you also need:
 |------------|----------|--------------------------------------|
 | Ollama     | latest   | Local LLM inference                  |
 
-For Azure deployment, you also need:
+For Azure-backed development, you also need:
 
 | Tool       | Version  | Purpose                              |
 |------------|----------|--------------------------------------|
 | Azure CLI  | 2.60+    | Azure resource management            |
 
-## Running Locally
+## Running the framework locally (for contributors)
+
+These steps build and run the framework from source. **Customer deployments don't need this** — they `docker compose pull` from GHCR. Use this path only when you're modifying the framework itself.
 
 ### 1. Clone and install frontend dependencies
 
@@ -331,11 +333,11 @@ pnpm dev
 
 Open [http://localhost:3000](http://localhost:3000) in your browser.
 
-## Running with Azure
+## Running with Azure (for contributors)
 
-Azure mode replaces local storage and LLM with managed Azure services. This gives you persistent
-Cosmos DB storage, Azure OpenAI for question generation and transcript analysis, Azure Blob Storage
-for file uploads, and Azure Speech Services for audio transcription.
+Azure mode replaces local storage and LLM with managed Azure services. This gives you persistent Cosmos DB storage, Azure OpenAI for question generation and transcript analysis, Azure Blob Storage for file uploads, and Azure Speech Services for audio transcription.
+
+This section covers provisioning Azure resources for **framework end-to-end testing**. Customer deployments use the same env vars but provision their own Azure resources separately — typically through their `infra/` folder using Bicep or Terraform.
 
 ### Required Azure Resources
 
