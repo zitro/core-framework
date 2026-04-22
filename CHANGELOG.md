@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.9.2] - 2026-04-22
+
+Republish of 1.9.1 release after a GitHub Actions cache outage hung the original release run. No source changes beyond version metadata.
+
 ## [1.9.1] - 2026-04-22
 
 Project-first information architecture; legacy CORE phase pages removed.
