@@ -55,11 +55,12 @@ jobs:
           node-version: 22
 
       - if: matrix.suite == 'frontend'
+        timeout-minutes: 8
         run: |
           pnpm install --frozen-lockfile
           pnpm lint
           npx tsc --noEmit
-          npx vitest run
+          npx vitest run --bail=1
           pnpm build
 
   build-and-push:
