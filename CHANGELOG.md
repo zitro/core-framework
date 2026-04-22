@@ -7,6 +7,49 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-04-21
+
+First-class **Project model** — the foundation for multi-project, per-customer
+deploys (one `core-*` repo per customer, many projects per repo).
+
+### Added
+
+- `Engagement.slug` — URL- and filesystem-safe identifier auto-derived from
+  `name` on create. Capped at 64 chars, deduplicated with `-2`, `-3`, …
+  suffixes when collisions occur.
+- `GET /api/engagements/by-slug/{slug}` — lookup by stable identifier.
+- `/api/projects/*` — first-class alias for `/api/engagements/*`. New clients
+  should prefer the projects vocabulary; the engagements path remains for
+  backward compatibility.
+- `settings.projects_root` (default `./data/projects`) — mount convention.
+  Customer deploys mount their `./projects` folder here so engagements can
+  reference subdirectories by name (`repo_path: "allstate-claims"`) instead
+  of leaking host paths.
+- `app.utils.project_paths.resolve_project_repo_path` — central resolver used
+  by every `/api/engagement/*` endpoint that takes a `repo_path`. Absolute
+  paths pass through; relative paths join under `projects_root`.
+- Frontend `ProjectProvider` + `useProject` hook + sidebar `ProjectSwitcher`.
+  Active project is persisted in `localStorage` and re-hydrated on reload.
+- `X-Project-Id` request header sent automatically by the frontend HTTP
+  client. Foundation for v1.2 partition-key scoping.
+- `app.utils.slug.slugify` utility + tests.
+- Backend tests: `test_projects.py`, `test_project_paths.py`, `test_slug.py`
+  (12 new tests, total 79 passing).
+
+### Changed
+
+- API version bumped to `1.1.0`; package version bumped to `1.1.0`.
+- `Engagement` model docstring rewritten to reflect the project-first vocabulary.
+- `Project` type alias exported from `@/types/fde` for new code paths.
+
+### Migration notes
+
+- Existing engagements without a `slug` will keep working (the field defaults
+  to empty). Run a one-time backfill by `PATCH`ing each with `{"slug": ""}` —
+  the router will derive one from the name.
+- The legacy `/api/engagements/*` paths and shape are unchanged. No frontend
+  consumers need to migrate; the `/api/projects/*` alias is purely additive.
+
 ## [1.0.2] - 2026-04-21
 
 Second 5-pass review after v1.0.1 — focused on file-size discipline,
