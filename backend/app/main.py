@@ -79,6 +79,7 @@ def create_app() -> FastAPI:
         me,
         narrative,
         problem_statements,
+        projects,
         questions,
         realtime,
         reviews,
@@ -88,7 +89,7 @@ def create_app() -> FastAPI:
 
     app = FastAPI(
         title=settings.app_name,
-        version="1.0.2",
+        version="1.1.0",
         description="CORE Discovery Framework API",
         lifespan=_lifespan,
     )
@@ -154,6 +155,7 @@ def create_app() -> FastAPI:
     app.include_router(dt_templates.router, prefix="/api/dt-templates", tags=["dt-templates"])
     app.include_router(me.router, prefix="/api/me", tags=["me"])
     app.include_router(engagements.router, prefix="/api/engagements", tags=["engagements"])
+    app.include_router(projects.router, prefix="/api/projects", tags=["projects"])
     app.include_router(reviews.router, prefix="/api/reviews", tags=["reviews"])
     app.include_router(graph.router, prefix="/api/graph", tags=["graph"])
     app.include_router(dynamics.router, prefix="/api/dynamics", tags=["dynamics"])

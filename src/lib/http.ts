@@ -5,6 +5,21 @@ export const API_URL =
 
 type TokenGetter = (opts?: { forceRefresh?: boolean }) => Promise<string | null>;
 
+let activeProjectId: string | null = null;
+
+/** Set the active project; sent as ``X-Project-Id`` on every API request. */
+export function setActiveProjectId(id: string | null): void {
+  activeProjectId = id;
+}
+
+export function getActiveProjectId(): string | null {
+  return activeProjectId;
+}
+
+function projectHeader(): Record<string, string> {
+  return activeProjectId ? { "X-Project-Id": activeProjectId } : {};
+}
+
 function tokenGetter(): TokenGetter | null {
   if (typeof window === "undefined") return null;
   return (
@@ -45,6 +60,7 @@ async function fetchWithAuth(
     headers: {
       "Content-Type": "application/json",
       ...auth,
+      ...projectHeader(),
       ...options?.headers,
     },
     ...options,

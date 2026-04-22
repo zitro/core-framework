@@ -262,9 +262,16 @@ class EngagementStatus(StrEnum):
 
 
 class Engagement(BaseModel):
-    """A customer engagement that groups one or more discoveries."""
+    """A customer project (a.k.a. engagement) that groups one or more discoveries.
+
+    ``slug`` is the stable, URL- and filesystem-safe identifier used by the
+    project switcher, the ``/data/projects/<slug>`` mount convention, and
+    (in v1.2+) the Cosmos partition key. Auto-derived from ``name`` on create
+    if not provided.
+    """
 
     id: str = ""
+    slug: str = ""
     name: str
     customer: str = ""
     industry: str = ""
@@ -282,6 +289,7 @@ class Engagement(BaseModel):
 
 class EngagementUpdate(BaseModel):
     name: str | None = None
+    slug: str | None = None
     customer: str | None = None
     industry: str | None = None
     summary: str | None = None

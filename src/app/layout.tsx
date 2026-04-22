@@ -4,6 +4,7 @@ import { Toaster } from "sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { DiscoveryProvider } from "@/stores/discovery-store";
+import { ProjectProvider } from "@/stores/project-store";
 import { AuthProvider } from "@/stores/auth-context";
 import { ThemeProvider } from "@/components/layout/theme-provider";
 import { AppSidebar } from "@/components/layout/app-sidebar";
@@ -41,18 +42,20 @@ export default function RootLayout({
         <ThemeProvider>
           <AuthProvider>
             <DiscoveryProvider>
-              <TooltipProvider>
-                <SidebarProvider>
-                  <AppSidebar />
-                  <div className="flex-1 flex flex-col overflow-hidden">
-                    <AppHeader />
-                    <main className="flex-1 overflow-auto">
-                      {children}
-                    </main>
-                  </div>
-                </SidebarProvider>
-              </TooltipProvider>
-              <Toaster richColors position="bottom-right" />
+              <ProjectProvider>
+                <TooltipProvider>
+                  <SidebarProvider>
+                    <AppSidebar />
+                    <div className="flex-1 flex flex-col overflow-hidden">
+                      <AppHeader />
+                      <main className="flex-1 overflow-auto">
+                        {children}
+                      </main>
+                    </div>
+                  </SidebarProvider>
+                </TooltipProvider>
+                <Toaster richColors position="bottom-right" />
+              </ProjectProvider>
             </DiscoveryProvider>
           </AuthProvider>
         </ThemeProvider>
