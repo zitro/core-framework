@@ -166,11 +166,9 @@ export function renovateJson(): string {
 export function infraReadme(o: ScaffoldOptions): string {
   return `# infra
 
-Azure deploy targets for ${o.displayName}.
+Add Azure deploy targets for ${o.displayName} here (Bicep, Terraform, or your IaC tool of choice).
 
-Scaffolding only. No \`.bicep\` files committed yet — added in a follow-up once the local-compose path is validated.
-
-Planned topology: Container Apps (backend + frontend) + Cosmos DB + Application Insights, fronted by Azure Front Door, behind Entra ID auth.
+Kept empty by the scaffolder so each customer deploy can pick the topology that fits their compliance and ops constraints.
 `;
 }
 
