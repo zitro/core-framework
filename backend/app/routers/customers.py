@@ -9,15 +9,18 @@ returned by the API. ``GET`` responses include a ``pat_last4`` confirmation
 field so the UI can show "ghp_…AbCd".
 """
 
+from datetime import UTC, datetime
+
 from fastapi import APIRouter, Depends, HTTPException
+from fastapi.concurrency import run_in_threadpool
 
 from app.dependencies import get_current_user
 from app.models.customer import (
-    Customer,
     CustomerCreate,
     CustomerUpdate,
     Source,
     SourceCreate,
+    SourceKind,
     SourceUpdate,
     redact_customer,
     redact_source,
@@ -26,7 +29,9 @@ from app.providers.storage import get_storage_provider
 from app.utils.audit import stamp_create, stamp_update
 from app.utils.audit_log import audit
 from app.utils.crypto import encrypt_secret
+from app.utils.git_ops import GitOpError, ensure_clone, pull_rebase
 from app.utils.slug import slugify
+from app.utils.workspace import resolve_source_projects, source_root
 
 router = APIRouter(dependencies=[Depends(get_current_user)])
 COLLECTION = "customers"
@@ -150,9 +155,7 @@ async def add_source(customer_id: str, payload: SourceCreate) -> dict:
         pat_last4=payload.pat[-4:] if payload.pat else "",
     )
     sources.append(src.model_dump(mode="json"))
-    updated = await storage.update(
-        COLLECTION, customer_id, stamp_update({"sources": sources})
-    )
+    await storage.update(COLLECTION, customer_id, stamp_update({"sources": sources}))
     await audit(
         "add_source",
         collection=COLLECTION,
@@ -179,9 +182,7 @@ async def update_source(customer_id: str, source_id: str, payload: SourceUpdate)
                 s["pat_last4"] = pat[-4:] if pat else ""
             s.update(updates)
             sources[i] = s
-            await storage.update(
-                COLLECTION, customer_id, stamp_update({"sources": sources})
-            )
+            await storage.update(COLLECTION, customer_id, stamp_update({"sources": sources}))
             await audit(
                 "update_source",
                 collection=COLLECTION,
@@ -202,9 +203,7 @@ async def remove_source(customer_id: str, source_id: str) -> dict:
     new_sources = [s for s in sources if s.get("id") != source_id]
     if len(new_sources) == len(sources):
         raise HTTPException(status_code=404, detail="Source not found")
-    await storage.update(
-        COLLECTION, customer_id, stamp_update({"sources": new_sources})
-    )
+    await storage.update(COLLECTION, customer_id, stamp_update({"sources": new_sources}))
     await audit(
         "remove_source",
         collection=COLLECTION,
@@ -212,3 +211,58 @@ async def remove_source(customer_id: str, source_id: str) -> dict:
         summary=source_id,
     )
     return {"deleted": True}
+
+
+# ── Source sync (clone-or-pull) ─────────────────────────────
+
+
+def _sync_source_sync(customer_slug: str, source: Source) -> tuple[str, str]:
+    """Blocking helper: clone/pull and return ``(status, projects_path)``."""
+    if source.kind == SourceKind.FOLDER:
+        projects = str(resolve_source_projects(customer_slug, source))
+        return "ok", projects
+    target = source_root(customer_slug, source)
+    repo = ensure_clone(target, source)
+    if source.kind == SourceKind.GITHUB:
+        try:
+            pull_rebase(repo, source)
+        except GitOpError as exc:
+            return f"error: {exc}", str(resolve_source_projects(customer_slug, source))
+    return "ok", str(resolve_source_projects(customer_slug, source))
+
+
+@router.post("/{customer_id}/sources/{source_id}/sync")
+async def sync_source(customer_id: str, source_id: str) -> dict:
+    """Clone (if missing) or pull-rebase the source; persist sync status."""
+    storage = get_storage_provider()
+    customer = await storage.get(COLLECTION, customer_id)
+    if not customer:
+        raise HTTPException(status_code=404, detail="Customer not found")
+    sources = list(customer.get("sources") or [])
+    src_dict = next((s for s in sources if s.get("id") == source_id), None)
+    if not src_dict:
+        raise HTTPException(status_code=404, detail="Source not found")
+    source = Source(**src_dict)
+    customer_slug = str(customer.get("slug", ""))
+    try:
+        status, projects_path = await run_in_threadpool(_sync_source_sync, customer_slug, source)
+    except GitOpError as exc:
+        status, projects_path = f"error: {exc}", ""
+    src_dict["last_sync_status"] = status
+    src_dict["last_synced_at"] = datetime.now(UTC).isoformat()
+    for i, s in enumerate(sources):
+        if s.get("id") == source_id:
+            sources[i] = src_dict
+            break
+    await storage.update(COLLECTION, customer_id, stamp_update({"sources": sources}))
+    await audit(
+        "sync_source",
+        collection=COLLECTION,
+        item_id=customer_id,
+        summary=f"{source_id}:{status[:60]}",
+    )
+    return {
+        "status": status,
+        "projects_path": projects_path,
+        "last_synced_at": src_dict["last_synced_at"],
+    }

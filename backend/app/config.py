@@ -50,6 +50,11 @@ class Settings(BaseSettings):
     # subdirectories by name (e.g. ``repo_path: "allstate-claims"``).
     projects_root: str = "./data/projects"
 
+    # v2.2 multi-source workspace root. GitHub-backed Sources are cloned
+    # into ``{customers_workspace_root}/{customer-slug}/{source-id}/``.
+    # LOCAL / FOLDER sources read directly from their configured location.
+    customers_workspace_root: str = "./data/customers"
+
     # When true, FastAPI startup will (re)create Cosmos containers. Default off so
     # production restarts don't pay the round-trip on every pod boot.
     cosmos_ensure_collections: bool = False
