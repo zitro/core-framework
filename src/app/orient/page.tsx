@@ -1,21 +1,53 @@
 "use client";
 
 /**
- * /orient — Engagement Brief.
+ * /orient — engagement brief.
  *
- * v2.2 stub: shows the engagement context (typed schema landing in B4)
- * as a structured brief. Phase D2 fills this with the real form +
- * markdown projection toggle. For now we render an empty-state that
- * points users to the new model.
+ * Loads the typed EngagementContext for the active project and renders
+ * an editable form. Save persists to DB; the .md projection happens via
+ * Settings → Engagement (multi-source picker lives there in E phase).
  */
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Compass, ArrowRight } from "lucide-react";
+import { Compass, Loader2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { useProject } from "@/stores/project-store";
+import { api, type EngagementContextRecord } from "@/lib/api";
+import { EngagementBriefForm } from "@/components/orient/engagement-brief-form";
 
 export default function OrientPage() {
+  const { activeProject } = useProject();
+  const [ctx, setCtx] = useState<EngagementContextRecord | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const pid = activeProject?.id;
+    if (!pid) return;
+    let cancelled = false;
+    const run = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const c = await api.engagementContext.get(pid);
+        if (!cancelled) setCtx(c);
+      } catch (e) {
+        if (!cancelled) setError(e instanceof Error ? e.message : "Failed to load brief");
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+    void run();
+    return () => {
+      cancelled = true;
+    };
+  }, [activeProject?.id]);
+
+  const showCtx = ctx && activeProject && ctx.project_id === activeProject.id ? ctx : null;
+
   return (
     <div className="mx-auto flex w-full max-w-4xl flex-col gap-6 p-6">
       <header className="space-y-2">
@@ -24,41 +56,65 @@ export default function OrientPage() {
           <h1 className="text-2xl font-semibold tracking-tight">Orient</h1>
         </div>
         <p className="text-sm text-muted-foreground">
-          Frame the engagement: the problem you&apos;re solving, the desired
-          outcome, scope, stakeholders, risks, and success metrics. The brief
-          here grounds every AI call across Refine and Execute.
+          Frame the engagement: the problem, desired outcome, scope,
+          stakeholders, risks, and success metrics. This brief grounds every
+          AI call across Refine and Execute.
         </p>
       </header>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Engagement Brief</CardTitle>
-          <CardDescription>
-            Coming next: a single editable form backed by the typed
-            <code className="mx-1 rounded bg-muted px-1.5 py-0.5 text-xs">
-              EngagementContext
-            </code>
-            record, with a one-click projection to
-            <code className="mx-1 rounded bg-muted px-1.5 py-0.5 text-xs">
-              engagement-brief.md
-            </code>
-            in the connected vertex source.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="flex flex-col gap-3 sm:flex-row">
-          <Link href="/capture">
-            <Button variant="default" className="w-full sm:w-auto">
-              Start in Capture
-              <ArrowRight className="ml-2 h-4 w-4" />
-            </Button>
-          </Link>
-          <Link href="/settings?tab=engagement">
-            <Button variant="outline" className="w-full sm:w-auto">
-              Configure context
-            </Button>
-          </Link>
-        </CardContent>
-      </Card>
+      {!activeProject ? (
+        <NoProject />
+      ) : loading ? (
+        <LoadingState />
+      ) : error ? (
+        <ErrorState message={error} />
+      ) : showCtx ? (
+        <EngagementBriefForm
+          key={showCtx.project_id}
+          initial={showCtx}
+          onSaved={(c) => setCtx(c)}
+        />
+      ) : null}
     </div>
+  );
+}
+
+function NoProject() {
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>No active project</CardTitle>
+        <CardDescription>
+          Pick a project from the top-left switcher to load its engagement brief.
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <Link href="/">
+          <Button variant="outline">Go to dashboard</Button>
+        </Link>
+      </CardContent>
+    </Card>
+  );
+}
+
+function LoadingState() {
+  return (
+    <Card>
+      <CardContent className="flex items-center gap-3 py-10 text-sm text-muted-foreground">
+        <Loader2 className="h-4 w-4 animate-spin" />
+        Loading engagement brief…
+      </CardContent>
+    </Card>
+  );
+}
+
+function ErrorState({ message }: { message: string }) {
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Couldn&apos;t load brief</CardTitle>
+        <CardDescription>{message}</CardDescription>
+      </CardHeader>
+    </Card>
   );
 }

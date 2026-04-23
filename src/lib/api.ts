@@ -271,4 +271,73 @@ export const api = {
         body: JSON.stringify(data),
       }),
   },
+
+  // v2.2 Engagement Context — typed brief; one record per project
+  engagementContext: {
+    get: (projectId: string) =>
+      request<EngagementContextRecord>(`/api/engagement-context/${projectId}`),
+    update: (
+      projectId: string,
+      data: Partial<EngagementContextRecord>,
+      writeToSourceId?: string,
+    ) => {
+      const qs = writeToSourceId
+        ? `?write_to_source_id=${encodeURIComponent(writeToSourceId)}`
+        : "";
+      return request<EngagementContextRecord>(
+        `/api/engagement-context/${projectId}${qs}`,
+        { method: "PUT", body: JSON.stringify(data) },
+      );
+    },
+    project: (projectId: string, sourceId: string) =>
+      request<{ written: boolean; path?: string; source_id?: string }>(
+        `/api/engagement-context/${projectId}/project?source_id=${encodeURIComponent(sourceId)}`,
+        { method: "POST" },
+      ),
+  },
 };
+
+export type EngagementPhase = "discovery" | "pilot" | "build" | "operate";
+
+export interface EngagementStakeholder {
+  name: string;
+  role: string;
+  org: string;
+  influence: string;
+  notes: string;
+}
+
+export interface EngagementMetric {
+  name: string;
+  target: string;
+  baseline: string;
+  notes: string;
+}
+
+export interface EngagementMilestone {
+  label: string;
+  target_date: string;
+  notes: string;
+}
+
+export interface EngagementContextRecord {
+  id: string;
+  project_id: string;
+  customer_id: string;
+  title: string;
+  one_liner: string;
+  phase: EngagementPhase;
+  problem: string;
+  desired_outcome: string;
+  scope_in: string[];
+  scope_out: string[];
+  constraints: string[];
+  assumptions: string[];
+  risks: string[];
+  stakeholders: EngagementStakeholder[];
+  success_metrics: EngagementMetric[];
+  milestones: EngagementMilestone[];
+  notes: string;
+  created_at: string;
+  updated_at: string;
+}
