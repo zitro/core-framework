@@ -11,19 +11,22 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   BookMarked,
+  BookOpen,
   Briefcase,
   Building2,
   Cloud,
-  Compass,
+  FileBarChart2,
   FileStack,
   FolderGit2,
+  GavelIcon,
   Globe,
   Home,
+  Layers,
   type LucideIcon,
   MessageSquare,
   Plug,
   Search,
-  ShieldCheck,
+  Settings2,
   Sparkles,
   Wand2,
 } from "lucide-react";
@@ -76,20 +79,70 @@ export function CommandPalette() {
       router.push(path);
     };
     const items: Command[] = [
+      // Primary nav (matches sidebar)
       { id: "go.dashboard", label: "Dashboard", icon: Home, run: nav("/") },
-      { id: "go.artifacts", label: "Artifacts", icon: FileStack, run: nav("/artifacts") },
       { id: "go.synthesis", label: "Synthesis", icon: Wand2, run: nav("/synthesis") },
+      { id: "go.artifacts", label: "Artifacts", icon: FileStack, run: nav("/artifacts") },
+      { id: "go.sources", label: "Sources", icon: Layers, run: nav("/sources") },
+      { id: "go.reports", label: "Reports", icon: FileBarChart2, run: nav("/reports") },
       { id: "go.methodology", label: "Methodology", icon: BookMarked, run: nav("/methodology") },
-      { id: "go.context", label: "Engagement Context", icon: FolderGit2, run: nav("/context") },
-      { id: "go.connectors", label: "Connectors", icon: Plug, run: nav("/connectors") },
-      { id: "go.company", label: "Company Research", icon: Building2, run: nav("/company") },
-      { id: "go.search", label: "Web Search", icon: Globe, run: nav("/search") },
-      { id: "go.narrative", label: "Narrative", icon: Sparkles, run: nav("/narrative") },
-      { id: "go.evidence", label: "Evidence", icon: Compass, run: nav("/evidence") },
+      { id: "go.settings", label: "Settings", icon: Settings2, run: nav("/settings") },
+      // Sources sub-tabs
+      {
+        id: "go.sources.connectors",
+        label: "Connectors",
+        hint: "Sources",
+        icon: Plug,
+        keywords: ["github", "web", "json"],
+        run: nav("/sources?tab=connectors"),
+      },
+      {
+        id: "go.sources.company",
+        label: "Company Research",
+        hint: "Sources",
+        icon: Building2,
+        run: nav("/sources?tab=company"),
+      },
+      {
+        id: "go.sources.web",
+        label: "Web Search",
+        hint: "Sources",
+        icon: Globe,
+        run: nav("/sources?tab=web"),
+      },
+      {
+        id: "go.sources.evidence",
+        label: "Evidence Board",
+        hint: "Sources",
+        icon: BookOpen,
+        run: nav("/sources?tab=evidence"),
+      },
+      // Settings sub-tabs
+      {
+        id: "go.settings.engagement",
+        label: "Engagement Context",
+        hint: "Settings",
+        icon: FolderGit2,
+        run: nav("/settings?tab=engagement"),
+      },
+      {
+        id: "go.settings.reviews",
+        label: "Reviews",
+        hint: "Settings",
+        icon: GavelIcon,
+        run: nav("/settings?tab=reviews"),
+      },
+      {
+        id: "go.settings.connections",
+        label: "Microsoft 365",
+        hint: "Settings",
+        icon: Cloud,
+        run: nav("/settings?tab=connections"),
+      },
+      // Surfaces without a sidebar item
+      { id: "go.narrative", label: "Narrative", icon: Sparkles, run: nav("/reports") },
       { id: "go.grounding", label: "Grounded Answers", icon: MessageSquare, run: nav("/grounding") },
       { id: "go.engagements", label: "Engagements", icon: Briefcase, run: nav("/engagements") },
-      { id: "go.reviews", label: "Reviews", icon: ShieldCheck, run: nav("/reviews") },
-      { id: "go.m365", label: "Microsoft 365", icon: Cloud, run: nav("/m365") },
     ];
     if (hasRepo) {
       items.splice(2, 0, {
