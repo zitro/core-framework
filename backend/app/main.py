@@ -67,6 +67,7 @@ def create_app() -> FastAPI:
         artifact_threads,
         audit,
         blueprints,
+        capture,
         customers,
         discovery,
         docs,
@@ -176,6 +177,7 @@ def create_app() -> FastAPI:
     app.include_router(engagements.router, prefix="/api/engagements", tags=["engagements"])
     app.include_router(projects.router, prefix="/api/projects", tags=["projects"])
     app.include_router(customers.router, prefix="/api/customers", tags=["customers"])
+    app.include_router(capture.router, prefix="/api/capture", tags=["capture"])
     app.include_router(
         engagement_context.router,
         prefix="/api/engagement-context",
