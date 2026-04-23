@@ -4,7 +4,7 @@ from app.utils.slug import slugify
 
 
 def test_simple_lowercase() -> None:
-    assert slugify("Allstate Claims") == "allstate-claims"
+    assert slugify("Acme Inc") == "acme-inc"
 
 
 def test_collapses_punctuation() -> None:

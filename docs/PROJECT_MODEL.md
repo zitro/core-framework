@@ -4,15 +4,15 @@ CORE Discovery is built around a **one-customer-per-deploy, many-projects-per-cu
 
 ## Vocabulary
 
-- **Customer** — the organization that owns a deployment (e.g. Allstate). Implied by the deploy itself; not a stored entity.
+- **Customer** — the organization that owns a deployment. Implied by the deploy itself; not a stored entity.
 - **Project** — a unit of work for that customer. Stored as an `Engagement` record (the legacy name) and exposed at both `/api/projects/*` (preferred) and `/api/engagements/*` (compatibility).
 - **Discovery** — a CORE-method workstream within a Project (capture → orient → refine → execute).
 - **Evidence**, **Question Set**, **Problem Statement**, **Use Case**, **Blueprint**, etc. — artifacts attached to a Discovery.
 
 ```
-Customer (Allstate)              ← implied by deploy
-└── Project (a.k.a. Engagement)  ← e.g. "Claims Modernization"
-    └── Discovery                ← e.g. "FNOL pilot scoping"
+Customer                         ← implied by deploy
+└── Project (a.k.a. Engagement)  ← e.g. "Platform Modernization"
+    └── Discovery                ← e.g. "Pilot scoping"
         └── Evidence, Questions, Statements, Blueprints …
 ```
 
@@ -53,11 +53,11 @@ services:
 Inside that mount, each Project's source content lives under its slug (or any name you reference in `repo_path`):
 
 ```
-core-allstate/
+core-<customer>/
 └── projects/
-    ├── claims-modernization/   ← repo_path: "claims-modernization"
+    ├── platform-modernization/ ← repo_path: "platform-modernization"
     │   └── content/
-    ├── fnol-pilot/             ← repo_path: "fnol-pilot"
+    ├── pilot-one/              ← repo_path: "pilot-one"
     │   └── content/
     └── data-platform/          ← repo_path: "data-platform"
         └── content/

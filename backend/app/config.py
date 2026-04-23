@@ -47,7 +47,7 @@ class Settings(BaseSettings):
     # Project artifacts mount root. Per-project ``repo_path`` values that are
     # not absolute are resolved relative to this directory. Customer deploys
     # mount their ``./projects`` folder here so engagements can reference
-    # subdirectories by name (e.g. ``repo_path: "allstate-claims"``).
+    # subdirectories by name (e.g. ``repo_path: "customer-project"``).
     projects_root: str = "./data/projects"
 
     # v2.2 multi-source workspace root. GitHub-backed Sources are cloned

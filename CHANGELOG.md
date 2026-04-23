@@ -556,7 +556,7 @@ deploys (one `core-*` repo per customer, many projects per repo).
   backward compatibility.
 - `settings.projects_root` (default `./data/projects`) — mount convention.
   Customer deploys mount their `./projects` folder here so engagements can
-  reference subdirectories by name (`repo_path: "allstate-claims"`) instead
+  reference subdirectories by name (`repo_path: "customer-project"`) instead
   of leaking host paths.
 - `app.utils.project_paths.resolve_project_repo_path` — central resolver used
   by every `/api/engagement/*` endpoint that takes a `repo_path`. Absolute

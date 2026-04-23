@@ -50,7 +50,7 @@ version number is held at `1.9.0`.
 * Remove dead surface area before adding new features on top of it.
 * Stop confusing contributors with two competing domain models.
 * Unblock rebranding ("CORE Discovery" → "CORE").
-* Keep the running `core-allstate` deployment functional throughout.
+* Keep existing customer deployments functional throughout.
 
 ## Options considered
 
