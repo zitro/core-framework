@@ -66,6 +66,7 @@ def create_app() -> FastAPI:
         agents,
         audit,
         blueprints,
+        customers,
         discovery,
         docs,
         dt_templates,
@@ -172,6 +173,7 @@ def create_app() -> FastAPI:
     app.include_router(me.router, prefix="/api/me", tags=["me"])
     app.include_router(engagements.router, prefix="/api/engagements", tags=["engagements"])
     app.include_router(projects.router, prefix="/api/projects", tags=["projects"])
+    app.include_router(customers.router, prefix="/api/customers", tags=["customers"])
     app.include_router(reviews.router, prefix="/api/reviews", tags=["reviews"])
     app.include_router(graph.router, prefix="/api/graph", tags=["graph"])
     app.include_router(dynamics.router, prefix="/api/dynamics", tags=["dynamics"])
