@@ -74,10 +74,13 @@ def _is_empty(value: object) -> bool:
     return False
 
 
-# Title is auto-seeded from the project name on first read, so it can never
-# be empty. Excluding it lets the first-touch auto-draft fire when every
-# *meaningful* field is still blank.
-_AUTO_DRAFT_TRIGGER_FIELDS: tuple[str, ...] = tuple(f for f in _VERSIONED_FIELDS if f != "title")
+# Title is auto-seeded from the project name on first read, and phase
+# defaults to "discovery" — both can never be empty. Excluding them lets
+# the first-touch auto-draft fire when every *meaningful* field is blank.
+_AUTO_DRAFT_DEFAULTED_FIELDS = {"title", "phase"}
+_AUTO_DRAFT_TRIGGER_FIELDS: tuple[str, ...] = tuple(
+    f for f in _VERSIONED_FIELDS if f not in _AUTO_DRAFT_DEFAULTED_FIELDS
+)
 
 
 def _context_is_empty(item: dict) -> bool:
