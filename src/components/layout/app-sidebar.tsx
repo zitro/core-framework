@@ -10,6 +10,7 @@ import {
   Building2,
   Cloud,
   Compass,
+  FileStack,
   FolderGit2,
   Globe,
   Home,
@@ -38,6 +39,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { ThemeToggle } from "@/components/layout/theme-toggle";
 import { ProjectSwitcher } from "@/components/layout/project-switcher";
+import { useProject } from "@/stores/project-store";
 
 interface NavItem {
   label: string;
@@ -109,6 +111,8 @@ const FRAMEWORK_VERSION = pkg.version;
 
 export function AppSidebar() {
   const pathname = usePathname();
+  const { activeProject } = useProject();
+  const hasRepo = !!activeProject?.repo_path;
   const isActive = (href: string) =>
     pathname === href || pathname.startsWith(`${href}/`);
 
@@ -141,6 +145,32 @@ export function AppSidebar() {
                   <span>Dashboard</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  render={<Link href="/artifacts" />}
+                  isActive={isActive("/artifacts")}
+                >
+                  <FileStack className="h-4 w-4" />
+                  <span>Artifacts</span>
+                  <Badge variant="outline" className="ml-auto text-[9px]">
+                    v2
+                  </Badge>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              {hasRepo && (
+                <SidebarMenuItem>
+                  <SidebarMenuButton
+                    render={<Link href="/vertex" />}
+                    isActive={isActive("/vertex")}
+                  >
+                    <FolderGit2 className="h-4 w-4" />
+                    <span>Vertex Repo</span>
+                    <Badge variant="outline" className="ml-auto text-[9px]">
+                      v2
+                    </Badge>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              )}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>

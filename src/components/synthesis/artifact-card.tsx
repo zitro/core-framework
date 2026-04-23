@@ -10,11 +10,13 @@ import {
   CritiqueChip,
   CritiqueIssueList,
 } from "@/components/synthesis/critique-chip";
+import { StoryboardFrames } from "@/components/synthesis/storyboard-frames";
 import type { SynthesisArtifact } from "@/lib/api-synthesis";
 
 interface Props {
   artifact: SynthesisArtifact;
   onRegenerate: (typeId: string) => Promise<void> | void;
+  onUpdate?: (updated: SynthesisArtifact) => void;
   busy?: boolean;
 }
 
@@ -40,9 +42,10 @@ function renderBodyValue(value: unknown): React.ReactNode {
   return <span>{String(value)}</span>;
 }
 
-export function ArtifactCard({ artifact, onRegenerate, busy }: Props) {
+export function ArtifactCard({ artifact, onRegenerate, onUpdate, busy }: Props) {
   const [open, setOpen] = useState(false);
   const bodyEntries = Object.entries(artifact.body || {});
+  const isStoryboard = artifact.type_id === "storyboard";
 
   return (
     <Card>
@@ -94,7 +97,15 @@ export function ArtifactCard({ artifact, onRegenerate, busy }: Props) {
 
         {open && (
           <div className="space-y-4 pt-2 border-t">
-            {bodyEntries.length > 0 && (
+            {isStoryboard && onUpdate && (
+              <div className="space-y-2">
+                <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                  Frames
+                </div>
+                <StoryboardFrames artifact={artifact} onUpdate={onUpdate} />
+              </div>
+            )}
+            {!isStoryboard && bodyEntries.length > 0 && (
               <div className="space-y-2">
                 <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                   Body

@@ -16,12 +16,16 @@ class Settings(BaseSettings):
     graph_provider: str = "none"
     # "none" | "dataverse"
     dynamics_provider: str = "none"
+    # "none" | "local" (deterministic SVG placeholder) | "azure_openai" (DALL-E 3)
+    image_provider: str = "none"
 
     # Azure OpenAI
     azure_openai_endpoint: str = ""
     azure_openai_api_key: str = ""
     azure_openai_deployment: str = "gpt-4o"
     azure_openai_api_version: str = "2024-12-01-preview"
+    # DALL-E 3 image deployment on the same Azure OpenAI resource. Optional.
+    azure_openai_image_deployment: str = "dall-e-3"
 
     # OpenAI (direct)
     openai_api_key: str = ""
@@ -122,6 +126,8 @@ class Settings(BaseSettings):
         if self.dynamics_provider in ("dataverse", "dynamics"):
             if not self.dynamics_url:
                 warnings.append("DYNAMICS_URL required when DYNAMICS_PROVIDER=dataverse")
+        if self.image_provider == "azure_openai" and not self.azure_openai_endpoint:
+            warnings.append("AZURE_OPENAI_ENDPOINT required when IMAGE_PROVIDER=azure_openai")
         return warnings
 
 

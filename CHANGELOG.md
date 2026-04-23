@@ -7,6 +7,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.0.0] - 2026-04-22
+
+Methodology parity, image generation, vertex repo viewer, top-level Artifacts page, and a global command palette. Additive release; existing routes and behavior preserved.
+
+### Added
+
+- **Synthesis catalog**: 9 new design-thinking artifact types (catalog 33 -> 42) â€” `interview-guide`, `empathy-map`, `jtbd`, `emerging-themes`, `root-cause`, `assumption-matrix`, `storyboard`, `quick-win`, `retro`. Closes the gap where 11 of 16 advertised methods had no AI generator.
+- **Image generation**: `IMAGE_PROVIDER` provider abstraction (`none` default, `local` deterministic SVG, `azure_openai` DALL-E 3 via `AZURE_OPENAI_IMAGE_DEPLOYMENT`). New `POST /api/v2/{project_id}/artifacts/{artifact_id}/images` endpoint generates one image per storyboard frame whose `image_url` is empty (idempotent).
+- **Vertex repo viewer**: `GET /api/v2/{project_id}/vertex/tree` and `/vertex/file?path=` back a new `/vertex` page that renders the connected vertex repo as a tree on the left and rendered markdown on the right. Path traversal is rejected at the API.
+- **/artifacts page**: top-level read-and-share gallery of every generated artifact with category filter chips and search.
+- **Storyboard frame UI**: `ArtifactCard` now renders storyboard `frames[]` as image cards with a one-click "Generate images" action that fills any frame missing `image_url`.
+- **Cmd+K command palette**: global keyboard shortcut (`Cmd/Ctrl+K`) opens a quick-jump palette covering all top-level routes; conditionally surfaces Vertex when the project has a `repo_path`.
+- **Sidebar**: top-level Artifacts entry on every project; conditional Vertex Repo entry when a repo is connected.
+
+### Changed
+
+- API title now `CORE Framework API` (was `CORE Discovery Framework API`); FastAPI version reports `2.0.0`.
+- `backend-discovery-api` package description updated; legacy "Discovery" naming retained at the route level for backwards compatibility.
+
+### Notes
+
+- No data migration required; v1.x artifacts and projects continue to work unchanged.
+- Discovery routes (`/api/discovery`) remain mounted; full removal is deferred to a future major.
+
 ## [1.9.3] - 2026-04-22
 
 CI: drop dependency caches that depend on the degraded Azure-hosted GitHub Actions cache, and add a 15-minute timeout to the test job so future infra hangs fail fast.
