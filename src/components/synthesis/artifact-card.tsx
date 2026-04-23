@@ -4,12 +4,14 @@ import { RefreshCw, Mail, Copy, MessageSquare } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { CritiqueChip } from "@/components/synthesis/critique-chip";
 import type { SynthesisArtifact } from "@/lib/api-synthesis";
 
 interface Props {
   artifact: SynthesisArtifact;
+  /** Friendly type label from the catalog (e.g. "Personas", "Workstreams"). */
+  typeLabel?: string;
+  /** Project name kept for legacy callers; no longer used in the title. */
   projectName?: string;
   onRegenerate: (typeId: string) => Promise<void> | void;
   onUpdate?: (updated: SynthesisArtifact) => void;
@@ -17,53 +19,21 @@ interface Props {
   busy?: boolean;
 }
 
-/**
- * Strip the repeated engagement-name phrase from an artifact title so cards
- * don't echo the project name that's already shown in the page header.
- *
- * Strategy (tolerant to apostrophes / casing / minor word changes):
- *   1. If the project name appears literally (case-insensitive), cut it and
- *      anything after.
- *   2. Otherwise, drop any trailing " for ..." tail (e.g.
- *      "Personas for Allstate's 24-hour Data-to-Insights Initiative"
- *      -> "Personas"). Keeps the first ~80 chars before the " for ".
- *   3. Fall back to the original title.
- */
-function shortenTitle(raw: string, projectName?: string): string {
-  if (!raw) return raw;
-  let t = raw.trim();
-
-  // 1. Direct project-name match (case-insensitive).
-  if (projectName && projectName.trim()) {
-    const name = projectName.trim();
-    const esc = name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-    const patterns: RegExp[] = [
-      new RegExp(`\\s*(?:for|:|\u2014|-)?\\s*${esc}['\u2019]?s?\\b.*$`, "i"),
-      new RegExp(`^${esc}['\u2019]?s?\\s+`, "i"),
-    ];
-    for (const p of patterns) t = t.replace(p, "").trim();
-  }
-
-  // 2. Generic "... for <anything>" trailing strip.
-  const forMatch = t.match(/^(.*?)\s+for\s+.+$/i);
-  if (forMatch && forMatch[1].trim().length >= 3) {
-    t = forMatch[1].trim();
-  }
-
-  // 3. Trim dangling punctuation.
-  t = t.replace(/[\s:\-\u2014]+$/, "").trim();
-
-  return t || raw;
+/** Convert a slug-ish type id ("customer-pain") to a friendly label. */
+function humanizeTypeId(id: string): string {
+  return id
+    .replace(/[-_]+/g, " ")
+    .replace(/\b([a-z])/g, (m) => m.toUpperCase());
 }
 
 export function ArtifactCard({
   artifact,
-  projectName,
+  typeLabel,
   onRegenerate,
   onOpenDetail,
   busy,
 }: Props) {
-  const title = shortenTitle(artifact.title, projectName);
+  const title = typeLabel || humanizeTypeId(artifact.type_id);
 
   return (
     <Card className="flex h-full flex-col">
@@ -74,7 +44,6 @@ export function ArtifactCard({
               {title}
             </CardTitle>
             <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-              <Badge variant="outline">{artifact.type_id}</Badge>
               <span>v{artifact.version}</span>
               <span>· {artifact.status}</span>
             </div>
