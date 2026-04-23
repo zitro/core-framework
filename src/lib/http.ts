@@ -87,3 +87,29 @@ export async function request<T>(
   }
   return res.json();
 }
+
+/** Download a backend file (auth-aware) and trigger a save dialog. */
+export async function downloadFile(
+  path: string,
+  filename: string,
+): Promise<void> {
+  let res = await fetchWithAuth(path, { method: "GET" }, false);
+  if (res.status === 401 && tokenGetter()) {
+    res = await fetchWithAuth(path, { method: "GET" }, true);
+    if (res.status === 401) signInRequired();
+  }
+  if (!res.ok) {
+    const message = res.statusText || "Download failed";
+    toast.error(message);
+    throw new Error(message);
+  }
+  const blob = await res.blob();
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}

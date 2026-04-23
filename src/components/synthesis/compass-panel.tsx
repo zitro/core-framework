@@ -131,14 +131,14 @@ function CategoryDot({ cat }: { cat: CompassCategoryHealth }) {
 
   return (
     <div
-      className={`rounded-md border p-2 ${tone.bg}`}
+      className={`min-w-0 rounded-md border p-2 ${tone.bg}`}
       title={`${cat.label}: present=${cat.present} draft=${cat.draft} missing=${cat.critical_missing} blocker=${cat.blocker_signals} warn=${cat.warn_signals}`}
     >
-      <div className="flex items-center gap-1.5">
-        <span className={`size-2 rounded-full ${tone.dot}`} />
-        <span className="text-xs font-medium">{cat.label}</span>
+      <div className="flex min-w-0 items-center gap-1.5">
+        <span className={`size-2 shrink-0 rounded-full ${tone.dot}`} />
+        <span className="min-w-0 truncate text-xs font-medium">{cat.label}</span>
       </div>
-      <p className="text-[10px] text-muted-foreground mt-0.5">{detail}</p>
+      <p className="mt-0.5 text-[10px] leading-tight text-muted-foreground">{detail}</p>
     </div>
   );
 }

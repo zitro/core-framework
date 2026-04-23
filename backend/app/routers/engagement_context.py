@@ -21,6 +21,7 @@ response surfaces them in ``projection``.
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.concurrency import run_in_threadpool
@@ -28,7 +29,10 @@ from fastapi.concurrency import run_in_threadpool
 from app.dependencies import get_current_user
 from app.models.customer import Source
 from app.models.engagement_context import EngagementContext, EngagementContextUpdate
+from app.providers.llm import get_llm_provider
 from app.providers.storage import get_storage_provider
+from app.synthesis.corpus import build_corpus
+from app.synthesis.prompts import SYSTEM_FRAME, render_corpus_block
 from app.utils.audit import stamp_create, stamp_update
 from app.utils.audit_log import audit
 from app.utils.engagement_brief import BRIEF_FILENAME, render_engagement_brief
@@ -38,6 +42,7 @@ router = APIRouter(dependencies=[Depends(get_current_user)])
 COLLECTION = "engagement_contexts"
 PROJECTS_COLLECTION = "engagements"
 CUSTOMERS_COLLECTION = "customers"
+ARTIFACTS_COLLECTION = "artifacts"
 
 
 async def _get_or_create(project_id: str) -> dict:
@@ -141,3 +146,162 @@ async def project_brief(project_id: str, source_id: str) -> dict:
     if not result.get("written"):
         raise HTTPException(status_code=400, detail=result.get("error", "Projection failed"))
     return result
+
+
+_DRAFT_SYSTEM = (
+    SYSTEM_FRAME
+    + "\n\nYou are drafting a project's engagement brief from its corpus.\n"
+    + "Be concrete and grounded — only use facts the corpus supports.\n"
+    + "If you cannot infer a field with confidence, leave it empty/null.\n"
+    + "Lists should be 3-7 short bullet points (one phrase each)."
+)
+
+
+def _draft_user_prompt(project: dict, corpus, artifacts: list[dict]) -> str:
+    name = project.get("name") or "(untitled)"
+    summaries = (
+        "\n".join(
+            f"- {a.get('type_id')}: {a.get('title', '')} — {(a.get('summary') or '')[:200]}"
+            for a in artifacts[:20]
+        )
+        or "(no artifacts yet)"
+    )
+    return f"""PROJECT NAME: {name}
+
+EXISTING ARTIFACTS:
+{summaries}
+
+CORPUS (truncated):
+{render_corpus_block(corpus, max_chars=12_000)}
+
+Return strict JSON with this exact shape (every field optional, omit
+or use null/[] when the corpus doesn't support a confident answer):
+{{
+  "title": "string",
+  "one_liner": "string (<= 20 words)",
+  "phase": "discovery|pilot|build|operate",
+  "problem": "2-4 sentence narrative",
+  "desired_outcome": "2-4 sentence narrative of what success looks like",
+  "scope_in": ["short phrase", ...],
+  "scope_out": ["short phrase", ...],
+  "constraints": ["short phrase", ...],
+  "assumptions": ["short phrase", ...],
+  "risks": ["short phrase", ...],
+  "stakeholders": [
+    {{"name": "...", "role": "...", "org": "customer|internal|partner",
+      "influence": "high|medium|low", "notes": "..."}}
+  ],
+  "success_metrics": [
+    {{"name": "metric label", "target": "target value",
+      "baseline": "current value", "notes": "how measured"}}
+  ],
+  "milestones": [
+    {{"label": "milestone", "target_date": "YYYY-MM-DD or freeform", "notes": "context"}}
+  ]
+}}
+
+Rules:
+- Use the corpus and artifacts above; do NOT invent specifics.
+- For scope/constraints/assumptions/risks: 3-7 items each, one phrase each.
+- For stakeholders: only include people actually named in the corpus. Skip
+  the field entirely if no real names appear. Never invent names.
+- For success_metrics: only include metrics with at least a name; target/
+  baseline can be empty strings if not stated.
+- For milestones: only include dated or clearly sequenced events from the
+  corpus. Skip if none.
+- Phase defaults to "discovery" unless the corpus clearly indicates otherwise."""
+
+
+_ALLOWED_PHASES = {"discovery", "pilot", "build", "operate"}
+_STR_FIELDS = ("title", "one_liner", "problem", "desired_outcome")
+_LIST_FIELDS = ("scope_in", "scope_out", "constraints", "assumptions", "risks")
+_STAKEHOLDER_KEYS = ("name", "role", "org", "influence", "notes")
+_METRIC_KEYS = ("name", "target", "baseline", "notes")
+_MILESTONE_KEYS = ("label", "target_date", "notes")
+
+
+def _coerce_rows(
+    raw: Any, keys: tuple[str, ...], required: str, limit: int = 12
+) -> list[dict[str, str]]:
+    if not isinstance(raw, list):
+        return []
+    out: list[dict[str, str]] = []
+    for item in raw[:limit]:
+        if not isinstance(item, dict):
+            continue
+        req_val = str(item.get(required) or "").strip()
+        if not req_val:
+            continue
+        out.append({k: str(item.get(k) or "").strip() for k in keys})
+    return out
+
+
+def _coerce_draft(raw: dict[str, Any]) -> dict[str, Any]:
+    out: dict[str, Any] = {}
+    for k in _STR_FIELDS:
+        v = raw.get(k)
+        if isinstance(v, str) and v.strip():
+            out[k] = v.strip()
+    for k in _LIST_FIELDS:
+        v = raw.get(k)
+        if isinstance(v, list):
+            cleaned = [str(x).strip() for x in v if str(x or "").strip()]
+            if cleaned:
+                out[k] = cleaned[:12]
+    phase = raw.get("phase")
+    if isinstance(phase, str) and phase.lower() in _ALLOWED_PHASES:
+        out["phase"] = phase.lower()
+    stakeholders = _coerce_rows(raw.get("stakeholders"), _STAKEHOLDER_KEYS, "name")
+    if stakeholders:
+        out["stakeholders"] = stakeholders
+    metrics = _coerce_rows(raw.get("success_metrics"), _METRIC_KEYS, "name")
+    if metrics:
+        out["success_metrics"] = metrics
+    milestones = _coerce_rows(raw.get("milestones"), _MILESTONE_KEYS, "label")
+    if milestones:
+        out["milestones"] = milestones
+    return out
+
+
+@router.post("/{project_id}/draft")
+async def draft_brief(project_id: str) -> dict:
+    """Use the LLM + corpus to propose values for the brief.
+
+    Does NOT save. Returns a partial EngagementContextUpdate; the client
+    decides which fields to merge into the form (typically only empty
+    ones, so user edits aren't clobbered).
+    """
+    storage = get_storage_provider()
+    project = await storage.get(PROJECTS_COLLECTION, project_id)
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    corpus = await build_corpus(project)
+
+    artifact_dicts: list[dict] = []
+    for key in ("project_id", "projectId"):
+        try:
+            items = await storage.list(ARTIFACTS_COLLECTION, {key: project_id})
+        except Exception:
+            items = []
+        if items:
+            artifact_dicts = items
+            break
+
+    user_prompt = _draft_user_prompt(project, corpus, artifact_dicts)
+    try:
+        raw = await get_llm_provider().complete_json(_DRAFT_SYSTEM, user_prompt)
+    except Exception as exc:  # noqa: BLE001
+        raise HTTPException(status_code=502, detail=f"LLM draft failed: {exc}") from exc
+
+    if not isinstance(raw, dict):
+        raise HTTPException(status_code=502, detail="LLM returned non-object response")
+
+    draft = _coerce_draft(raw)
+    await audit(
+        "draft",
+        collection=COLLECTION,
+        item_id=project_id,
+        summary=f"project={project_id} fields={','.join(sorted(draft.keys())) or 'none'}",
+    )
+    return {"draft": draft, "corpus_docs": len(corpus.docs)}
