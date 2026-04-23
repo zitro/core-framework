@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.1.2] - 2026-04-22
+
+### Fixed
+
+- **Markdown rendering on /vertex**: installed `@tailwindcss/typography` (the `prose` classes were no-ops without the plugin in Tailwind v4), strip leading YAML frontmatter and HTML comments before rendering, beef up heading styles (H1/H2 with under-borders, larger sizes, clear vertical rhythm). ADR/template files now render with proper hierarchy instead of as one flat paragraph.
+
 ## [2.1.1] - 2026-04-22
 
 ### Fixed
