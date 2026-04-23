@@ -237,4 +237,38 @@ export const api = {
         body: JSON.stringify(data),
       }),
   },
+
+  // v2.2 Capture — extract + classify raw input into typed artifact candidates
+  capture: {
+    extractClassify: (
+      projectId: string,
+      data: { raw_text: string; source_label?: string },
+    ) =>
+      request<{
+        project_id: string;
+        candidates: Array<{
+          type_id: string;
+          category: string;
+          title: string;
+          summary: string;
+          body: Record<string, unknown>;
+          evidence_quote: string;
+          action: "new" | "replace";
+          replaces_artifact_id: string;
+        }>;
+        db_diff: { creates: number; replaces: number };
+        vertex_paths: Array<{
+          candidate_index: number;
+          type_id: string;
+          path: string;
+          relative_path: string;
+          source_id: string;
+          available: boolean;
+          reason: string;
+        }>;
+      }>(`/api/capture/${projectId}/extract-classify`, {
+        method: "POST",
+        body: JSON.stringify(data),
+      }),
+  },
 };
