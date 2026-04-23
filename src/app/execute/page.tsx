@@ -1,19 +1,20 @@
 "use client";
 
 /**
- * Top-level Artifacts page (v2.0).
+ * /execute — top-level Artifacts page.
  *
  * Cross-category gallery of every generated artifact for the active
- * project, with filter chips and a search box. Companion to /synthesis,
- * which is the build/curate surface; Artifacts is the read-and-share view.
+ * project, with filter chips and a search box. ?view=reports switches
+ * to a denser report-style layout (groups by category, less chrome).
+ * Companion to /refine, which is the build/curate surface; /execute is
+ * the read-and-share view.
  */
 
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { EyeOff, Search, Wand2 } from "lucide-react";
+import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { EyeOff, LayoutGrid, ListChecks, Search, Wand2 } from "lucide-react";
 
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { useProject } from "@/stores/project-store";
 import {
@@ -23,38 +24,34 @@ import {
 } from "@/lib/api-synthesis";
 import { ENGAGEMENT_STATUS_LABELS, type EngagementStatus } from "@/types/fde";
 import { ArtifactCard } from "@/components/synthesis/artifact-card";
-
-const CATEGORY_LABELS: Record<SynthesisCategoryId, string> = {
-  why: "Why",
-  value: "Value",
-  what: "What",
-  scope: "Scope",
-  how: "How",
-  story: "Story",
-  operational: "Operational",
-};
-
-/**
- * Categories that only make sense once an engagement is closing/closed
- * (wrap-ups, retros, status updates). Hidden by default until the project
- * status reaches `completed`; users can opt in via the "Show closing" toggle.
- */
-const LATE_STAGE_CATEGORIES: ReadonlySet<SynthesisCategoryId> = new Set([
-  "operational",
-]);
-
-const STATUS_STYLES: Record<EngagementStatus, string> = {
-  proposed: "border-amber-500/50 bg-amber-500/10 text-amber-700 dark:text-amber-300",
-  active: "border-emerald-500/50 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300",
-  paused: "border-slate-500/50 bg-slate-500/10 text-slate-700 dark:text-slate-300",
-  completed: "border-blue-500/50 bg-blue-500/10 text-blue-700 dark:text-blue-300",
-  cancelled: "border-rose-500/50 bg-rose-500/10 text-rose-700 dark:text-rose-300",
-};
+import { ArtifactDetailModal } from "@/components/refine/artifact-detail-modal";
+import { ReportsView } from "@/components/execute/reports-view";
+import {
+  CATEGORY_LABELS,
+  EmptyHero,
+  FilterChip,
+  LATE_STAGE_CATEGORIES,
+  SkeletonGrid,
+  STATUS_STYLES,
+  ViewToggle,
+} from "@/components/execute/primitives";
 
 type Filter = SynthesisCategoryId | "all";
+type ViewMode = "gallery" | "reports";
 
 export default function ArtifactsPage() {
+  return (
+    <Suspense fallback={null}>
+      <ArtifactsInner />
+    </Suspense>
+  );
+}
+
+function ArtifactsInner() {
   const { activeProject } = useProject();
+  const router = useRouter();
+  const params = useSearchParams();
+  const view: ViewMode = params.get("view") === "reports" ? "reports" : "gallery";
   const projectId = activeProject?.id ?? "";
   const status: EngagementStatus = activeProject?.status ?? "proposed";
   const isClosingStage = status === "completed" || status === "cancelled";
@@ -63,6 +60,15 @@ export default function ArtifactsPage() {
   const [filter, setFilter] = useState<Filter>("all");
   const [query, setQuery] = useState("");
   const [showLateStage, setShowLateStage] = useState(false);
+  const [openArtifact, setOpenArtifact] = useState<SynthesisArtifact | null>(null);
+
+  const setView = (next: ViewMode) => {
+    const search = new URLSearchParams(params.toString());
+    if (next === "reports") search.set("view", "reports");
+    else search.delete("view");
+    const qs = search.toString();
+    router.replace(qs ? `/execute?${qs}` : "/execute", { scroll: false });
+  };
 
   const load = useCallback(async () => {
     if (!projectId) return;
@@ -159,6 +165,24 @@ export default function ArtifactsPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
+          <div
+            className="inline-flex rounded-md border bg-background p-0.5"
+            role="tablist"
+            aria-label="View mode"
+          >
+            <ViewToggle
+              active={view === "gallery"}
+              onClick={() => setView("gallery")}
+              label="Gallery"
+              icon={<LayoutGrid className="size-3.5" />}
+            />
+            <ViewToggle
+              active={view === "reports"}
+              onClick={() => setView("reports")}
+              label="Reports"
+              icon={<ListChecks className="size-3.5" />}
+            />
+          </div>
           <Button
             variant="outline"
             size="sm"
@@ -211,8 +235,14 @@ export default function ArtifactsPage() {
           body={
             query || filter !== "all"
               ? "Try clearing the filters or search."
-              : "Run synthesis from the Synthesis page to generate the first artifacts."
+              : "Run synthesis from the Refine page to generate the first artifacts."
           }
+        />
+      ) : view === "reports" ? (
+        <ReportsView
+          artifacts={filtered}
+          categoryLabels={CATEGORY_LABELS}
+          onOpen={setOpenArtifact}
         />
       ) : (
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
@@ -221,6 +251,7 @@ export default function ArtifactsPage() {
               key={a.id}
               artifact={a}
               onRegenerate={() => {}}
+              onOpenDetail={setOpenArtifact}
               onUpdate={(updated) =>
                 setArtifacts((prev) =>
                   prev.map((p) => (p.id === updated.id ? { ...p, ...updated } : p)),
@@ -230,60 +261,15 @@ export default function ArtifactsPage() {
           ))}
         </div>
       )}
+      <ArtifactDetailModal
+        projectId={projectId}
+        artifact={openArtifact}
+        open={openArtifact !== null}
+        onOpenChange={(o) => {
+          if (!o) setOpenArtifact(null);
+        }}
+      />
     </div>
   );
 }
 
-function FilterChip({
-  active,
-  onClick,
-  label,
-}: {
-  active: boolean;
-  onClick: () => void;
-  label: string;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-pressed={active}
-      className={
-        "inline-flex items-center rounded-full border px-3 py-1 text-xs transition " +
-        (active
-          ? "border-primary bg-primary text-primary-foreground"
-          : "border-border bg-background hover:bg-accent")
-      }
-    >
-      {label}
-    </button>
-  );
-}
-
-function SkeletonGrid() {
-  return (
-    <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-      {Array.from({ length: 6 }).map((_, i) => (
-        <Card key={i} aria-hidden>
-          <CardContent className="space-y-2 py-6">
-            <div className="h-4 w-1/2 animate-pulse rounded bg-muted" />
-            <div className="h-3 w-full animate-pulse rounded bg-muted" />
-            <div className="h-3 w-2/3 animate-pulse rounded bg-muted" />
-          </CardContent>
-        </Card>
-      ))}
-    </div>
-  );
-}
-
-function EmptyHero({ title, body }: { title: string; body: string }) {
-  return (
-    <Card>
-      <CardContent className="flex flex-col items-center justify-center gap-2 py-12 text-center">
-        <Badge variant="outline">v2.0</Badge>
-        <h2 className="text-lg font-medium">{title}</h2>
-        <p className="max-w-md text-sm text-muted-foreground">{body}</p>
-      </CardContent>
-    </Card>
-  );
-}
