@@ -1,4 +1,4 @@
-"""Local SVG image provider â€” deterministic placeholder, no network.
+"""Local SVG image provider — deterministic placeholder, no network.
 
 Renders a simple labeled SVG card from the prompt. Used in dev/CI so the
 storyboard UI can be exercised end-to-end without spending Azure credits.

@@ -4,7 +4,7 @@
  * Global Cmd+K command palette (v2.0).
  *
  * Lives at the layout level so every page gets the same shortcut. Uses
- * the existing Dialog + Input primitives â€” no new dependency.
+ * the existing Dialog + Input primitives — no new dependency.
  */
 
 import { useEffect, useMemo, useState } from "react";
@@ -168,7 +168,7 @@ export function CommandPalette() {
           <Input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Jump toâ€¦  (Cmd/Ctrl+K)"
+            placeholder="Jump to…  (Cmd/Ctrl+K)"
             autoFocus
             className="h-9 border-0 px-0 shadow-none focus-visible:ring-0"
             aria-label="Search commands"
