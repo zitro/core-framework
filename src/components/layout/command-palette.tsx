@@ -11,7 +11,6 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   BookMarked,
-  BookOpen,
   Briefcase,
   Building2,
   Cloud,
@@ -109,13 +108,6 @@ export function CommandPalette() {
         hint: "Sources",
         icon: Globe,
         run: nav("/sources?tab=web"),
-      },
-      {
-        id: "go.sources.evidence",
-        label: "Evidence Board",
-        hint: "Sources",
-        icon: BookOpen,
-        run: nav("/sources?tab=evidence"),
       },
       // Settings sub-tabs
       {
