@@ -80,9 +80,58 @@ export default function SynthesisPage() {
     }
   }, [projectId]);
 
+  const [autoFilled, setAutoFilled] = useState(false);
+
   useEffect(() => {
     void loadAll();
   }, [loadAll]);
+
+  // First-touch auto-fill: when a project's /refine page loads with zero
+  // artifacts but a non-empty corpus, kick off a background synthesize that
+  // covers every catalog type (critical + non-critical, missing only). This
+  // mirrors the orient auto-draft pattern so users land on a fully-populated
+  // page on first visit instead of a wall of empty placeholders.
+  useEffect(() => {
+    if (!projectId || loading || autoFilled || synthesizing) return;
+    if (artifacts.length > 0) return;
+    if (!sources || (sources.doc_count ?? 0) === 0) return;
+    setAutoFilled(true);
+    setSynthesizing(true);
+    const toastId = toast.loading(
+      "First visit — auto-generating every artifact from your sources…",
+    );
+    void (async () => {
+      try {
+        const res = await synthesisApi.synthesize(projectId, {
+          missingOnly: true,
+          includeNonCritical: true,
+        });
+        toast.success(
+          `Generated ${res.artifact_count} artifact${
+            res.artifact_count === 1 ? "" : "s"
+          } from ${res.corpus_doc_count} source${
+            res.corpus_doc_count === 1 ? "" : "s"
+          }`,
+          { id: toastId },
+        );
+        if (res.failures.length > 0) {
+          toast.warning(`${res.failures.length} type(s) failed — see logs`);
+        }
+        await loadAll();
+      } catch (err) {
+        toast.error(`Auto-fill failed: ${(err as Error).message}`, {
+          id: toastId,
+        });
+      } finally {
+        setSynthesizing(false);
+      }
+    })();
+  }, [projectId, loading, autoFilled, synthesizing, artifacts.length, sources, loadAll]);
+
+  // Reset the once-per-project guard whenever the active project changes.
+  useEffect(() => {
+    setAutoFilled(false);
+  }, [projectId]);
 
   const artifactsByCategory = useMemo(() => {
     const map: Record<string, SynthesisArtifact[]> = {};

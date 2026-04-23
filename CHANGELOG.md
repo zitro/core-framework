@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.2.13] - 2026-04-23
+
+### Added
+
+- **First-touch auto-fill on /refine.** When a project's Refine page loads
+  with zero artifacts but a non-empty corpus, the frontend kicks off a
+  background `synthesize` covering every catalog type (critical *and*
+  non-critical) so the page populates on first visit instead of showing a
+  wall of empty placeholders. Mirrors the orient auto-draft pattern.
+- `POST /api/synthesis/{project_id}/synthesize` now accepts:
+  - `missing_only=true` — skip catalog types that already have an artifact
+  - `include_non_critical=true` — also generate weekly emails, status
+    updates, retros, and the rest of the non-critical catalog
+  Both default to `false` to preserve existing manual-Synthesize behavior.
+
 ## [2.2.12] - 2026-04-23
 
 ### Fixed
