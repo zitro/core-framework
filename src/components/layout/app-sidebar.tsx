@@ -5,23 +5,13 @@ import { usePathname } from "next/navigation";
 import pkg from "../../../package.json";
 import {
   BookMarked,
-  BookOpen,
-  Briefcase,
-  Building2,
-  Cloud,
-  Compass,
+  FileBarChart2,
   FileStack,
   FolderGit2,
-  Globe,
   Home,
-  Lightbulb,
+  Layers,
   type LucideIcon,
-  MessageSquare,
-  Plug,
-  Rocket,
-  Search,
-  ShieldCheck,
-  Sparkles,
+  Settings2,
   Wand2,
 } from "lucide-react";
 import {
@@ -45,67 +35,49 @@ interface NavItem {
   label: string;
   href: string;
   icon: LucideIcon;
+  badge?: string;
+  conditional?: "hasRepo";
 }
 
-interface PhaseGroup {
-  step: number;
-  phase: "capture" | "orient" | "refine" | "execute";
+interface NavGroup {
   label: string;
-  icon: LucideIcon;
-  accent: string;
   items: NavItem[];
 }
 
-const PHASE_GROUPS: PhaseGroup[] = [
+const NAV_GROUPS: NavGroup[] = [
   {
-    step: 1,
-    phase: "capture",
-    label: "Capture",
-    icon: Search,
-    accent: "text-blue-500",
+    label: "Work",
     items: [
-      { label: "Engagement Context", href: "/context", icon: FolderGit2 },
-      { label: "Connectors", href: "/connectors", icon: Plug },
-      { label: "Company Research", href: "/company", icon: Building2 },
-      { label: "Web Search", href: "/search", icon: Globe },
-    ],
-  },
-  {
-    step: 2,
-    phase: "orient",
-    label: "Orient",
-    icon: Compass,
-    accent: "text-amber-500",
-    items: [
+      { label: "Dashboard", href: "/", icon: Home },
       { label: "Synthesis", href: "/synthesis", icon: Wand2 },
-      { label: "Methodology", href: "/methodology", icon: BookMarked },
+      { label: "Artifacts", href: "/artifacts", icon: FileStack },
+      {
+        label: "Vertex Repo",
+        href: "/vertex",
+        icon: FolderGit2,
+        badge: "v2",
+        conditional: "hasRepo",
+      },
     ],
   },
   {
-    step: 3,
-    phase: "refine",
-    label: "Refine",
-    icon: Lightbulb,
-    accent: "text-emerald-500",
+    label: "Insight",
     items: [
-      { label: "Narrative", href: "/narrative", icon: Sparkles },
-      { label: "Evidence", href: "/evidence", icon: BookOpen },
-      { label: "Grounded Answers", href: "/grounding", icon: MessageSquare },
+      { label: "Sources", href: "/sources", icon: Layers, badge: "v2" },
+      { label: "Reports", href: "/reports", icon: FileBarChart2, badge: "v2" },
     ],
   },
   {
-    step: 4,
-    phase: "execute",
-    label: "Execute",
-    icon: Rocket,
-    accent: "text-violet-500",
-    items: [
-      { label: "Engagements", href: "/engagements", icon: Briefcase },
-      { label: "Reviews", href: "/reviews", icon: ShieldCheck },
-      { label: "Microsoft 365", href: "/m365", icon: Cloud },
-    ],
+    label: "Reference",
+    items: [{ label: "Methodology", href: "/methodology", icon: BookMarked }],
   },
 ];
+
+const SETTINGS_ITEM: NavItem = {
+  label: "Settings",
+  href: "/settings",
+  icon: Settings2,
+};
 
 const FRAMEWORK_VERSION = pkg.version;
 
@@ -136,80 +108,56 @@ export function AppSidebar() {
       </SidebarHeader>
 
       <SidebarContent>
-        <SidebarGroup>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              <SidebarMenuItem>
-                <SidebarMenuButton render={<Link href="/" />} isActive={pathname === "/"}>
-                  <Home className="h-4 w-4" />
-                  <span>Dashboard</span>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-              <SidebarMenuItem>
-                <SidebarMenuButton
-                  render={<Link href="/artifacts" />}
-                  isActive={isActive("/artifacts")}
-                >
-                  <FileStack className="h-4 w-4" />
-                  <span>Artifacts</span>
-                  <Badge variant="outline" className="ml-auto text-[9px]">
-                    v2
-                  </Badge>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-              {hasRepo && (
-                <SidebarMenuItem>
-                  <SidebarMenuButton
-                    render={<Link href="/vertex" />}
-                    isActive={isActive("/vertex")}
-                  >
-                    <FolderGit2 className="h-4 w-4" />
-                    <span>Vertex Repo</span>
-                    <Badge variant="outline" className="ml-auto text-[9px]">
-                      v2
-                    </Badge>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              )}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-
-        {PHASE_GROUPS.map((group) => {
-          const PhaseIcon = group.icon;
-          return (
-            <SidebarGroup key={group.phase}>
-              <SidebarGroupLabel className="flex items-center gap-2">
-                <span
-                  className={`flex h-4 w-4 items-center justify-center rounded-full bg-muted text-[9px] font-bold ${group.accent}`}
-                  aria-hidden
-                >
-                  {group.step}
-                </span>
-                <PhaseIcon className={`h-3.5 w-3.5 ${group.accent}`} aria-hidden />
-                <span className="uppercase tracking-wider">{group.label}</span>
-              </SidebarGroupLabel>
-              <SidebarGroupContent>
-                <SidebarMenu>
-                  {group.items.map((item) => {
+        {NAV_GROUPS.map((group) => (
+          <SidebarGroup key={group.label}>
+            <SidebarGroupLabel className="uppercase tracking-wider">
+              {group.label}
+            </SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {group.items
+                  .filter((item) => !item.conditional || (item.conditional === "hasRepo" && hasRepo))
+                  .map((item) => {
                     const ItemIcon = item.icon;
                     return (
                       <SidebarMenuItem key={item.href}>
                         <SidebarMenuButton
                           render={<Link href={item.href} />}
-                          isActive={isActive(item.href)}
+                          isActive={
+                            item.href === "/" ? pathname === "/" : isActive(item.href)
+                          }
                         >
                           <ItemIcon className="h-4 w-4" />
                           <span>{item.label}</span>
+                          {item.badge && (
+                            <Badge variant="outline" className="ml-auto text-[9px]">
+                              {item.badge}
+                            </Badge>
+                          )}
                         </SidebarMenuButton>
                       </SidebarMenuItem>
                     );
                   })}
-                </SidebarMenu>
-              </SidebarGroupContent>
-            </SidebarGroup>
-          );
-        })}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        ))}
+
+        <SidebarGroup>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  render={<Link href={SETTINGS_ITEM.href} />}
+                  isActive={isActive(SETTINGS_ITEM.href)}
+                >
+                  <SETTINGS_ITEM.icon className="h-4 w-4" />
+                  <span>{SETTINGS_ITEM.label}</span>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
       </SidebarContent>
 
       <SidebarFooter className="border-t p-4">

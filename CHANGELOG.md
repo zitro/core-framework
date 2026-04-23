@@ -7,6 +7,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.1.0] - 2026-04-22
+
+IA collapse, beautiful markdown, and an AI-powered drop zone for the vertex repo. Sidebar shrinks from 14 entries across 5 sections to 8 entries across 3 groups + Settings; every legacy route still resolves through Next.js redirects.
+
+### Added
+
+- **Beautiful markdown rendering**: new `MarkdownView` component (`remark-gfm`, `rehype-slug`, `react-syntax-highlighter`) with prose typography, dark-mode aware code highlighting, bordered/zebra tables, capped reading width. Replaces raw `ReactMarkdown` in the `/vertex` viewer.
+- **Vertex drop zone**: side sheet on `/vertex` with paste / file upload / URL modes feeds new endpoints:
+  - `POST /api/v2/{project_id}/vertex/extract` — text from URL, `.pdf` (`pypdf`), `.docx` (`python-docx`), `.html` (`trafilatura`).
+  - `POST /api/v2/{project_id}/vertex/classify` — strict-JSON LLM call proposes `dest_path` + `filename` against the repo's existing folders; falls back to `inbox/` on low confidence or LLM error.
+  - `POST /api/v2/{project_id}/vertex/write` — writes the file with path-traversal guard, 409 on conflict unless `overwrite=true`, audits to `.vertex-log.jsonl` at repo root.
+- **/sources page**: unified inputs view with URL-driven tabs (`Connectors | Company | Web | Evidence`).
+- **/reports page**: saved view of the artifact catalog filtered to story-category outputs (executive briefs, deck outlines, narratives, wrap-ups).
+- **/settings page**: tabs for `Engagement | Reviews | Connections | Preferences` consolidating five legacy pages.
+
+### Changed
+
+- **Sidebar IA**: collapsed from 14 items across 5 sections to 8 items across 3 groups (`WORK`, `INSIGHT`, `REFERENCE`) plus a separate `Settings` entry. Vertex Repo stays conditional on `repo_path`.
+- **Command palette**: rebuilt to match new IA with sub-tab shortcuts for Sources and Settings; covers every route including those without a sidebar entry.
+- **Stage-aware /artifacts**: hides operational/closing-stage artifacts (wrap-up, retro) until project status is `completed` or `cancelled`, with status pill in the page header and an opt-in toggle. Adds backend tests previously deferred (156 backend tests now passing).
+
+### Routes
+
+- Redirects (302): `/connectors → /sources?tab=connectors`, `/company → /sources?tab=company`, `/search → /sources?tab=web`, `/evidence → /sources?tab=evidence`, `/narrative → /reports`, `/context → /settings?tab=engagement`, `/reviews → /settings?tab=reviews`, `/m365 → /settings?tab=connections`.
+- Kept (Cmd+K only): `/grounding`, `/engagements` (also reachable via project switcher).
+
+### Dependencies
+
+- Frontend: `remark-gfm`, `rehype-slug`, `react-syntax-highlighter`, `@types/react-syntax-highlighter`.
+- Backend: `pypdf`, `trafilatura` added to base deps (lazy-imported by extract endpoint).
+
 ## [2.0.0] - 2026-04-22
 
 Methodology parity, image generation, vertex repo viewer, top-level Artifacts page, and a global command palette. Additive release; existing routes and behavior preserved.
