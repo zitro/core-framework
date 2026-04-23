@@ -330,7 +330,92 @@ export const api = {
         body: JSON.stringify(data),
       }),
   },
+
+  // v2.2 Customers + multi-source workspace
+  customers: {
+    list: () => request<CustomerRecord[]>("/api/customers/"),
+    get: (id: string) => request<CustomerRecord>(`/api/customers/${id}`),
+    create: (data: { display_name: string; slug?: string; industry?: string; summary?: string }) =>
+      request<CustomerRecord>("/api/customers/", {
+        method: "POST",
+        body: JSON.stringify(data),
+      }),
+    update: (
+      id: string,
+      data: { display_name?: string; slug?: string; industry?: string; summary?: string },
+    ) =>
+      request<CustomerRecord>(`/api/customers/${id}`, {
+        method: "PATCH",
+        body: JSON.stringify(data),
+      }),
+    delete: (id: string) =>
+      request<{ deleted: boolean }>(`/api/customers/${id}`, { method: "DELETE" }),
+    addSource: (customerId: string, data: SourceCreatePayload) =>
+      request<SourceRecord>(`/api/customers/${customerId}/sources`, {
+        method: "POST",
+        body: JSON.stringify(data),
+      }),
+    updateSource: (customerId: string, sourceId: string, data: SourceUpdatePayload) =>
+      request<SourceRecord>(`/api/customers/${customerId}/sources/${sourceId}`, {
+        method: "PATCH",
+        body: JSON.stringify(data),
+      }),
+    deleteSource: (customerId: string, sourceId: string) =>
+      request<{ deleted: boolean }>(`/api/customers/${customerId}/sources/${sourceId}`, {
+        method: "DELETE",
+      }),
+    syncSource: (customerId: string, sourceId: string) =>
+      request<{ status: string; projects_path: string; last_synced_at: string }>(
+        `/api/customers/${customerId}/sources/${sourceId}/sync`,
+        { method: "POST" },
+      ),
+  },
 };
+
+export type SourceKind = "github" | "local" | "folder";
+export type SourceRole = "vertex" | "core" | "notes" | "reference";
+
+export interface SourceRecord {
+  id: string;
+  label: string;
+  kind: SourceKind;
+  role: SourceRole;
+  location: string;
+  branch: string;
+  writable: boolean;
+  pat_last4: string;
+  last_synced_at: string | null;
+  last_sync_status: string;
+}
+
+export interface SourceCreatePayload {
+  label: string;
+  kind: SourceKind;
+  role?: SourceRole;
+  location: string;
+  branch?: string;
+  writable?: boolean;
+  pat?: string;
+}
+
+export interface SourceUpdatePayload {
+  label?: string;
+  role?: SourceRole;
+  branch?: string;
+  writable?: boolean;
+  pat?: string;
+}
+
+export interface CustomerRecord {
+  id: string;
+  slug: string;
+  display_name: string;
+  industry: string;
+  summary: string;
+  sources: SourceRecord[];
+  created_at: string;
+  updated_at: string;
+}
 
 export interface ArtifactThreadRecord {
   id: string;

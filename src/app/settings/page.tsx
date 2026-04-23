@@ -12,6 +12,7 @@ import { FileSliders, Settings2, Sliders, Users } from "lucide-react";
 import ContextPage from "@/app/context/page";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { CustomerPanel } from "@/components/settings/customer-panel";
 
 type Tab = "engagement" | "customer" | "preferences";
 const TABS: Tab[] = ["engagement", "customer", "preferences"];
@@ -79,30 +80,6 @@ function SettingsInner() {
           <PreferencesPanel />
         </TabsContent>
       </Tabs>
-    </div>
-  );
-}
-
-function CustomerPanel() {
-  return (
-    <div className="space-y-4">
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Customer & sources</CardTitle>
-        </CardHeader>
-        <CardContent className="text-sm text-muted-foreground">
-          The v2.2 customer + multi-source workspace UI lands in phase E.
-          For now, manage customers and their sources via the API
-          <code className="mx-1 rounded bg-muted px-1.5 py-0.5 text-xs">
-            /api/customers
-          </code>
-          and per-project source links from
-          <code className="mx-1 rounded bg-muted px-1.5 py-0.5 text-xs">
-            /api/engagements
-          </code>
-          .
-        </CardContent>
-      </Card>
     </div>
   );
 }
