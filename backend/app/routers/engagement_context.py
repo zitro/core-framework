@@ -74,8 +74,14 @@ def _is_empty(value: object) -> bool:
     return False
 
 
+# Title is auto-seeded from the project name on first read, so it can never
+# be empty. Excluding it lets the first-touch auto-draft fire when every
+# *meaningful* field is still blank.
+_AUTO_DRAFT_TRIGGER_FIELDS: tuple[str, ...] = tuple(f for f in _VERSIONED_FIELDS if f != "title")
+
+
 def _context_is_empty(item: dict) -> bool:
-    return all(_is_empty(item.get(f)) for f in _VERSIONED_FIELDS)
+    return all(_is_empty(item.get(f)) for f in _AUTO_DRAFT_TRIGGER_FIELDS)
 
 
 async def _next_version_number(project_id: str) -> int:

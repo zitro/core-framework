@@ -35,8 +35,13 @@ const VERSIONED_FIELDS = [
   "notes",
 ] as const;
 
+// Title is auto-seeded from the project name when the EngagementContext
+// is first created, so checking it would defeat the first-touch auto-draft.
+// Treat the brief as "empty" only if every other meaningful field is blank.
+const AUTO_DRAFT_TRIGGER_FIELDS = VERSIONED_FIELDS.filter((f) => f !== "title");
+
 function isContextEmpty(c: EngagementContextRecord): boolean {
-  return VERSIONED_FIELDS.every((f) => {
+  return AUTO_DRAFT_TRIGGER_FIELDS.every((f) => {
     const v = c[f];
     if (v == null) return true;
     if (typeof v === "string") return v.trim().length === 0;
