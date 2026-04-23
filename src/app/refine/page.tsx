@@ -17,7 +17,6 @@ import {
 } from "@/lib/api-synthesis";
 import { ArtifactCard } from "@/components/synthesis/artifact-card";
 import { ArtifactDetailModal } from "@/components/refine/artifact-detail-modal";
-import { ChatPanel } from "@/components/synthesis/chat-panel";
 import { CompassPanel } from "@/components/synthesis/compass-panel";
 import { ConnectorsPanel } from "@/components/synthesis/connectors-panel";
 import { QuestionsPanel } from "@/components/synthesis/questions-panel";
@@ -185,7 +184,7 @@ export default function SynthesisPage() {
   }
 
   return (
-    <main className="container mx-auto p-6 max-w-6xl space-y-6">
+    <main className="container mx-auto max-w-7xl space-y-6 p-6">
       <header className="flex items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Synthesis</h1>
@@ -247,8 +246,17 @@ export default function SynthesisPage() {
         </div>
       </header>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 space-y-6">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
+        <div className="min-w-0 space-y-6">
+          {/* Prominent: open questions drive the conversation */}
+          {hasArtifacts && (
+            <QuestionsPanel
+              questions={questions}
+              onRefresh={onRefreshQuestions}
+              busy={loading}
+            />
+          )}
+
           {!catalog || loading ? (
             <Card>
               <CardContent className="p-6 text-sm text-muted-foreground">
@@ -275,11 +283,12 @@ export default function SynthesisPage() {
                       {cat.description}
                     </span>
                   </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                     {items.map((a) => (
                       <ArtifactCard
                         key={a.id}
                         artifact={a}
+                        projectName={activeProject?.name}
                         onRegenerate={onRegenerate}
                         onUpdate={(updated) =>
                           setArtifacts((prev) =>
@@ -295,9 +304,26 @@ export default function SynthesisPage() {
               );
             })
           )}
+
+          {/* Sources & connectors — less prominent, collapsible */}
+          {hasArtifacts && (
+            <section className="space-y-3 border-t pt-6">
+              <div className="space-y-1">
+                <h2 className="text-lg font-semibold">Sources & connectors</h2>
+                <p className="text-xs text-muted-foreground">
+                  The corpus feeding synthesis. Add connectors (GitHub, web,
+                  HTTP JSON) to enrich what the AI can ground against.
+                </p>
+              </div>
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                <SourcesPanel sources={sources} />
+                <ConnectorsPanel projectId={projectId} />
+              </div>
+            </section>
+          )}
         </div>
 
-        <aside className="space-y-6">
+        <aside className="space-y-4 lg:sticky lg:top-6 lg:self-start">
           <CompassPanel
             projectId={projectId}
             refreshKey={artifacts.length}
@@ -334,14 +360,6 @@ export default function SynthesisPage() {
             onRegenerate={onRegenerate}
             refreshKey={artifacts.length}
           />
-          <ChatPanel projectId={projectId} />
-          <ConnectorsPanel projectId={projectId} />
-          <QuestionsPanel
-            questions={questions}
-            onRefresh={onRefreshQuestions}
-            busy={loading}
-          />
-          <SourcesPanel sources={sources} />
         </aside>
       </div>
       <ArtifactDetailModal
@@ -351,6 +369,7 @@ export default function SynthesisPage() {
         onOpenChange={(o) => {
           if (!o) setOpenArtifact(null);
         }}
+        onRegenerated={() => void loadAll()}
       />
     </main>
   );

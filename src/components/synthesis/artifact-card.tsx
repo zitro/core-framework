@@ -1,167 +1,99 @@
 "use client";
 
-import { useState } from "react";
-import { RefreshCw, ChevronDown, ChevronRight, Mail, Copy, MessageSquare } from "lucide-react";
+import { RefreshCw, Mail, Copy, MessageSquare } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import {
-  CritiqueChip,
-  CritiqueIssueList,
-} from "@/components/synthesis/critique-chip";
-import { StoryboardFrames } from "@/components/synthesis/storyboard-frames";
+import { CritiqueChip } from "@/components/synthesis/critique-chip";
 import type { SynthesisArtifact } from "@/lib/api-synthesis";
 
 interface Props {
   artifact: SynthesisArtifact;
+  projectName?: string;
   onRegenerate: (typeId: string) => Promise<void> | void;
   onUpdate?: (updated: SynthesisArtifact) => void;
   onOpenDetail?: (artifact: SynthesisArtifact) => void;
   busy?: boolean;
 }
 
-function renderBodyValue(value: unknown): React.ReactNode {
-  if (value == null || value === "") return <em className="text-muted-foreground">empty</em>;
-  if (Array.isArray(value)) {
-    if (value.length === 0) return <em className="text-muted-foreground">empty</em>;
-    return (
-      <ul className="list-disc pl-5 space-y-1">
-        {value.map((v, i) => (
-          <li key={i}>{renderBodyValue(v)}</li>
-        ))}
-      </ul>
-    );
-  }
-  if (typeof value === "object") {
-    return (
-      <pre className="text-xs bg-muted/50 rounded p-2 overflow-x-auto">
-        {JSON.stringify(value, null, 2)}
-      </pre>
-    );
-  }
-  return <span>{String(value)}</span>;
+function shortenTitle(raw: string, projectName?: string): string {
+  if (!raw) return raw;
+  let t = raw.trim();
+  if (!projectName) return t;
+  const name = projectName.trim();
+  if (!name) return t;
+  const esc = name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const patterns: RegExp[] = [
+    new RegExp(`^for\\s+${esc}['\u2019]?s?\\s+`, "i"),
+    new RegExp(`^${esc}['\u2019]s\\s+`, "i"),
+    new RegExp(`^${esc}\\s*[:\u2014-]\\s*`, "i"),
+    new RegExp(`\\s*[:\u2014-]\\s*${esc}\\s*$`, "i"),
+    new RegExp(`\\s+for\\s+${esc}['\u2019]?s?\\b.*$`, "i"),
+  ];
+  for (const p of patterns) t = t.replace(p, "").trim();
+  return t || raw;
 }
 
-export function ArtifactCard({ artifact, onRegenerate, onUpdate, onOpenDetail, busy }: Props) {
-  const [open, setOpen] = useState(false);
-  const bodyEntries = Object.entries(artifact.body || {});
-  const isStoryboard = artifact.type_id === "storyboard";
+export function ArtifactCard({
+  artifact,
+  projectName,
+  onRegenerate,
+  onOpenDetail,
+  busy,
+}: Props) {
+  const title = shortenTitle(artifact.title, projectName);
 
   return (
-    <Card>
+    <Card className="flex h-full flex-col">
       <CardHeader className="space-y-2">
         <div className="flex items-start justify-between gap-3">
-          <div className="space-y-1">
-            <CardTitle className="text-base">{artifact.title}</CardTitle>
+          <div className="min-w-0 space-y-1">
+            <CardTitle className="text-base leading-snug line-clamp-2">
+              {title}
+            </CardTitle>
             <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
               <Badge variant="outline">{artifact.type_id}</Badge>
               <span>v{artifact.version}</span>
               <span>· {artifact.status}</span>
             </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex shrink-0 items-center gap-1">
             {artifact.type_id === "weekly-email-update" && (
               <EmailActions artifact={artifact} />
             )}
-            {onOpenDetail && (
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => onOpenDetail(artifact)}
-                title="Open detail, thread, and chat"
-              >
-                <MessageSquare className="size-3.5 mr-1.5" />
-                Open
-              </Button>
-            )}
             <Button
               size="sm"
-              variant="outline"
+              variant="ghost"
               onClick={() => onRegenerate(artifact.type_id)}
               disabled={busy}
+              title="Regenerate from scratch"
+              aria-label="Regenerate"
             >
-              <RefreshCw className="size-3.5 mr-1.5" />
-              Regenerate
+              <RefreshCw className={`size-3.5 ${busy ? "animate-spin" : ""}`} />
             </Button>
           </div>
         </div>
         <CritiqueChip critique={artifact.critique} />
       </CardHeader>
 
-      <CardContent className="space-y-3 text-sm">
-        {artifact.summary && (
-          <p className="leading-relaxed">{artifact.summary}</p>
+      <CardContent className="flex flex-1 flex-col justify-between gap-3 text-sm">
+        {artifact.summary ? (
+          <p className="leading-relaxed line-clamp-6">{artifact.summary}</p>
+        ) : (
+          <p className="italic text-muted-foreground">No summary yet.</p>
         )}
 
-        <button
-          type="button"
-          className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground"
-          onClick={() => setOpen((v) => !v)}
-        >
-          {open ? (
-            <ChevronDown className="size-3.5" />
-          ) : (
-            <ChevronRight className="size-3.5" />
-          )}
-          Details, citations & critique
-        </button>
-
-        {open && (
-          <div className="space-y-4 pt-2 border-t">
-            {isStoryboard && onUpdate && (
-              <div className="space-y-2">
-                <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                  Frames
-                </div>
-                <StoryboardFrames artifact={artifact} onUpdate={onUpdate} />
-              </div>
-            )}
-            {!isStoryboard && bodyEntries.length > 0 && (
-              <div className="space-y-2">
-                <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                  Body
-                </div>
-                <dl className="space-y-2">
-                  {bodyEntries.map(([k, v]) => (
-                    <div key={k} className="space-y-1">
-                      <dt className="text-xs font-medium">{k}</dt>
-                      <dd>{renderBodyValue(v)}</dd>
-                    </div>
-                  ))}
-                </dl>
-              </div>
-            )}
-
-            {artifact.citations.length > 0 && (
-              <div className="space-y-2">
-                <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                  Citations
-                </div>
-                <ul className="space-y-1.5 text-xs">
-                  {artifact.citations.map((c, i) => (
-                    <li key={i} className="flex flex-col gap-0.5">
-                      <code className="text-xs">{c.source_id}</code>
-                      {c.quote && (
-                        <span className="text-muted-foreground">
-                          “{c.quote}”
-                        </span>
-                      )}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-
-            {artifact.critique && (
-              <div className="space-y-2">
-                <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                  Critic findings
-                </div>
-                <CritiqueIssueList critique={artifact.critique} />
-              </div>
-            )}
-          </div>
+        {onOpenDetail && (
+          <Button
+            variant="secondary"
+            size="sm"
+            className="w-full"
+            onClick={() => onOpenDetail(artifact)}
+          >
+            <MessageSquare className="mr-1.5 size-3.5" />
+            Open, edit &amp; chat
+          </Button>
         )}
       </CardContent>
     </Card>
@@ -175,11 +107,7 @@ function buildEmailParts(artifact: SynthesisArtifact): {
   const body = (artifact.body ?? {}) as Record<string, unknown>;
   const get = (k: string) => (typeof body[k] === "string" ? (body[k] as string) : "");
   const subject = get("subject") || artifact.title || "Weekly update";
-  const parts = [
-    get("greeting"),
-    get("body"),
-    get("signoff"),
-  ].filter(Boolean);
+  const parts = [get("greeting"), get("body"), get("signoff")].filter(Boolean);
   return { subject, body: parts.join("\n\n") };
 }
 
@@ -196,12 +124,11 @@ function EmailActions({ artifact }: { artifact: SynthesisArtifact }) {
   };
   return (
     <>
-      <Button size="sm" variant="ghost" onClick={onCopy} title="Copy email text">
+      <Button size="sm" variant="ghost" onClick={onCopy} title="Copy email text" aria-label="Copy email">
         <Copy className="size-3.5" />
       </Button>
-      <Button size="sm" variant="outline" onClick={onMail}>
-        <Mail className="size-3.5 mr-1.5" />
-        Open in mail
+      <Button size="sm" variant="ghost" onClick={onMail} title="Open in mail" aria-label="Open in mail">
+        <Mail className="size-3.5" />
       </Button>
     </>
   );
