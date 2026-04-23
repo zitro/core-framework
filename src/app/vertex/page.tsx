@@ -9,9 +9,9 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { File, FolderClosed, FolderOpen, GitBranch } from "lucide-react";
-import ReactMarkdown from "react-markdown";
 
 import { Badge } from "@/components/ui/badge";
+import { MarkdownView } from "@/components/markdown-view";
 import { Card, CardContent } from "@/components/ui/card";
 import { useProject } from "@/stores/project-store";
 import {
@@ -207,9 +207,7 @@ function FileView({ file }: { file: VertexFileResponse }) {
         </div>
       </header>
       {isMarkdown ? (
-        <div className="prose prose-sm dark:prose-invert max-w-none">
-          <ReactMarkdown>{file.content}</ReactMarkdown>
-        </div>
+        <MarkdownView>{file.content}</MarkdownView>
       ) : (
         <pre className="overflow-x-auto rounded bg-muted p-3 text-xs">
           <code>{file.content}</code>
