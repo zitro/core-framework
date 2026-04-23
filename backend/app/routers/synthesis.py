@@ -340,6 +340,21 @@ async def writeback_vertex(project_id: str) -> dict:
     return result.to_dict()
 
 
+@router.post("/{project_id}/artifacts/{artifact_id}/push")
+async def push_artifact(project_id: str, artifact_id: str) -> dict:
+    """Push a single artifact back to the connected vertex repo. Wraps
+    :class:`VertexWriteBack` with a 1-element artifact list so callers
+    can ship a card from the Refine view without exporting the full set.
+    """
+    project = await _load_project(project_id)
+    artifacts = await _project_artifacts(project_id)
+    target = next((a for a in artifacts if a.id == artifact_id), None)
+    if target is None:
+        raise HTTPException(status_code=404, detail="Artifact not found")
+    result = await VertexWriteBack().push(project, [target])
+    return result.to_dict()
+
+
 # ── chat over corpus ────────────────────────────────────────────────────
 
 

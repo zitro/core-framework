@@ -14,10 +14,11 @@
  */
 
 import { useEffect, useState } from "react";
-import { Loader2, MessageSquare, Sparkles, FileText } from "lucide-react";
+import { Loader2, MessageSquare, Sparkles, FileText, UploadCloud } from "lucide-react";
 import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -49,6 +50,7 @@ export function ArtifactDetailModal({
 }: Props) {
   const [comments, setComments] = useState<ArtifactCommentRecord[]>([]);
   const [loading, setLoading] = useState(false);
+  const [pushing, setPushing] = useState(false);
   const [tab, setTab] = useState<"detail" | "thread" | "chat">("detail");
 
   useEffect(() => {
@@ -76,6 +78,27 @@ export function ArtifactDetailModal({
     if (artifact) onCommentCountChange?.(artifact.id, next.length);
   };
 
+  const pushToVertex = async () => {
+    if (!artifact) return;
+    setPushing(true);
+    try {
+      const res = await api.artifacts.push(projectId, artifact.id);
+      if (res.ok) {
+        toast.success(
+          res.commit
+            ? `Pushed to vertex (${res.commit.slice(0, 7)})`
+            : "Pushed to vertex",
+        );
+      } else {
+        toast.error(res.message ?? "Push skipped — write-back not enabled");
+      }
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Push failed");
+    } finally {
+      setPushing(false);
+    }
+  };
+
   if (!artifact) return null;
 
   return (
@@ -87,6 +110,20 @@ export function ArtifactDetailModal({
             <Badge variant="outline">{artifact.type_id}</Badge>
             <span>v{artifact.version}</span>
             <span>· {artifact.status}</span>
+            <Button
+              variant="outline"
+              size="sm"
+              className="ml-auto h-7 text-xs"
+              onClick={pushToVertex}
+              disabled={pushing}
+            >
+              {pushing ? (
+                <Loader2 className="mr-1.5 h-3 w-3 animate-spin" />
+              ) : (
+                <UploadCloud className="mr-1.5 h-3 w-3" />
+              )}
+              Push to vertex
+            </Button>
           </DialogDescription>
         </DialogHeader>
         <Tabs value={tab} onValueChange={(v) => setTab(v as typeof tab)} className="flex min-h-0 flex-1 flex-col">

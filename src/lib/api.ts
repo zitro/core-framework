@@ -331,6 +331,20 @@ export const api = {
       }),
   },
 
+  // v2.2 Per-artifact push to vertex
+  artifacts: {
+    push: (projectId: string, artifactId: string) =>
+      request<{
+        target: string;
+        ok: boolean;
+        commit?: string;
+        files?: string[];
+        message?: string;
+      }>(`/api/synthesis/${projectId}/artifacts/${artifactId}/push`, {
+        method: "POST",
+      }),
+  },
+
   // v2.2 Customers + multi-source workspace
   customers: {
     list: () => request<CustomerRecord[]>("/api/customers/"),
