@@ -7,7 +7,48 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [2.1.2] - 2026-04-22
+## [2.2.0] - 2026-04-23
+
+Customer + multi-source workspace, drop-zone capture, engagement-brief
+context, per-artifact threads with grounded chat, Reports view inside
+Execute, and one-click push to vertex from any artifact.
+
+### Added
+
+- **Multi-source customers (B+E)**: new `customers` collection holds a
+  display name, slug, summary, and a list of `Source` records. Each
+  source has a kind (`github | local | folder`), role (`vertex | core |
+  notes | reference`), `writable` flag, optional branch, and Fernet-
+  encrypted PAT (only `pat_last4` ever returns to the client). New
+  `/api/customers` REST surface (list/get/create/update/delete + add/
+  update/delete/sync source). Settings → Customer tab now hosts a real
+  CRUD panel with embedded source list, sync action, and add form.
+- **Capture (D1)**: `/capture` rebuilt around a drop zone that calls
+  `/api/capture/extract-classify`; results render as cards mapped back
+  to artifact types so users can promote them into the corpus.
+- **Engagement context (B+D2)**: `/api/engagement-context/{pid}` GETs
+  and PUTs a structured engagement brief (industry, phase, stakeholders,
+  metrics, milestones). `/orient` replaces the old free-form notes with
+  a scoped form; optional `?write_to_source_id=` writes the brief back
+  to a source as `engagement-brief.md`.
+- **Per-artifact threads + chat (B+D3)**: `/api/synthesis/{pid}/
+  artifacts/{aid}/thread`, `…/comments`, `…/chat` back a comment
+  stream and grounded chat per artifact. Refine view now opens an
+  `ArtifactDetailModal` with Detail / Thread / Chat tabs.
+- **Reports view (D4)**: `/execute?view=reports` toggles the artifact
+  grid into a late-stage-categories report layout (URL-driven).
+- **Per-artifact push (E3)**: `/api/synthesis/{pid}/artifacts/{aid}/
+  push` ships one card via `VertexWriteBack`. Detail modal exposes a
+  "Push to vertex" button that toasts the commit sha on success.
+
+### Changed
+
+- `src/lib/api.ts` adds typed namespaces for `capture`,
+  `engagementContext`, `threads`, `customers`, and `artifacts`.
+- Settings page replaces the `CustomerPanel` placeholder with the real
+  CRUD component; preferences tab unchanged.
+
+
 
 ### Fixed
 
