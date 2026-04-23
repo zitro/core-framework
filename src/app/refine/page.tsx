@@ -296,6 +296,7 @@ export default function SynthesisPage() {
             catalog.categories.map((cat) => {
               const items = artifactsByCategory[cat.id] ?? [];
               if (items.length === 0) return null;
+              const labelByTypeId = new Map(cat.types.map((t) => [t.id, t.label] as const));
               return (
                 <section key={cat.id} className="space-y-3">
                   <div className="flex items-baseline gap-3">
@@ -310,7 +311,7 @@ export default function SynthesisPage() {
                       <ArtifactCard
                         key={a.id}
                         artifact={a}
-                        projectName={activeProject?.name}
+                        typeLabel={labelByTypeId.get(a.type_id)}
                         onRegenerate={onRegenerate}
                         onUpdate={(updated) =>
                           setArtifacts((prev) =>

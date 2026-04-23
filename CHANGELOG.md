@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.2.7] - 2026-04-23
+
+### Changed
+
+- **Artifact card titles are now the artifact type label** (Personas,
+  Workstreams, Customer Pain Points, Phased Plan, Executive Brief, ...)
+  pulled directly from the synthesis catalog, instead of the LLM's
+  long-form title. The full long-form title still appears inside the
+  artifact detail modal. Removes every remaining echo of the engagement
+  name on the cards and gives the grid uniform, scannable headers.
+
 ## [2.2.6] - 2026-04-23
 
 ### Changed
