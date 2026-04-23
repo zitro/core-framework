@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.1.1] - 2026-04-22
+
+### Fixed
+
+- **Frontend container healthcheck**: switched to `127.0.0.1` (was `localhost`, which resolves to IPv6 inside the alpine image while Next.js binds IPv4 only) and bumped `start-period` to 30s. Containers now report `healthy` instead of stuck `unhealthy`.
+
 ## [2.1.0] - 2026-04-22
 
 IA collapse, beautiful markdown, and an AI-powered drop zone for the vertex repo. Sidebar shrinks from 14 entries across 5 sections to 8 entries across 3 groups + Settings; every legacy route still resolves through Next.js redirects.
