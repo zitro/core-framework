@@ -1,39 +1,58 @@
-"use client";
+﻿"use client";
 
 /**
- * Sources — unified discovery inputs (Connectors, Company, Web).
- * URL-driven tabs: ?tab=connectors|company|web
+ * /capture â€” drop raw input, run connectors, and source content into the
+ * project corpus. Sub-tabs are URL-driven (?tab=â€¦) so legacy redirects
+ * land users on the right one.
  */
 
 import { Suspense, useCallback, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Building2, Globe, Layers, Plug } from "lucide-react";
+import {
+  Building2,
+  Globe,
+  Inbox,
+  type LucideIcon,
+  Plug,
+  Upload,
+} from "lucide-react";
 
-import { ConnectorsPanel } from "@/components/synthesis/connectors-panel";
-import { CompanyPanel } from "@/components/sources/company-panel";
-import { WebSearchPanel } from "@/components/sources/web-search-panel";
+import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useProject } from "@/stores/project-store";
+import { DropZone } from "@/components/capture/drop-zone";
+import { ConnectorsPanel } from "@/components/synthesis/connectors-panel";
 
-type Tab = "connectors" | "company" | "web";
-const TABS: Tab[] = ["connectors", "company", "web"];
+type Tab = "drop" | "connectors" | "company" | "web";
+const TABS: Tab[] = ["drop", "connectors", "company", "web"];
 
-export default function SourcesPage() {
+interface TabDef {
+  value: Tab;
+  label: string;
+  icon: LucideIcon;
+}
+
+const TAB_DEFS: TabDef[] = [
+  { value: "drop", label: "Drop-zone", icon: Upload },
+  { value: "connectors", label: "Connectors", icon: Plug },
+  { value: "company", label: "Company", icon: Building2 },
+  { value: "web", label: "Web", icon: Globe },
+];
+
+export default function CapturePage() {
   return (
     <Suspense fallback={null}>
-      <SourcesInner />
+      <CaptureInner />
     </Suspense>
   );
 }
 
-function SourcesInner() {
+function CaptureInner() {
   const router = useRouter();
   const params = useSearchParams();
-  const initial = (params.get("tab") as Tab) || "connectors";
-  const [tab, setTab] = useState<Tab>(TABS.includes(initial) ? initial : "connectors");
+  const initial = (params.get("tab") as Tab) || "drop";
+  const [tab, setTab] = useState<Tab>(TABS.includes(initial) ? initial : "drop");
   const { activeProject } = useProject();
-  const projectId = activeProject?.id ?? "";
-  const [sources, setSources] = useState<Record<string, unknown>>({});
 
   const onTab = useCallback(
     (next: string) => {
@@ -45,62 +64,87 @@ function SourcesInner() {
     [router],
   );
 
+  const projectId = activeProject?.id || "";
+
   return (
-    <div className="mx-auto max-w-5xl space-y-6 p-6">
-      <header className="flex items-center gap-3">
-        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-cyan-500/10">
-          <Layers className="h-5 w-5 text-cyan-500" aria-hidden />
+    <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 p-6">
+      <header className="space-y-2">
+        <div className="flex items-center gap-3">
+          <Inbox className="h-6 w-6 text-blue-500" aria-hidden />
+          <h1 className="text-2xl font-semibold tracking-tight">Capture</h1>
         </div>
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Sources</h1>
-          <p className="text-sm text-muted-foreground">
-            Everything that feeds the project — internal connectors, company research, web, and
-            captured evidence.
-          </p>
-        </div>
+        <p className="text-sm text-muted-foreground">
+          Bring information into the project. The drop-zone turns raw text into
+          typed artifact candidates with a dry-run preview before anything is
+          saved.
+        </p>
       </header>
 
       <Tabs value={tab} onValueChange={onTab}>
-        <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="connectors" className="gap-1.5">
-            <Plug className="size-3.5" aria-hidden /> Connectors
-          </TabsTrigger>
-          <TabsTrigger value="company" className="gap-1.5">
-            <Building2 className="size-3.5" aria-hidden /> Company
-          </TabsTrigger>
-          <TabsTrigger value="web" className="gap-1.5">
-            <Globe className="size-3.5" aria-hidden /> Web
-          </TabsTrigger>
+        <TabsList className="grid w-full grid-cols-4">
+          {TAB_DEFS.map((t) => {
+            const Icon = t.icon;
+            return (
+              <TabsTrigger key={t.value} value={t.value} className="gap-1.5">
+                <Icon className="size-3.5" aria-hidden /> {t.label}
+              </TabsTrigger>
+            );
+          })}
         </TabsList>
+
+        <TabsContent value="drop" className="mt-4">
+          <DropZone projectId={projectId} />
+        </TabsContent>
 
         <TabsContent value="connectors" className="mt-4">
           {projectId ? (
-            <ConnectorsPanel
-              projectId={projectId}
-              initialSources={sources}
-              onSaved={setSources}
-            />
+            <ConnectorsPanel projectId={projectId} />
           ) : (
-            <EmptyHint message="Select a project in the sidebar to configure connectors." />
+            <NoProjectPlaceholder />
           )}
         </TabsContent>
 
         <TabsContent value="company" className="mt-4">
-          <CompanyPanel />
+          <ComingSoonPlaceholder
+            icon={Building2}
+            label="Company research moves here in phase D1.5 â€” wired through Bing/web tools."
+          />
         </TabsContent>
 
         <TabsContent value="web" className="mt-4">
-          <WebSearchPanel />
+          <ComingSoonPlaceholder
+            icon={Globe}
+            label="Web search lands here next â€” same Bing-backed flow, just under the new IA."
+          />
         </TabsContent>
       </Tabs>
     </div>
   );
 }
 
-function EmptyHint({ message }: { message: string }) {
+function NoProjectPlaceholder() {
   return (
-    <div className="rounded-lg border border-dashed bg-muted/20 p-10 text-center text-sm text-muted-foreground">
-      {message}
-    </div>
+    <Card className="border-dashed">
+      <CardContent className="flex flex-col items-center gap-2 py-10 text-center text-sm text-muted-foreground">
+        <p>Select an active project to manage its connectors.</p>
+      </CardContent>
+    </Card>
+  );
+}
+
+function ComingSoonPlaceholder({
+  icon: Icon,
+  label,
+}: {
+  icon: LucideIcon;
+  label: string;
+}) {
+  return (
+    <Card className="border-dashed">
+      <CardContent className="flex flex-col items-center gap-2 py-10 text-center text-sm text-muted-foreground">
+        <Icon className="h-6 w-6" aria-hidden />
+        <p>{label}</p>
+      </CardContent>
+    </Card>
   );
 }
