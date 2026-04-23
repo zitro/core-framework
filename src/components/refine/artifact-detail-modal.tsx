@@ -14,7 +14,7 @@
  */
 
 import { useEffect, useState } from "react";
-import { Loader2, MessageSquare, Sparkles, FileText, UploadCloud } from "lucide-react";
+import { Loader2, MessageSquare, Sparkles, FileText, UploadCloud, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
@@ -29,7 +29,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { api, type ArtifactCommentRecord } from "@/lib/api";
-import type { SynthesisArtifact } from "@/lib/api-synthesis";
+import { synthesisApi, type SynthesisArtifact } from "@/lib/api-synthesis";
 import { ThreadPanel } from "@/components/refine/thread-panel";
 import { ChatPanel } from "@/components/refine/chat-panel";
 
@@ -39,6 +39,7 @@ interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onCommentCountChange?: (artifactId: string, count: number) => void;
+  onRegenerated?: () => void;
 }
 
 export function ArtifactDetailModal({
@@ -47,10 +48,12 @@ export function ArtifactDetailModal({
   open,
   onOpenChange,
   onCommentCountChange,
+  onRegenerated,
 }: Props) {
   const [comments, setComments] = useState<ArtifactCommentRecord[]>([]);
   const [loading, setLoading] = useState(false);
   const [pushing, setPushing] = useState(false);
+  const [regenerating, setRegenerating] = useState(false);
   const [tab, setTab] = useState<"detail" | "thread" | "chat">("detail");
 
   useEffect(() => {
@@ -96,6 +99,32 @@ export function ArtifactDetailModal({
       toast.error(e instanceof Error ? e.message : "Push failed");
     } finally {
       setPushing(false);
+    }
+  };
+
+  const regenerateWithThread = async () => {
+    if (!artifact) return;
+    const notes = comments
+      .filter((c) => c.role === "user" && c.body.trim())
+      .slice(-8)
+      .map((c) => `- ${c.body.trim()}`)
+      .join("\n");
+    if (!notes) {
+      toast.info("Add a note or chat turn first so the AI has context.");
+      return;
+    }
+    const instructions =
+      `Incorporate the following user notes and corrections into the next version:\n${notes}`;
+    setRegenerating(true);
+    try {
+      await synthesisApi.regenerate(projectId, artifact.type_id, instructions);
+      toast.success("Regenerated with your notes applied.");
+      onRegenerated?.();
+      onOpenChange(false);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Regenerate failed");
+    } finally {
+      setRegenerating(false);
     }
   };
 
@@ -162,9 +191,26 @@ export function ArtifactDetailModal({
             />
           </TabsContent>
           <TabsContent value="chat" className="min-h-0 flex-1 space-y-3">
-            <p className="text-[11px] text-muted-foreground">
-              AI assistant grounded in this artifact, your engagement context, and the thread below.
-            </p>
+            <div className="flex items-start justify-between gap-3">
+              <p className="text-[11px] text-muted-foreground">
+                AI assistant grounded in this artifact, your engagement context, and the thread below.
+              </p>
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-7 text-xs"
+                onClick={regenerateWithThread}
+                disabled={regenerating}
+                title="Apply thread notes as instructions and regenerate this artifact"
+              >
+                {regenerating ? (
+                  <Loader2 className="mr-1.5 h-3 w-3 animate-spin" />
+                ) : (
+                  <RefreshCw className="mr-1.5 h-3 w-3" />
+                )}
+                Apply thread &amp; regenerate
+              </Button>
+            </div>
             <ChatPanel
               projectId={projectId}
               artifactId={artifact.id}

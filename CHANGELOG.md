@@ -7,6 +7,43 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.2.4] - 2026-04-23
+
+### Changed
+
+- **Refine page IA overhaul**: simplified the cluttered right rail down
+  to Compass + Signals only. Moved the global "Chat over corpus" panel
+  out (per-artifact chat in the detail modal replaces it). Questions
+  worth asking are now a prominent banner at the top of the main
+  column instead of being buried in the rail. Sources and Connectors
+  moved to a dedicated, lower-prominence section at the bottom of the
+  main column with explanatory copy.
+- **Artifact cards**: stripped the noisy "Details, citations & critique"
+  inline dropdown — the Open button now routes to the full-bleed modal
+  (tabs for Detail, Thread, Chat), which is the only canonical way to
+  view the body. Cards now show: title, type chip, critique chip, a
+  six-line summary clamp, and a primary "Open, edit & chat" action.
+- **Artifact card titles**: client-side strips the project-name
+  prefix/suffix so cards no longer repeat the engagement name already
+  shown in the page header.
+
+### Added
+
+- **Modal: "Apply thread & regenerate"** on the Chat tab — collects
+  your recent thread notes and chat turns, feeds them as
+  `instructions` to `POST /artifacts/{type_id}/regenerate`, and
+  rebuilds the artifact using your corrections as grounding.
+
+### Fixed
+
+- **Sources panel showing "---" placeholders**: documents whose
+  title/uri/snippet are just dashes, whitespace, or underscores are
+  now filtered out, with a small footer showing how many unlabelled
+  docs were hidden.
+- **Inline artifact body rendered as raw JSON**: the only path into the
+  body now is the modal's `DetailView`, which renders objects as
+  readable definition lists — the JSON-dump code path is gone.
+
 ## [2.2.3] - 2026-04-23
 
 ### Added

@@ -9,7 +9,19 @@ interface Props {
   sources: SynthesisSources | null;
 }
 
+const PLACEHOLDER_PATTERN = /^[\s\-\u2014_.]+$/;
+function isUsefulLabel(v: string | null | undefined): boolean {
+  if (!v) return false;
+  const trimmed = v.trim();
+  if (!trimmed) return false;
+  return !PLACEHOLDER_PATTERN.test(trimmed);
+}
+
 export function SourcesPanel({ sources }: Props) {
+  const docs = (sources?.docs ?? []).filter(
+    (d) => isUsefulLabel(d.title) || isUsefulLabel(d.snippet) || isUsefulLabel(d.uri),
+  );
+  const hiddenCount = (sources?.docs.length ?? 0) - docs.length;
   return (
     <Card>
       <CardHeader>
@@ -27,43 +39,51 @@ export function SourcesPanel({ sources }: Props) {
       <CardContent className="text-sm">
         {!sources ? (
           <p className="text-muted-foreground">No corpus loaded yet.</p>
-        ) : sources.docs.length === 0 ? (
+        ) : docs.length === 0 ? (
           <p className="text-muted-foreground">
-            No source documents found. Configure a vertex repo path or local
-            directory on the project.
+            No labelled source documents. Configure a vertex repo path or a
+            connector below to enrich the corpus.
           </p>
         ) : (
           <ul className="space-y-2">
-            {sources.docs.slice(0, 50).map((d) => (
-              <li key={d.id} className="space-y-0.5">
-                <div className="flex items-center gap-2">
-                  <Badge variant="outline" className="text-[10px]">
-                    {d.kind}
-                  </Badge>
-                  {d.uri ? (
-                    <a
-                      href={d.uri}
-                      className="font-medium hover:underline inline-flex items-center gap-1"
-                      target="_blank"
-                      rel="noreferrer"
-                    >
-                      {d.title}
-                      <ExternalLink className="size-3" />
-                    </a>
-                  ) : (
-                    <span className="font-medium">{d.title}</span>
+            {docs.slice(0, 50).map((d) => {
+              const title = isUsefulLabel(d.title) ? d.title : d.id;
+              return (
+                <li key={d.id} className="space-y-0.5">
+                  <div className="flex items-center gap-2">
+                    <Badge variant="outline" className="text-[10px]">
+                      {d.kind}
+                    </Badge>
+                    {d.uri && isUsefulLabel(d.uri) ? (
+                      <a
+                        href={d.uri}
+                        className="font-medium hover:underline inline-flex items-center gap-1"
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        {title}
+                        <ExternalLink className="size-3" />
+                      </a>
+                    ) : (
+                      <span className="font-medium">{title}</span>
+                    )}
+                  </div>
+                  {isUsefulLabel(d.snippet) && (
+                    <p className="text-xs text-muted-foreground line-clamp-2">
+                      {d.snippet}
+                    </p>
                   )}
-                </div>
-                {d.snippet && (
-                  <p className="text-xs text-muted-foreground line-clamp-2">
-                    {d.snippet}
-                  </p>
-                )}
-              </li>
-            ))}
-            {sources.docs.length > 50 && (
+                </li>
+              );
+            })}
+            {docs.length > 50 && (
               <li className="text-xs text-muted-foreground">
-                + {sources.docs.length - 50} more
+                + {docs.length - 50} more
+              </li>
+            )}
+            {hiddenCount > 0 && (
+              <li className="text-[11px] italic text-muted-foreground">
+                {hiddenCount} unlabelled document{hiddenCount === 1 ? "" : "s"} hidden
               </li>
             )}
           </ul>
