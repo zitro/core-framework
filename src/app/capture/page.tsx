@@ -22,6 +22,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useProject } from "@/stores/project-store";
 import { DropZone } from "@/components/capture/drop-zone";
 import { ConnectorsPanel } from "@/components/synthesis/connectors-panel";
+import { CompanyPanel } from "@/components/sources/company-panel";
+import { WebSearchPanel } from "@/components/sources/web-search-panel";
 
 type Tab = "drop" | "connectors" | "company" | "web";
 const TABS: Tab[] = ["drop", "connectors", "company", "web"];
@@ -105,17 +107,11 @@ function CaptureInner() {
         </TabsContent>
 
         <TabsContent value="company" className="mt-4">
-          <ComingSoonPlaceholder
-            icon={Building2}
-            label="Company research moves here in phase D1.5 â€” wired through Bing/web tools."
-          />
+          <CompanyPanel />
         </TabsContent>
 
         <TabsContent value="web" className="mt-4">
-          <ComingSoonPlaceholder
-            icon={Globe}
-            label="Web search lands here next â€” same Bing-backed flow, just under the new IA."
-          />
+          <WebSearchPanel />
         </TabsContent>
       </Tabs>
     </div>
@@ -127,23 +123,6 @@ function NoProjectPlaceholder() {
     <Card className="border-dashed">
       <CardContent className="flex flex-col items-center gap-2 py-10 text-center text-sm text-muted-foreground">
         <p>Select an active project to manage its connectors.</p>
-      </CardContent>
-    </Card>
-  );
-}
-
-function ComingSoonPlaceholder({
-  icon: Icon,
-  label,
-}: {
-  icon: LucideIcon;
-  label: string;
-}) {
-  return (
-    <Card className="border-dashed">
-      <CardContent className="flex flex-col items-center gap-2 py-10 text-center text-sm text-muted-foreground">
-        <Icon className="h-6 w-6" aria-hidden />
-        <p>{label}</p>
       </CardContent>
     </Card>
   );
