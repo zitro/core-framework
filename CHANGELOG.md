@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.2.1] - 2026-04-23
+
+### Fixed
+
+- **Backend image missing `git`**: customer-source sync (and any other
+  GitPython-backed code) crashed at module import inside the slim
+  Python image. Dockerfile now installs `git` via apt before app code,
+  unblocking 2.2.0 features in production.
+
 ## [2.2.0] - 2026-04-23
 
 Customer + multi-source workspace, drop-zone capture, engagement-brief

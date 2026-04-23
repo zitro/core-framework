@@ -2,6 +2,11 @@ FROM python:3.11-slim AS base
 
 WORKDIR /app
 
+# git is required by GitPython (used by customer-source sync)
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends git && \
+    rm -rf /var/lib/apt/lists/*
+
 RUN addgroup --system --gid 1001 appuser && \
     adduser --system --uid 1001 --ingroup appuser appuser
 
