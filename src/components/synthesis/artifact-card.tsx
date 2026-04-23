@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { RefreshCw, ChevronDown, ChevronRight, Mail, Copy } from "lucide-react";
+import { RefreshCw, ChevronDown, ChevronRight, Mail, Copy, MessageSquare } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -17,6 +17,7 @@ interface Props {
   artifact: SynthesisArtifact;
   onRegenerate: (typeId: string) => Promise<void> | void;
   onUpdate?: (updated: SynthesisArtifact) => void;
+  onOpenDetail?: (artifact: SynthesisArtifact) => void;
   busy?: boolean;
 }
 
@@ -42,7 +43,7 @@ function renderBodyValue(value: unknown): React.ReactNode {
   return <span>{String(value)}</span>;
 }
 
-export function ArtifactCard({ artifact, onRegenerate, onUpdate, busy }: Props) {
+export function ArtifactCard({ artifact, onRegenerate, onUpdate, onOpenDetail, busy }: Props) {
   const [open, setOpen] = useState(false);
   const bodyEntries = Object.entries(artifact.body || {});
   const isStoryboard = artifact.type_id === "storyboard";
@@ -62,6 +63,17 @@ export function ArtifactCard({ artifact, onRegenerate, onUpdate, busy }: Props) 
           <div className="flex items-center gap-2">
             {artifact.type_id === "weekly-email-update" && (
               <EmailActions artifact={artifact} />
+            )}
+            {onOpenDetail && (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => onOpenDetail(artifact)}
+                title="Open detail, thread, and chat"
+              >
+                <MessageSquare className="size-3.5 mr-1.5" />
+                Open
+              </Button>
             )}
             <Button
               size="sm"
