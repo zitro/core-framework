@@ -197,9 +197,21 @@ async def list_critiques(project_id: str) -> dict:
 
 
 @router.post("/{project_id}/synthesize")
-async def synthesize(project_id: str) -> dict:
+async def synthesize(
+    project_id: str,
+    missing_only: bool = False,
+    include_non_critical: bool = False,
+) -> dict:
     """Build (or rebuild) the full project synthesis: corpus, every critical
-    artifact, critic pass, and questions."""
+    artifact, critic pass, and questions.
+
+    - ``missing_only=true`` skips any catalog type that already has at least
+      one artifact for this project. Lets us back-fill empty slots without
+      clobbering existing work.
+    - ``include_non_critical=true`` also generates non-critical types
+      (status updates, weekly emails, retros, etc.). Used by the first-touch
+      auto-fill on /refine so every catalog slot gets seeded.
+    """
     project = await _load_project(project_id)
     corpus = await build_corpus(project)
 
@@ -207,10 +219,16 @@ async def synthesize(project_id: str) -> dict:
     critic = CriticAgent()
     question_agent = QuestionAgent()
 
+    candidate_types = [t for t in ARTIFACT_TYPES if t.critical or include_non_critical]
+    if missing_only:
+        existing = await _project_artifacts(project_id)
+        existing_type_ids = {a.type_id for a in existing}
+        candidate_types = [t for t in candidate_types if t.id not in existing_type_ids]
+
     artifacts: list[Artifact] = []
     failures: list[dict] = []
 
-    for t in [t for t in ARTIFACT_TYPES if t.critical]:
+    for t in candidate_types:
         try:
             artifact = await generator.generate(project, t.id, corpus=corpus)
             artifacts.append(artifact)

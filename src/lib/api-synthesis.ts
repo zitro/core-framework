@@ -140,11 +140,19 @@ export const synthesisApi = {
       `/api/synthesis/${encodeURIComponent(projectId)}/questions`,
     ),
 
-  synthesize: (projectId: string) =>
-    request<SynthesisRunResult>(
-      `/api/synthesis/${encodeURIComponent(projectId)}/synthesize`,
+  synthesize: (
+    projectId: string,
+    opts: { missingOnly?: boolean; includeNonCritical?: boolean } = {},
+  ) => {
+    const params = new URLSearchParams();
+    if (opts.missingOnly) params.set("missing_only", "true");
+    if (opts.includeNonCritical) params.set("include_non_critical", "true");
+    const qs = params.toString();
+    return request<SynthesisRunResult>(
+      `/api/synthesis/${encodeURIComponent(projectId)}/synthesize${qs ? `?${qs}` : ""}`,
       { method: "POST" },
-    ),
+    );
+  },
 
   regenerate: (projectId: string, typeId: string, instructions = "") =>
     request<{ artifact: SynthesisArtifact; critique: SynthesisCritique | null }>(
