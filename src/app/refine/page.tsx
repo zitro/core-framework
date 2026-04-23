@@ -28,6 +28,10 @@ import { SourcesPanel } from "@/components/synthesis/sources-panel";
 import { VertexWriteBackToggle } from "@/components/synthesis/vertex-toggle";
 import { engagementsApi } from "@/lib/api-fde";
 import { downloadFile } from "@/lib/http";
+import { groupCatalogByDTPhase } from "@/lib/design-thinking";
+
+type ArtifactView = "stage" | "dt";
+const VIEW_STORAGE_KEY = "refine.artifact-view";
 
 export default function SynthesisPage() {
   const { activeProject } = useProject();
@@ -81,6 +85,28 @@ export default function SynthesisPage() {
   }, [projectId]);
 
   const [autoFilled, setAutoFilled] = useState(false);
+  const [view, setView] = useState<ArtifactView>("stage");
+
+  // Persist view choice across sessions.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const saved = window.localStorage.getItem(VIEW_STORAGE_KEY);
+    if (saved === "dt" || saved === "stage") setView(saved);
+  }, []);
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    window.localStorage.setItem(VIEW_STORAGE_KEY, view);
+  }, [view]);
+
+  const dtPhases = useMemo(
+    () => (catalog ? groupCatalogByDTPhase(catalog) : []),
+    [catalog],
+  );
+  const artifactByTypeId = useMemo(() => {
+    const m = new Map<string, SynthesisArtifact>();
+    for (const a of artifacts) m.set(a.type_id, a);
+    return m;
+  }, [artifacts]);
 
   useEffect(() => {
     void loadAll();
@@ -329,6 +355,44 @@ export default function SynthesisPage() {
             </TabsContent>
 
             <TabsContent value="artifacts" className="mt-4 space-y-6">
+          {/* View toggle: same cards, different lens. */}
+          {catalog && !loading && artifacts.length > 0 && (
+            <div className="flex items-center justify-between gap-3 rounded-md border bg-muted/30 px-3 py-2">
+              <div className="text-xs text-muted-foreground">
+                <span className="font-medium text-foreground">View:</span>{" "}
+                {view === "stage"
+                  ? "grouped by engagement stage"
+                  : "grouped by Design Thinking phase"}
+              </div>
+              <div className="inline-flex rounded-md border bg-background p-0.5 text-xs">
+                <button
+                  type="button"
+                  onClick={() => setView("stage")}
+                  className={`rounded px-2.5 py-1 transition ${
+                    view === "stage"
+                      ? "bg-foreground text-background"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                  aria-pressed={view === "stage"}
+                >
+                  By stage
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setView("dt")}
+                  className={`rounded px-2.5 py-1 transition ${
+                    view === "dt"
+                      ? "bg-foreground text-background"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                  aria-pressed={view === "dt"}
+                >
+                  By Design Thinking
+                </button>
+              </div>
+            </div>
+          )}
+
           {!catalog || loading ? (
             <Card>
               <CardContent className="p-6 text-sm text-muted-foreground">
@@ -342,7 +406,7 @@ export default function SynthesisPage() {
                 build the first cut.
               </CardContent>
             </Card>
-          ) : (
+          ) : view === "stage" ? (
             catalog.categories.map((cat) => {
               const items = artifactsByCategory[cat.id] ?? [];
               const byTypeId = new Map(items.map((a) => [a.type_id, a] as const));
@@ -393,6 +457,62 @@ export default function SynthesisPage() {
                           typeId={t.id}
                           typeLabel={t.label}
                           description={descByTypeId.get(t.id)}
+                          busy={busyTypeId === t.id}
+                          onGenerate={async (typeId) => {
+                            await onRegenerate(typeId);
+                            await loadAll();
+                          }}
+                        />
+                      );
+                    })}
+                  </div>
+                </section>
+              );
+            })
+          ) : (
+            dtPhases.map((phase) => {
+              const present = phase.types.filter((t) => artifactByTypeId.has(t.id));
+              return (
+                <section key={`${phase.id}-${phase.label}`} className="space-y-3">
+                  <div className="flex items-baseline gap-3">
+                    <h2 className="text-lg font-semibold">{phase.label}</h2>
+                    <Badge variant="outline">
+                      {present.length}/{phase.types.length}
+                    </Badge>
+                    <span className="text-xs text-muted-foreground">
+                      {phase.description}
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                    {phase.types.map((t) => {
+                      const a = artifactByTypeId.get(t.id);
+                      if (a) {
+                        return (
+                          <ArtifactCard
+                            key={t.id}
+                            artifact={a}
+                            projectId={projectId}
+                            typeLabel={t.label}
+                            onRegenerate={onRegenerate}
+                            onItemAdded={loadAll}
+                            onUpdate={(updated) =>
+                              setArtifacts((prev) =>
+                                prev.map((p) =>
+                                  p.id === updated.id ? { ...p, ...updated } : p,
+                                ),
+                              )
+                            }
+                            onOpenDetail={setOpenArtifact}
+                            busy={busyTypeId === a.type_id}
+                          />
+                        );
+                      }
+                      return (
+                        <EmptyArtifactCard
+                          key={t.id}
+                          typeId={t.id}
+                          typeLabel={t.label}
+                          description={t.description}
                           busy={busyTypeId === t.id}
                           onGenerate={async (typeId) => {
                             await onRegenerate(typeId);

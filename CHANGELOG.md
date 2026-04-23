@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.2.14] - 2026-04-23
+
+### Added
+
+- **Design Thinking view on /refine.** A new view toggle above the
+  artifact catalog switches between `By stage` (the existing
+  why/what/how/value/scope/story/operational grouping) and
+  `By Design Thinking` (Empathize / Define / Ideate / Prototype /
+  Test / Deliver). Same cards, same generate/regenerate flows — just
+  regrouped under the DT lens for facilitators who think in phases.
+  Selection persists per-browser via `localStorage`.
+
 ## [2.2.13] - 2026-04-23
 
 ### Added
