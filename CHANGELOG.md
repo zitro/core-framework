@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.2.11] - 2026-04-23
+
+### Fixed
+
+- **Orient first-touch auto-draft now actually fires.** The emptiness
+  check (frontend and backend) excluded only blank fields, but `title`
+  is auto-seeded from the project name on first read, so the brief was
+  never considered empty and the LLM draft was skipped. Title is now
+  excluded from the auto-draft trigger check on both sides; if every
+  *other* field is blank when /orient loads, the backend drafts from
+  the corpus and persists v1 immediately.
+
 ## [2.2.10] - 2026-04-23
 
 ### Added
