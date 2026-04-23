@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.2.12] - 2026-04-23
+
+### Fixed
+
+- **Auto-draft also excludes `phase` from the emptiness check.** 2.2.11
+  excluded `title` (seeded from project name) but missed `phase`, which
+  defaults to `"discovery"` on the model — so the backend kept short-
+  circuiting before the LLM call. Both auto-defaulted fields are now
+  ignored when deciding whether to draft.
+
 ## [2.2.11] - 2026-04-23
 
 ### Fixed
