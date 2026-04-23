@@ -16,6 +16,7 @@ import {
   type SynthesisSources,
 } from "@/lib/api-synthesis";
 import { ArtifactCard } from "@/components/synthesis/artifact-card";
+import { ArtifactDetailModal } from "@/components/refine/artifact-detail-modal";
 import { ChatPanel } from "@/components/synthesis/chat-panel";
 import { CompassPanel } from "@/components/synthesis/compass-panel";
 import { ConnectorsPanel } from "@/components/synthesis/connectors-panel";
@@ -38,6 +39,7 @@ export default function SynthesisPage() {
   const [busyTypeId, setBusyTypeId] = useState<string | null>(null);
   const [vertexEnabled, setVertexEnabled] = useState(false);
   const [autoRebuild, setAutoRebuild] = useState(false);
+  const [openArtifact, setOpenArtifact] = useState<SynthesisArtifact | null>(null);
 
   const loadAll = useCallback(async () => {
     if (!projectId) return;
@@ -264,6 +266,7 @@ export default function SynthesisPage() {
                             prev.map((p) => (p.id === updated.id ? { ...p, ...updated } : p)),
                           )
                         }
+                        onOpenDetail={setOpenArtifact}
                         busy={busyTypeId === a.type_id}
                       />
                     ))}
@@ -321,6 +324,14 @@ export default function SynthesisPage() {
           <SourcesPanel sources={sources} />
         </aside>
       </div>
+      <ArtifactDetailModal
+        projectId={projectId}
+        artifact={openArtifact}
+        open={openArtifact !== null}
+        onOpenChange={(o) => {
+          if (!o) setOpenArtifact(null);
+        }}
+      />
     </main>
   );
 }

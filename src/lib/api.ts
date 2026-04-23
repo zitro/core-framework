@@ -295,7 +295,67 @@ export const api = {
         { method: "POST" },
       ),
   },
+
+  // v2.2 Per-artifact threads + grounded chat
+  threads: {
+    get: (projectId: string, artifactId: string) =>
+      request<{ thread: ArtifactThreadRecord; comments: ArtifactCommentRecord[] }>(
+        `/api/synthesis/${projectId}/artifacts/${artifactId}/thread`,
+      ),
+    postComment: (
+      projectId: string,
+      artifactId: string,
+      data: { body: string; role?: "user" | "system"; author?: string },
+    ) =>
+      request<ArtifactCommentRecord>(
+        `/api/synthesis/${projectId}/artifacts/${artifactId}/comments`,
+        { method: "POST", body: JSON.stringify(data) },
+      ),
+    deleteComment: (projectId: string, artifactId: string, commentId: string) =>
+      request<{ deleted: boolean; id: string }>(
+        `/api/synthesis/${projectId}/artifacts/${artifactId}/comments/${commentId}`,
+        { method: "DELETE" },
+      ),
+    chat: (
+      projectId: string,
+      artifactId: string,
+      data: { body: string; author?: string },
+    ) =>
+      request<{
+        turn_id: string;
+        user: ArtifactCommentRecord;
+        assistant: ArtifactCommentRecord;
+      }>(`/api/synthesis/${projectId}/artifacts/${artifactId}/chat`, {
+        method: "POST",
+        body: JSON.stringify(data),
+      }),
+  },
 };
+
+export interface ArtifactThreadRecord {
+  id: string;
+  project_id: string;
+  artifact_id: string;
+  title: string;
+  comment_count: number;
+  last_activity_at: string;
+  created_at: string;
+}
+
+export type ArtifactCommentRole = "user" | "assistant" | "system";
+
+export interface ArtifactCommentRecord {
+  id: string;
+  thread_id: string;
+  role: ArtifactCommentRole;
+  author: string;
+  body: string;
+  turn_id: string;
+  model: string;
+  tokens_in: number;
+  tokens_out: number;
+  created_at: string;
+}
 
 export type EngagementPhase = "discovery" | "pilot" | "build" | "operate";
 
