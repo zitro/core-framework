@@ -29,6 +29,7 @@ KNOWN_COLLECTIONS: list[str] = [
     # v2.2.0 customer + multi-source workspace
     "customers",
     "engagement_contexts",
+    "engagement_context_versions",
     "artifact_threads",
     "artifact_comments",
     # v2.2.8 user-authored project notes (added via Refine "+ Add")
@@ -64,6 +65,7 @@ PARTITIONED_COLLECTIONS: frozenset[str] = frozenset(
         "source_indexes",
         "synthesis_chats",
         "engagement_contexts",
+        "engagement_context_versions",
         "artifact_threads",
         "artifact_comments",
         "project_notes",
