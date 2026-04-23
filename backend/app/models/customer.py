@@ -105,8 +105,6 @@ def redact_source(source: Source | dict) -> dict:
 
 def redact_customer(customer: Customer | dict) -> dict:
     """Strip secrets from all sources on a customer."""
-    data = (
-        customer.model_dump(mode="json") if isinstance(customer, Customer) else dict(customer)
-    )
+    data = customer.model_dump(mode="json") if isinstance(customer, Customer) else dict(customer)
     data["sources"] = [redact_source(s) for s in data.get("sources", [])]
     return data
