@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.2.5] - 2026-04-23
+
+### Fixed
+
+- **Artifact card titles still showing engagement name**: the v2.2.4
+  strip only matched the exact project name, so titles like
+  `Personas for Allstate's 24-hour Data-to-Insights Initiative` slipped
+  through when the stored project name differed in casing/apostrophes.
+  Now strips any trailing " for ..." tail as a fallback, yielding a
+  clean `Personas` card title.
+
 ## [2.2.4] - 2026-04-23
 
 ### Changed

@@ -17,21 +17,42 @@ interface Props {
   busy?: boolean;
 }
 
+/**
+ * Strip the repeated engagement-name phrase from an artifact title so cards
+ * don't echo the project name that's already shown in the page header.
+ *
+ * Strategy (tolerant to apostrophes / casing / minor word changes):
+ *   1. If the project name appears literally (case-insensitive), cut it and
+ *      anything after.
+ *   2. Otherwise, drop any trailing " for ..." tail (e.g.
+ *      "Personas for Allstate's 24-hour Data-to-Insights Initiative"
+ *      -> "Personas"). Keeps the first ~80 chars before the " for ".
+ *   3. Fall back to the original title.
+ */
 function shortenTitle(raw: string, projectName?: string): string {
   if (!raw) return raw;
   let t = raw.trim();
-  if (!projectName) return t;
-  const name = projectName.trim();
-  if (!name) return t;
-  const esc = name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  const patterns: RegExp[] = [
-    new RegExp(`^for\\s+${esc}['\u2019]?s?\\s+`, "i"),
-    new RegExp(`^${esc}['\u2019]s\\s+`, "i"),
-    new RegExp(`^${esc}\\s*[:\u2014-]\\s*`, "i"),
-    new RegExp(`\\s*[:\u2014-]\\s*${esc}\\s*$`, "i"),
-    new RegExp(`\\s+for\\s+${esc}['\u2019]?s?\\b.*$`, "i"),
-  ];
-  for (const p of patterns) t = t.replace(p, "").trim();
+
+  // 1. Direct project-name match (case-insensitive).
+  if (projectName && projectName.trim()) {
+    const name = projectName.trim();
+    const esc = name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const patterns: RegExp[] = [
+      new RegExp(`\\s*(?:for|:|\u2014|-)?\\s*${esc}['\u2019]?s?\\b.*$`, "i"),
+      new RegExp(`^${esc}['\u2019]?s?\\s+`, "i"),
+    ];
+    for (const p of patterns) t = t.replace(p, "").trim();
+  }
+
+  // 2. Generic "... for <anything>" trailing strip.
+  const forMatch = t.match(/^(.*?)\s+for\s+.+$/i);
+  if (forMatch && forMatch[1].trim().length >= 3) {
+    t = forMatch[1].trim();
+  }
+
+  // 3. Trim dangling punctuation.
+  t = t.replace(/[\s:\-\u2014]+$/, "").trim();
+
   return t || raw;
 }
 
