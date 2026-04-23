@@ -9,6 +9,7 @@ import { AuthProvider } from "@/stores/auth-context";
 import { ThemeProvider } from "@/components/layout/theme-provider";
 import { AppSidebar } from "@/components/layout/app-sidebar";
 import { AppHeader } from "@/components/layout/app-header";
+import { CommandPalette } from "@/components/layout/command-palette";
 import "./globals.css";
 import "highlight.js/styles/github-dark.min.css";
 
@@ -52,6 +53,7 @@ export default function RootLayout({
                         {children}
                       </main>
                     </div>
+                    <CommandPalette />
                   </SidebarProvider>
                 </TooltipProvider>
                 <Toaster richColors position="bottom-right" />

@@ -259,6 +259,11 @@ export default function SynthesisPage() {
                         key={a.id}
                         artifact={a}
                         onRegenerate={onRegenerate}
+                        onUpdate={(updated) =>
+                          setArtifacts((prev) =>
+                            prev.map((p) => (p.id === updated.id ? { ...p, ...updated } : p)),
+                          )
+                        }
                         busy={busyTypeId === a.type_id}
                       />
                     ))}
