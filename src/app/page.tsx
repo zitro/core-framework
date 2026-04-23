@@ -6,10 +6,10 @@ import {
   ArrowRight,
   Briefcase,
   Compass,
-  Lightbulb,
+  Inbox,
   Plus,
   Rocket,
-  Search,
+  Wand2,
   type LucideIcon,
 } from "lucide-react";
 import {
@@ -42,38 +42,38 @@ const PHASES: PhaseCard[] = [
   {
     phase: "capture",
     label: "Capture",
-    icon: Search,
-    href: "/context",
+    icon: Inbox,
+    href: "/capture",
     accent: "text-blue-500",
     ring: "border-blue-500/30 bg-blue-500/5",
-    description: "Pull in transcripts, docs, and evidence.",
+    description: "Pull in notes, transcripts, docs, and evidence.",
   },
   {
     phase: "orient",
     label: "Orient",
     icon: Compass,
-    href: "/synthesis",
+    href: "/orient",
     accent: "text-amber-500",
     ring: "border-amber-500/30 bg-amber-500/5",
-    description: "Cluster signals into themes and questions.",
+    description: "Frame the engagement: problem, scope, stakeholders.",
   },
   {
     phase: "refine",
     label: "Refine",
-    icon: Lightbulb,
-    href: "/narrative",
+    icon: Wand2,
+    href: "/refine",
     accent: "text-emerald-500",
     ring: "border-emerald-500/30 bg-emerald-500/5",
-    description: "Shape the story, evidence, and hypotheses.",
+    description: "Shape artifacts, hypotheses, and review threads.",
   },
   {
     phase: "execute",
     label: "Execute",
     icon: Rocket,
-    href: "/engagements",
+    href: "/execute",
     accent: "text-violet-500",
     ring: "border-violet-500/30 bg-violet-500/5",
-    description: "Land plans, reviews, and handoffs.",
+    description: "Land plans, reports, and stakeholder handoffs.",
   },
 ];
 
@@ -210,7 +210,7 @@ export default function DashboardPage() {
                   <p className="text-sm text-muted-foreground">
                     No discoveries yet for {activeProject.name}.
                   </p>
-                  <Link href="/context">
+                  <Link href="/capture">
                     <Button variant="outline">Start in Capture</Button>
                   </Link>
                 </CardContent>

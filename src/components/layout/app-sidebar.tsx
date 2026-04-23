@@ -5,12 +5,12 @@ import { usePathname } from "next/navigation";
 import pkg from "../../../package.json";
 import {
   BookMarked,
-  FileBarChart2,
-  FileStack,
+  Compass,
   FolderGit2,
   Home,
-  Layers,
+  Inbox,
   type LucideIcon,
+  Rocket,
   Settings2,
   Wand2,
 } from "lucide-react";
@@ -46,11 +46,21 @@ interface NavGroup {
 
 const NAV_GROUPS: NavGroup[] = [
   {
-    label: "Work",
+    label: "Hub",
+    items: [{ label: "Dashboard", href: "/", icon: Home }],
+  },
+  {
+    label: "Core",
     items: [
-      { label: "Dashboard", href: "/", icon: Home },
-      { label: "Synthesis", href: "/synthesis", icon: Wand2 },
-      { label: "Artifacts", href: "/artifacts", icon: FileStack },
+      { label: "Capture", href: "/capture", icon: Inbox },
+      { label: "Orient", href: "/orient", icon: Compass },
+      { label: "Refine", href: "/refine", icon: Wand2 },
+      { label: "Execute", href: "/execute", icon: Rocket },
+    ],
+  },
+  {
+    label: "Insight",
+    items: [
       {
         label: "Vertex Repo",
         href: "/vertex",
@@ -58,13 +68,6 @@ const NAV_GROUPS: NavGroup[] = [
         badge: "v2",
         conditional: "hasRepo",
       },
-    ],
-  },
-  {
-    label: "Insight",
-    items: [
-      { label: "Sources", href: "/sources", icon: Layers, badge: "v2" },
-      { label: "Reports", href: "/reports", icon: FileBarChart2, badge: "v2" },
     ],
   },
   {

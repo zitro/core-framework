@@ -7,16 +7,14 @@
 
 import { Suspense, useCallback, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Cloud, FileSliders, GavelIcon, Settings2, Sliders } from "lucide-react";
+import { FileSliders, Settings2, Sliders, Users } from "lucide-react";
 
 import ContextPage from "@/app/context/page";
-import M365Page from "@/app/m365/page";
-import ReviewsPage from "@/app/reviews/page";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
-type Tab = "engagement" | "reviews" | "connections" | "preferences";
-const TABS: Tab[] = ["engagement", "reviews", "connections", "preferences"];
+type Tab = "engagement" | "customer" | "preferences";
+const TABS: Tab[] = ["engagement", "customer", "preferences"];
 
 export default function SettingsPage() {
   return (
@@ -57,15 +55,12 @@ function SettingsInner() {
       </header>
 
       <Tabs value={tab} onValueChange={onTab}>
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="engagement" className="gap-1.5">
             <FileSliders className="size-3.5" aria-hidden /> Engagement
           </TabsTrigger>
-          <TabsTrigger value="reviews" className="gap-1.5">
-            <GavelIcon className="size-3.5" aria-hidden /> Reviews
-          </TabsTrigger>
-          <TabsTrigger value="connections" className="gap-1.5">
-            <Cloud className="size-3.5" aria-hidden /> Connections
+          <TabsTrigger value="customer" className="gap-1.5">
+            <Users className="size-3.5" aria-hidden /> Customer
           </TabsTrigger>
           <TabsTrigger value="preferences" className="gap-1.5">
             <Sliders className="size-3.5" aria-hidden /> Preferences
@@ -76,18 +71,38 @@ function SettingsInner() {
           <ContextPage />
         </TabsContent>
 
-        <TabsContent value="reviews" className="mt-4">
-          <ReviewsPage />
-        </TabsContent>
-
-        <TabsContent value="connections" className="mt-4">
-          <M365Page />
+        <TabsContent value="customer" className="mt-4">
+          <CustomerPanel />
         </TabsContent>
 
         <TabsContent value="preferences" className="mt-4">
           <PreferencesPanel />
         </TabsContent>
       </Tabs>
+    </div>
+  );
+}
+
+function CustomerPanel() {
+  return (
+    <div className="space-y-4">
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Customer & sources</CardTitle>
+        </CardHeader>
+        <CardContent className="text-sm text-muted-foreground">
+          The v2.2 customer + multi-source workspace UI lands in phase E.
+          For now, manage customers and their sources via the API
+          <code className="mx-1 rounded bg-muted px-1.5 py-0.5 text-xs">
+            /api/customers
+          </code>
+          and per-project source links from
+          <code className="mx-1 rounded bg-muted px-1.5 py-0.5 text-xs">
+            /api/engagements
+          </code>
+          .
+        </CardContent>
+      </Card>
     </div>
   );
 }
