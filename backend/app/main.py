@@ -64,6 +64,7 @@ def create_app() -> FastAPI:
     from app.routers import (
         advisor,
         agents,
+        artifact_threads,
         audit,
         blueprints,
         customers,
@@ -186,6 +187,11 @@ def create_app() -> FastAPI:
     app.include_router(grounding.router, prefix="/api/grounding", tags=["grounding"])
     app.include_router(audit.router, prefix="/api/audit", tags=["audit"])
     app.include_router(synthesis.router, prefix="/api/synthesis", tags=["synthesis"])
+    app.include_router(
+        artifact_threads.router,
+        prefix="/api/synthesis",
+        tags=["artifact-threads"],
+    )
     app.include_router(v2.router, prefix="/api/v2", tags=["v2"])
     app.include_router(v2_vertex_ingest.router, prefix="/api/v2", tags=["v2"])
 

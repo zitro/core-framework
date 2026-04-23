@@ -29,6 +29,8 @@ KNOWN_COLLECTIONS: list[str] = [
     # v2.2.0 customer + multi-source workspace
     "customers",
     "engagement_contexts",
+    "artifact_threads",
+    "artifact_comments",
 ]
 
 # Collections partitioned by ``project_id`` when
@@ -60,6 +62,8 @@ PARTITIONED_COLLECTIONS: frozenset[str] = frozenset(
         "source_indexes",
         "synthesis_chats",
         "engagement_contexts",
+        "artifact_threads",
+        "artifact_comments",
     }
 )
 
