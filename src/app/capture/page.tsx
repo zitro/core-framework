@@ -1,8 +1,8 @@
 ﻿"use client";
 
 /**
- * /capture â€” drop raw input, run connectors, and source content into the
- * project corpus. Sub-tabs are URL-driven (?tab=â€¦) so legacy redirects
+ * /capture — drop raw input, run connectors, and source content into the
+ * project corpus. Sub-tabs are URL-driven (?tab=…) so legacy redirects
  * land users on the right one.
  */
 

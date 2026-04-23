@@ -77,7 +77,7 @@ export default function VertexPage() {
     return <Hero title="No project selected" body="Pick a project in the sidebar." />;
   }
   if (loading && !tree) {
-    return <Hero title="Reading vertex repoâ€¦" body="" />;
+    return <Hero title="Reading vertex repo…" body="" />;
   }
   if (tree && !tree.available) {
     return (
@@ -129,7 +129,7 @@ export default function VertexPage() {
           />
         )}
         {selected && fileLoading && (
-          <p className="text-sm text-muted-foreground">Loadingâ€¦</p>
+          <p className="text-sm text-muted-foreground">Loading…</p>
         )}
         {selected && file && !fileLoading && <FileView file={file} />}
       </main>

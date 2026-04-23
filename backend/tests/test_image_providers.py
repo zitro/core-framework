@@ -1,4 +1,4 @@
-"""Image provider unit tests â€” no network, deterministic."""
+"""Image provider unit tests — no network, deterministic."""
 
 from __future__ import annotations
 

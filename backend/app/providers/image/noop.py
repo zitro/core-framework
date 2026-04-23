@@ -1,4 +1,4 @@
-"""No-op image provider â€” returned when IMAGE_PROVIDER=none.
+"""No-op image provider — returned when IMAGE_PROVIDER=none.
 
 Lets storyboard endpoints work without erroring; callers should check the
 returned ``url == ""`` to decide whether to render a placeholder.

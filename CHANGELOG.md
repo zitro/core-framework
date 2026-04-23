@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.2.15] - 2026-04-23
+
+### Fixed
+
+- **Mojibake in source files.** Several `.tsx` / `.py` files had em-dash
+  and ellipsis characters double-encoded as `â€"` / `â€¦` (UTF-8 bytes
+  re-interpreted as Windows-1252), which surfaced literally in the UI
+  (e.g. Settings -> Sources empty state). Cleaned every occurrence
+  across the frontend and backend; restored real `\u2014` / `\u2026`
+  glyphs.
+
 ## [2.2.14] - 2026-04-23
 
 ### Added
@@ -330,7 +341,7 @@ Methodology parity, image generation, vertex repo viewer, top-level Artifacts pa
 
 ### Added
 
-- **Synthesis catalog**: 9 new design-thinking artifact types (catalog 33 -> 42) â€” `interview-guide`, `empathy-map`, `jtbd`, `emerging-themes`, `root-cause`, `assumption-matrix`, `storyboard`, `quick-win`, `retro`. Closes the gap where 11 of 16 advertised methods had no AI generator.
+- **Synthesis catalog**: 9 new design-thinking artifact types (catalog 33 -> 42) — `interview-guide`, `empathy-map`, `jtbd`, `emerging-themes`, `root-cause`, `assumption-matrix`, `storyboard`, `quick-win`, `retro`. Closes the gap where 11 of 16 advertised methods had no AI generator.
 - **Image generation**: `IMAGE_PROVIDER` provider abstraction (`none` default, `local` deterministic SVG, `azure_openai` DALL-E 3 via `AZURE_OPENAI_IMAGE_DEPLOYMENT`). New `POST /api/v2/{project_id}/artifacts/{artifact_id}/images` endpoint generates one image per storyboard frame whose `image_url` is empty (idempotent).
 - **Vertex repo viewer**: `GET /api/v2/{project_id}/vertex/tree` and `/vertex/file?path=` back a new `/vertex` page that renders the connected vertex repo as a tree on the left and rendered markdown on the right. Path traversal is rejected at the API.
 - **/artifacts page**: top-level read-and-share gallery of every generated artifact with category filter chips and search.

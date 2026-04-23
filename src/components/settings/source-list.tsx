@@ -1,7 +1,7 @@
 ﻿"use client";
 
 /**
- * SourceList â€” rows of sources for one Customer with sync / delete and
+ * SourceList — rows of sources for one Customer with sync / delete and
  * a collapsed Add form. Heavy add-form is in <AddSourceForm>.
  */
 
@@ -92,7 +92,7 @@ export function SourceList({ customer, onChange }: Props) {
     <div className="space-y-3">
       {customer.sources.length === 0 ? (
         <p className="text-xs text-muted-foreground">
-          No sources yet â€” add the first below.
+          No sources yet — add the first below.
         </p>
       ) : (
         <ul className="space-y-2">
@@ -138,7 +138,7 @@ function SourceRow({
         <p className="truncate text-xs text-muted-foreground">
           {source.location}
           {source.kind === "github" && source.branch && ` Â· ${source.branch}`}
-          {source.pat_last4 && <> Â· PAT â€¦{source.pat_last4}</>}
+          {source.pat_last4 && <> · PAT …{source.pat_last4}</>}
         </p>
         <SyncStatus status={source.last_sync_status} when={source.last_synced_at} />
       </div>
