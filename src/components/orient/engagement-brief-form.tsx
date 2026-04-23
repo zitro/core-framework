@@ -12,7 +12,7 @@
  */
 
 import { useMemo, useState } from "react";
-import { Loader2, Save } from "lucide-react";
+import { Loader2, Save, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -67,6 +67,7 @@ const EMPTY_MILESTONE: Milestone = { label: "", target_date: "", notes: "" };
 export function EngagementBriefForm({ initial, onSaved }: Props) {
   const [draft, setDraft] = useState<EngagementContextRecord>(initial);
   const [saving, setSaving] = useState(false);
+  const [drafting, setDrafting] = useState(false);
 
   const dirty = useMemo(() => buildDiff(initial, draft), [initial, draft]);
   const hasChanges = Object.keys(dirty).length > 0;
@@ -75,6 +76,28 @@ export function EngagementBriefForm({ initial, onSaved }: Props) {
     key: K,
     val: EngagementContextRecord[K],
   ) => setDraft((d) => ({ ...d, [key]: val }));
+
+  const draftWithAi = async () => {
+    setDrafting(true);
+    try {
+      const res = await api.engagementContext.draft(draft.project_id);
+      const proposed = res.draft ?? {};
+      const merged = mergeEmpty(draft, proposed);
+      const filled = Object.keys(diffApplied(draft, merged));
+      setDraft(merged);
+      if (filled.length === 0) {
+        toast.info("Nothing to add — every field already has a value.");
+      } else {
+        toast.success(
+          `Drafted ${filled.length} field${filled.length === 1 ? "" : "s"} from ${res.corpus_docs} source doc${res.corpus_docs === 1 ? "" : "s"}.`,
+        );
+      }
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "AI draft failed");
+    } finally {
+      setDrafting(false);
+    }
+  };
 
   const save = async () => {
     if (!hasChanges) return;
@@ -94,8 +117,28 @@ export function EngagementBriefForm({ initial, onSaved }: Props) {
   return (
     <div className="space-y-6">
       <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Headline</CardTitle>
+        <CardHeader className="flex flex-row items-start justify-between gap-3 space-y-0">
+          <div className="space-y-1">
+            <CardTitle className="text-base">Headline</CardTitle>
+            <p className="text-xs text-muted-foreground">
+              Start with AI — it drafts every empty field from your sources.
+              You stay in control of every word.
+            </p>
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={draftWithAi}
+            disabled={drafting || saving}
+            className="shrink-0"
+          >
+            {drafting ? (
+              <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+            ) : (
+              <Sparkles className="mr-1.5 h-3.5 w-3.5" />
+            )}
+            Draft with AI
+          </Button>
         </CardHeader>
         <CardContent className="grid gap-4 md:grid-cols-2">
           <Field label="Title">
@@ -319,4 +362,35 @@ function buildDiff(
     }
   }
   return diff;
+}
+
+/** Fill only currently-empty fields in `current` from `proposed`. */
+function mergeEmpty(
+  current: EngagementContextRecord,
+  proposed: Partial<EngagementContextRecord>,
+): EngagementContextRecord {
+  const next = { ...current } as unknown as Record<string, unknown>;
+  for (const k of SCALAR_KEYS) {
+    const cur = (current[k] ?? "") as string;
+    const inc = proposed[k];
+    if (typeof inc === "string" && inc.trim() && !cur.trim()) {
+      next[k] = inc;
+    }
+  }
+  for (const k of ARRAY_KEYS) {
+    const cur = current[k] as unknown[] | undefined;
+    const inc = proposed[k];
+    if (Array.isArray(inc) && inc.length > 0 && (!cur || cur.length === 0)) {
+      next[k] = inc;
+    }
+  }
+  return next as unknown as EngagementContextRecord;
+}
+
+/** Subset of `next` whose values differ from `prev` (used for toast count). */
+function diffApplied(
+  prev: EngagementContextRecord,
+  next: EngagementContextRecord,
+): Partial<EngagementContextRecord> {
+  return buildDiff(prev, next);
 }

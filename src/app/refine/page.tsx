@@ -25,6 +25,7 @@ import { SignalsPanel } from "@/components/synthesis/signals-panel";
 import { SourcesPanel } from "@/components/synthesis/sources-panel";
 import { VertexWriteBackToggle } from "@/components/synthesis/vertex-toggle";
 import { engagementsApi } from "@/lib/api-fde";
+import { downloadFile } from "@/lib/http";
 
 export default function SynthesisPage() {
   const { activeProject } = useProject();
@@ -139,15 +140,24 @@ export default function SynthesisPage() {
       const res = await synthesisApi.writebackVertex(projectId);
       if (!res.enabled) {
         toast.warning(
-          "Vertex write-back disabled. Set metadata.vertex.write_enabled=true on the project.",
+          "Vertex write-back is OFF. Toggle it on, then try again.",
         );
         return;
       }
       if (res.errors.length > 0) {
-        toast.error(`Write-back: ${res.errors.length} error(s) — wrote ${res.written.length}`);
-      } else {
-        toast.success(`Pushed ${res.written.length} file(s) to vertex`);
+        const first = res.errors[0];
+        toast.error(
+          `Push failed: ${first}${res.errors.length > 1 ? ` (+${res.errors.length - 1} more)` : ""}`,
+        );
+        return;
       }
+      if (res.written.length === 0) {
+        toast.info("Nothing to push \u2014 generate or update artifacts first.");
+        return;
+      }
+      toast.success(
+        `Pushed ${res.written.length} file${res.written.length === 1 ? "" : "s"} to vertex`,
+      );
     } catch (err) {
       toast.error(`Write-back failed: ${(err as Error).message}`);
     }
@@ -191,7 +201,12 @@ export default function SynthesisPage() {
             variant="outline"
             size="sm"
             disabled={!hasArtifacts}
-            onClick={() => window.open(synthesisApi.exportDocxUrl(projectId), "_blank")}
+            onClick={() =>
+              void downloadFile(
+                synthesisApi.exportDocxUrl(projectId),
+                `${activeProject?.slug ?? projectId}-synthesis.docx`,
+              )
+            }
           >
             <FileText className="size-4 mr-2" />
             .docx
@@ -200,7 +215,12 @@ export default function SynthesisPage() {
             variant="outline"
             size="sm"
             disabled={!hasArtifacts}
-            onClick={() => window.open(synthesisApi.exportPptxUrl(projectId), "_blank")}
+            onClick={() =>
+              void downloadFile(
+                synthesisApi.exportPptxUrl(projectId),
+                `${activeProject?.slug ?? projectId}-synthesis.pptx`,
+              )
+            }
           >
             <Presentation className="size-4 mr-2" />
             .pptx

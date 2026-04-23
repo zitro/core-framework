@@ -294,6 +294,11 @@ export const api = {
         `/api/engagement-context/${projectId}/project?source_id=${encodeURIComponent(sourceId)}`,
         { method: "POST" },
       ),
+    draft: (projectId: string) =>
+      request<{
+        draft: Partial<EngagementContextRecord>;
+        corpus_docs: number;
+      }>(`/api/engagement-context/${projectId}/draft`, { method: "POST" }),
   },
 
   // v2.2 Per-artifact threads + grounded chat

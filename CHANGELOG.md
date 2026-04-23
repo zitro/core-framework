@@ -7,6 +7,40 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.2.3] - 2026-04-23
+
+### Added
+
+- **Orient: Draft with AI**: new "Draft with AI" button on the
+  engagement brief drafts every empty field (title, one-liner, phase,
+  problem, desired outcome, scope in/out, constraints, assumptions,
+  risks, stakeholders, success metrics, milestones) from the project's
+  corpus + existing artifacts. Already-typed values are preserved.
+  Backed by `POST /api/engagement-context/{pid}/draft`.
+- **Artifact Detail / Thread / Chat tab subtitles**: one-line helper
+  text under each tab so users know Detail = generated content,
+  Thread = human notes, Chat = AI grounded in the artifact + thread.
+
+### Changed
+
+- **Artifact Detail body rendering**: nested object/array bodies now
+  render as readable definition lists with humanized keys instead of
+  raw JSON code blocks. Booleans show as badges, primitive lists as
+  bullets, complex lists as numbered cards. Long strings preserve
+  newlines.
+- **DT Compass tile overflow**: added `min-w-0` + `truncate` so long
+  category labels (e.g. "Operational") never push text outside the
+  tile in the right rail.
+- **Push-to-vertex toast clarity**: distinct, actionable messages for
+  toggle-off, backend error, zero-files, and success cases.
+
+### Fixed
+
+- **`.docx` / `.pptx` export buttons 404**: download links now route
+  through an auth-aware `downloadFile()` helper that prefixes the
+  backend `API_URL`, attaches the bearer token, and triggers a real
+  save dialog with a sensible filename.
+
 ## [2.2.2] - 2026-04-23
 
 ### Fixed

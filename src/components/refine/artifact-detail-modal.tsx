@@ -144,9 +144,15 @@ export function ArtifactDetailModal({
             </TabsTrigger>
           </TabsList>
           <TabsContent value="detail" className="min-h-0 flex-1">
+            <p className="pb-2 text-[11px] text-muted-foreground">
+              The artifact contents — generated from your sources.
+            </p>
             <DetailView artifact={artifact} loading={loading} />
           </TabsContent>
           <TabsContent value="thread" className="min-h-0 flex-1">
+            <p className="pb-2 text-[11px] text-muted-foreground">
+              Notes and comments from you and your team. Humans only.
+            </p>
             <ThreadPanel
               projectId={projectId}
               artifactId={artifact.id}
@@ -156,6 +162,9 @@ export function ArtifactDetailModal({
             />
           </TabsContent>
           <TabsContent value="chat" className="min-h-0 flex-1 space-y-3">
+            <p className="text-[11px] text-muted-foreground">
+              AI assistant grounded in this artifact, your engagement context, and the thread below.
+            </p>
             <ChatPanel
               projectId={projectId}
               artifactId={artifact.id}
@@ -222,22 +231,64 @@ function DetailView({ artifact, loading }: { artifact: SynthesisArtifact; loadin
 
 function renderBody(value: unknown): React.ReactNode {
   if (value == null || value === "") return <em className="text-muted-foreground">empty</em>;
+  if (typeof value === "boolean") {
+    return (
+      <Badge variant={value ? "default" : "secondary"} className="text-[10px]">
+        {value ? "yes" : "no"}
+      </Badge>
+    );
+  }
+  if (typeof value === "number") {
+    return <span className="tabular-nums">{value}</span>;
+  }
   if (Array.isArray(value)) {
     if (value.length === 0) return <em className="text-muted-foreground">empty</em>;
+    const allPrimitive = value.every(
+      (v) => v == null || typeof v === "string" || typeof v === "number" || typeof v === "boolean",
+    );
+    if (allPrimitive) {
+      return (
+        <ul className="list-disc space-y-1 pl-5">
+          {value.map((v, i) => (
+            <li key={i}>{renderBody(v)}</li>
+          ))}
+        </ul>
+      );
+    }
     return (
-      <ul className="list-disc space-y-1 pl-5">
+      <ol className="space-y-3">
         {value.map((v, i) => (
-          <li key={i}>{renderBody(v)}</li>
+          <li key={i} className="rounded-md border bg-muted/30 p-3">
+            {renderBody(v)}
+          </li>
         ))}
-      </ul>
+      </ol>
     );
   }
   if (typeof value === "object") {
+    const obj = value as Record<string, unknown>;
+    const entries = Object.entries(obj);
+    if (entries.length === 0) return <em className="text-muted-foreground">empty</em>;
     return (
-      <pre className="overflow-x-auto rounded bg-muted/50 p-2 text-xs">
-        {JSON.stringify(value, null, 2)}
-      </pre>
+      <dl className="space-y-2">
+        {entries.map(([k, v]) => (
+          <div key={k} className="grid grid-cols-[minmax(7rem,9rem)_1fr] gap-3">
+            <dt className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              {humanizeKey(k)}
+            </dt>
+            <dd className="min-w-0 text-sm">{renderBody(v)}</dd>
+          </div>
+        ))}
+      </dl>
     );
   }
-  return <span>{String(value)}</span>;
+  if (typeof value === "string" && value.length > 200) {
+    return <p className="whitespace-pre-wrap leading-relaxed">{value}</p>;
+  }
+  return <span className="whitespace-pre-wrap">{String(value)}</span>;
+}
+
+function humanizeKey(key: string): string {
+  const spaced = key.replace(/[_-]+/g, " ").replace(/([a-z])([A-Z])/g, "$1 $2");
+  return spaced.charAt(0).toUpperCase() + spaced.slice(1).toLowerCase();
 }
