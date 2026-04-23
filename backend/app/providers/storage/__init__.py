@@ -26,6 +26,8 @@ KNOWN_COLLECTIONS: list[str] = [
     "source_indexes",
     # v1.6.0 chat over corpus
     "synthesis_chats",
+    # v2.2.0 customer + multi-source workspace
+    "customers",
 ]
 
 # Collections partitioned by ``project_id`` when

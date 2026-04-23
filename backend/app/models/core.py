@@ -281,6 +281,7 @@ class Engagement(BaseModel):
     slug: str = ""
     name: str
     customer: str = ""
+    customer_id: str = ""  # FK to Customer; empty = legacy/default deploy
     industry: str = ""
     summary: str = ""
     status: EngagementStatus = EngagementStatus.PROPOSED
@@ -298,6 +299,7 @@ class EngagementUpdate(BaseModel):
     name: str | None = None
     slug: str | None = None
     customer: str | None = None
+    customer_id: str | None = None
     industry: str | None = None
     summary: str | None = None
     status: EngagementStatus | None = None

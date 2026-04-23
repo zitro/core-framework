@@ -93,6 +93,10 @@ class Settings(BaseSettings):
     # Rate limiting
     rate_limit: str = "100/minute"
 
+    # Symmetric secret for at-rest encryption (PATs, API keys). Must be set
+    # in any deploy that stores Source PATs. SHA-256 derives a stable key.
+    secret_key: str = ""
+
     # CORS
     cors_origins: list[str] = ["http://localhost:3000"]
 

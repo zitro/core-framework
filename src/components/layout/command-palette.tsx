@@ -22,7 +22,6 @@ import {
   Home,
   Layers,
   type LucideIcon,
-  MessageSquare,
   Plug,
   Search,
   Settings2,
@@ -133,7 +132,6 @@ export function CommandPalette() {
       },
       // Surfaces without a sidebar item
       { id: "go.narrative", label: "Narrative", icon: Sparkles, run: nav("/reports") },
-      { id: "go.grounding", label: "Grounded Answers", icon: MessageSquare, run: nav("/grounding") },
       { id: "go.engagements", label: "Engagements", icon: Briefcase, run: nav("/engagements") },
     ];
     if (hasRepo) {
