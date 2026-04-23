@@ -7,6 +7,8 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Sparkles, Layers } from "lucide-react";
 import { useProject } from "@/stores/project-store";
 import {
   synthesisApi,
@@ -248,15 +250,35 @@ export default function SynthesisPage() {
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
         <div className="min-w-0 space-y-6">
-          {/* Prominent: open questions drive the conversation */}
-          {hasArtifacts && (
-            <QuestionsPanel
-              questions={questions}
-              onRefresh={onRefreshQuestions}
-              busy={loading}
-            />
-          )}
+          <Tabs defaultValue="artifacts">
+            <TabsList className="grid w-full grid-cols-2 max-w-md">
+              <TabsTrigger value="artifacts" className="gap-1.5">
+                <Layers className="size-3.5" aria-hidden /> Artifacts
+                {hasArtifacts && (
+                  <Badge variant="secondary" className="ml-1 text-[10px]">
+                    {artifacts.length}
+                  </Badge>
+                )}
+              </TabsTrigger>
+              <TabsTrigger value="questions" className="gap-1.5">
+                <Sparkles className="size-3.5 text-amber-500" aria-hidden /> Questions
+                {questions.length > 0 && (
+                  <Badge variant="secondary" className="ml-1 text-[10px]">
+                    {questions.length}
+                  </Badge>
+                )}
+              </TabsTrigger>
+            </TabsList>
 
+            <TabsContent value="questions" className="mt-4 space-y-4">
+              <QuestionsPanel
+                questions={questions}
+                onRefresh={onRefreshQuestions}
+                busy={loading}
+              />
+            </TabsContent>
+
+            <TabsContent value="artifacts" className="mt-4 space-y-6">
           {!catalog || loading ? (
             <Card>
               <CardContent className="p-6 text-sm text-muted-foreground">
@@ -321,6 +343,8 @@ export default function SynthesisPage() {
               </div>
             </section>
           )}
+            </TabsContent>
+          </Tabs>
         </div>
 
         <aside className="space-y-4 lg:sticky lg:top-6 lg:self-start">
