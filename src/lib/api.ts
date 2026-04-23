@@ -1,6 +1,5 @@
 import type {
   Discovery,
-  Evidence,
   ProblemStatementVersion,
   QuestionSet,
   TranscriptAnalysis,
@@ -90,26 +89,6 @@ export const api = {
       request<{ deleted: boolean }>(`/api/transcripts/analysis/${id}`, {
         method: "DELETE",
       }),
-  },
-
-  // Evidence
-  evidence: {
-    list: (discoveryId: string, phase?: CorePhase) =>
-      request<Evidence[]>(
-        `/api/evidence/${discoveryId}${phase ? `?phase=${phase}` : ""}`
-      ),
-    create: (data: Partial<Evidence>) =>
-      request<Evidence>("/api/evidence/", {
-        method: "POST",
-        body: JSON.stringify(data),
-      }),
-    update: (id: string, data: Partial<Evidence>) =>
-      request<Evidence>(`/api/evidence/${id}`, {
-        method: "PATCH",
-        body: JSON.stringify(data),
-      }),
-    delete: (id: string) =>
-      request<{ deleted: boolean }>(`/api/evidence/${id}`, { method: "DELETE" }),
   },
 
   // Problem Statements
