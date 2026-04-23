@@ -163,11 +163,11 @@ export default function ArtifactsPage() {
             variant="outline"
             size="sm"
             onClick={() => {
-              window.location.href = "/synthesis";
+              window.location.href = "/refine";
             }}
           >
             <Wand2 className="size-3.5 mr-1.5" aria-hidden />
-            Open Synthesis
+            Open Refine
           </Button>
         </div>
       </header>

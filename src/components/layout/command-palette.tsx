@@ -14,18 +14,17 @@ import {
   Briefcase,
   Building2,
   Cloud,
-  FileBarChart2,
-  FileStack,
+  Compass,
   FolderGit2,
   GavelIcon,
   Globe,
   Home,
-  Layers,
+  Inbox,
   type LucideIcon,
   Plug,
+  Rocket,
   Search,
   Settings2,
-  Sparkles,
   Wand2,
 } from "lucide-react";
 
@@ -79,34 +78,34 @@ export function CommandPalette() {
     const items: Command[] = [
       // Primary nav (matches sidebar)
       { id: "go.dashboard", label: "Dashboard", icon: Home, run: nav("/") },
-      { id: "go.synthesis", label: "Synthesis", icon: Wand2, run: nav("/synthesis") },
-      { id: "go.artifacts", label: "Artifacts", icon: FileStack, run: nav("/artifacts") },
-      { id: "go.sources", label: "Sources", icon: Layers, run: nav("/sources") },
-      { id: "go.reports", label: "Reports", icon: FileBarChart2, run: nav("/reports") },
+      { id: "go.capture", label: "Capture", icon: Inbox, run: nav("/capture") },
+      { id: "go.orient", label: "Orient", icon: Compass, run: nav("/orient") },
+      { id: "go.refine", label: "Refine", icon: Wand2, run: nav("/refine") },
+      { id: "go.execute", label: "Execute", icon: Rocket, run: nav("/execute") },
       { id: "go.methodology", label: "Methodology", icon: BookMarked, run: nav("/methodology") },
       { id: "go.settings", label: "Settings", icon: Settings2, run: nav("/settings") },
-      // Sources sub-tabs
+      // Capture sub-tabs
       {
-        id: "go.sources.connectors",
+        id: "go.capture.connectors",
         label: "Connectors",
-        hint: "Sources",
+        hint: "Capture",
         icon: Plug,
         keywords: ["github", "web", "json"],
-        run: nav("/sources?tab=connectors"),
+        run: nav("/capture?tab=connectors"),
       },
       {
-        id: "go.sources.company",
+        id: "go.capture.company",
         label: "Company Research",
-        hint: "Sources",
+        hint: "Capture",
         icon: Building2,
-        run: nav("/sources?tab=company"),
+        run: nav("/capture?tab=company"),
       },
       {
-        id: "go.sources.web",
+        id: "go.capture.web",
         label: "Web Search",
-        hint: "Sources",
+        hint: "Capture",
         icon: Globe,
-        run: nav("/sources?tab=web"),
+        run: nav("/capture?tab=web"),
       },
       // Settings sub-tabs
       {
@@ -131,7 +130,7 @@ export function CommandPalette() {
         run: nav("/settings?tab=connections"),
       },
       // Surfaces without a sidebar item
-      { id: "go.narrative", label: "Narrative", icon: Sparkles, run: nav("/reports") },
+      { id: "go.reports", label: "Reports", icon: Rocket, run: nav("/execute?view=reports") },
       { id: "go.engagements", label: "Engagements", icon: Briefcase, run: nav("/engagements") },
     ];
     if (hasRepo) {
