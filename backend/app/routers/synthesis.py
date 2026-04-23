@@ -276,6 +276,106 @@ async def regenerate_artifact(project_id: str, type_id: str, payload: ArtifactCr
     }
 
 
+# ── user notes (v2.2.8 "+ Add" on cards) ────────────────────────────────
+
+
+class AddNotePayload(BaseModel):
+    text: str = Field(..., min_length=3, max_length=4000)
+    target_type_id: str | None = None
+    propagate: bool = False
+
+
+PROJECT_NOTES_COLLECTION = "project_notes"
+
+
+@router.post("/{project_id}/notes")
+async def add_project_note(project_id: str, payload: AddNotePayload) -> dict:
+    """Add a user-authored note to the project corpus and (optionally)
+    regenerate the artifact it targets plus its category siblings.
+
+    The note is persisted to the ``project_notes`` collection and surfaces
+    via :class:`UserNotesSourceAdapter` on the next ``build_corpus`` call,
+    so any future regeneration of any artifact also picks it up.
+    """
+    project = await _load_project(project_id)
+    storage = get_storage_provider()
+
+    note_id = f"note_{uuid.uuid4().hex[:12]}"
+    record = {
+        "id": note_id,
+        "project_id": project_id,
+        "text": payload.text.strip(),
+        "target_type_id": (payload.target_type_id or "").strip() or None,
+    }
+    from app.utils.audit import stamp_create
+
+    await storage.create(PROJECT_NOTES_COLLECTION, stamp_create(record))
+
+    # Build a fresh corpus so the new note is included.
+    corpus = await build_corpus(project)
+    generator = GeneratorEngine()
+    critic = CriticAgent()
+
+    targets: list[str] = []
+    if payload.target_type_id:
+        targets.append(payload.target_type_id)
+        if payload.propagate:
+            target_type = next(
+                (t for t in ARTIFACT_TYPES if t.id == payload.target_type_id),
+                None,
+            )
+            if target_type is not None:
+                for t in ARTIFACT_TYPES:
+                    if t.category == target_type.category and t.id not in targets:
+                        targets.append(t.id)
+
+    text = payload.text.strip()
+    instructions = f"Incorporate this newly-added user note from the engagement team:\n\n{text}"
+    regenerated: list[dict] = []
+    failures: list[str] = []
+    for type_id in targets:
+        try:
+            artifact = await generator.generate(project, type_id, instructions, corpus=corpus)
+        except KeyError:
+            failures.append(f"{type_id}: not found")
+            continue
+        except Exception as exc:
+            logger.exception("note: regenerate %s failed", type_id)
+            failures.append(f"{type_id}: {exc}")
+            continue
+        try:
+            await critic.critique(artifact, corpus)
+        except Exception:
+            logger.warning("note: critique %s failed", type_id, exc_info=True)
+        regenerated.append(artifact.model_dump(mode="json"))
+
+    return {
+        "note_id": note_id,
+        "regenerated": regenerated,
+        "failures": failures,
+    }
+
+
+@router.get("/{project_id}/notes")
+async def list_project_notes(project_id: str) -> dict:
+    await _load_project(project_id)
+    storage = get_storage_provider()
+    items = await storage.list(PROJECT_NOTES_COLLECTION)
+    notes = [n for n in items if str(n.get("project_id") or "") == project_id]
+    notes.sort(key=lambda n: str(n.get("created_at") or ""), reverse=True)
+    return {"notes": notes}
+
+
+@router.delete("/{project_id}/notes/{note_id}")
+async def delete_project_note(project_id: str, note_id: str) -> dict:
+    await _load_project(project_id)
+    storage = get_storage_provider()
+    deleted = await storage.delete(PROJECT_NOTES_COLLECTION, note_id)
+    if not deleted:
+        raise HTTPException(status_code=404, detail="Note not found")
+    return {"deleted": True}
+
+
 @router.post("/{project_id}/questions/refresh")
 async def refresh_questions(project_id: str) -> dict:
     project = await _load_project(project_id)

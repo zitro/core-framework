@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.2.8] - 2026-04-23
+
+### Added
+
+- **`+ Add` button on every Refine card**. Opens a small dialog where
+  the user describes a new item (a persona, workstream, pain point,
+  scope row, deck section ...). The note is persisted to the project
+  corpus as a new `user_note` source and the targeted artifact is
+  regenerated immediately. Optional checkbox (default ON) also
+  regenerates the artifact's category siblings so the story stays
+  consistent across cards.
+- New endpoints `POST/GET/DELETE /api/synthesis/{project_id}/notes`
+  backed by a `project_notes` collection. Notes flow through
+  `UserNotesSourceAdapter` so future regenerations of any artifact
+  also pick them up automatically.
+
 ## [2.2.7] - 2026-04-23
 
 ### Changed
