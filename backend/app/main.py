@@ -87,6 +87,7 @@ def create_app() -> FastAPI:
         synthesis,
         transcripts,
         v2,
+        v2_vertex_ingest,
     )
 
     app = FastAPI(
@@ -178,6 +179,7 @@ def create_app() -> FastAPI:
     app.include_router(audit.router, prefix="/api/audit", tags=["audit"])
     app.include_router(synthesis.router, prefix="/api/synthesis", tags=["synthesis"])
     app.include_router(v2.router, prefix="/api/v2", tags=["v2"])
+    app.include_router(v2_vertex_ingest.router, prefix="/api/v2", tags=["v2"])
 
     from app.utils.telemetry import configure_telemetry
 

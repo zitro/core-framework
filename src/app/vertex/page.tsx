@@ -8,10 +8,12 @@
  */
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { File, FolderClosed, FolderOpen, GitBranch } from "lucide-react";
+import { File, FolderClosed, FolderOpen, GitBranch, Plus } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { MarkdownView } from "@/components/markdown-view";
+import { VertexDropZone } from "@/components/vertex/drop-zone";
 import { Card, CardContent } from "@/components/ui/card";
 import { useProject } from "@/stores/project-store";
 import {
@@ -29,6 +31,7 @@ export default function VertexPage() {
   const [selected, setSelected] = useState<string | null>(null);
   const [file, setFile] = useState<VertexFileResponse | null>(null);
   const [fileLoading, setFileLoading] = useState(false);
+  const [dropOpen, setDropOpen] = useState(false);
 
   const loadTree = useCallback(async () => {
     if (!projectId) return;
@@ -93,6 +96,16 @@ export default function VertexPage() {
           <span className="truncate" title={tree?.repo_path}>
             {tree?.repo_path}
           </span>
+          <Button
+            size="icon-sm"
+            variant="ghost"
+            className="ml-auto h-6 w-6"
+            title="Add to repo"
+            onClick={() => setDropOpen(true)}
+          >
+            <Plus className="size-3.5" aria-hidden />
+            <span className="sr-only">Add to repo</span>
+          </Button>
         </div>
         {root && (
           <ul className="space-y-0.5 text-sm" role="tree">
@@ -120,6 +133,15 @@ export default function VertexPage() {
         )}
         {selected && file && !fileLoading && <FileView file={file} />}
       </main>
+      <VertexDropZone
+        open={dropOpen}
+        onOpenChange={setDropOpen}
+        projectId={projectId}
+        onSaved={(path) => {
+          void loadTree();
+          setSelected(path);
+        }}
+      />
     </div>
   );
 }
