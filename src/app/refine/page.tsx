@@ -18,6 +18,7 @@ import {
   type SynthesisSources,
 } from "@/lib/api-synthesis";
 import { ArtifactCard } from "@/components/synthesis/artifact-card";
+import { EmptyArtifactCard } from "@/components/synthesis/empty-artifact-card";
 import { ArtifactDetailModal } from "@/components/refine/artifact-detail-modal";
 import { CompassPanel } from "@/components/synthesis/compass-panel";
 import { ConnectorsPanel } from "@/components/synthesis/connectors-panel";
@@ -295,35 +296,62 @@ export default function SynthesisPage() {
           ) : (
             catalog.categories.map((cat) => {
               const items = artifactsByCategory[cat.id] ?? [];
-              if (items.length === 0) return null;
+              const byTypeId = new Map(items.map((a) => [a.type_id, a] as const));
               const labelByTypeId = new Map(cat.types.map((t) => [t.id, t.label] as const));
+              const descByTypeId = new Map(
+                cat.types.map((t) => [t.id, t.description ?? ""] as const),
+              );
+              // Render every catalog type as a slot, even when not yet
+              // generated — so nothing stays hidden behind synthesize.
               return (
                 <section key={cat.id} className="space-y-3">
                   <div className="flex items-baseline gap-3">
                     <h2 className="text-lg font-semibold">{cat.label}</h2>
-                    <Badge variant="outline">{items.length}</Badge>
+                    <Badge variant="outline">
+                      {items.length}/{cat.types.length}
+                    </Badge>
                     <span className="text-xs text-muted-foreground">
                       {cat.description}
                     </span>
                   </div>
                   <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                    {items.map((a) => (
-                      <ArtifactCard
-                        key={a.id}
-                        artifact={a}
-                        projectId={projectId}
-                        typeLabel={labelByTypeId.get(a.type_id)}
-                        onRegenerate={onRegenerate}
-                        onItemAdded={loadAll}
-                        onUpdate={(updated) =>
-                          setArtifacts((prev) =>
-                            prev.map((p) => (p.id === updated.id ? { ...p, ...updated } : p)),
-                          )
-                        }
-                        onOpenDetail={setOpenArtifact}
-                        busy={busyTypeId === a.type_id}
-                      />
-                    ))}
+                    {cat.types.map((t) => {
+                      const a = byTypeId.get(t.id);
+                      if (a) {
+                        return (
+                          <ArtifactCard
+                            key={t.id}
+                            artifact={a}
+                            projectId={projectId}
+                            typeLabel={labelByTypeId.get(a.type_id)}
+                            onRegenerate={onRegenerate}
+                            onItemAdded={loadAll}
+                            onUpdate={(updated) =>
+                              setArtifacts((prev) =>
+                                prev.map((p) =>
+                                  p.id === updated.id ? { ...p, ...updated } : p,
+                                ),
+                              )
+                            }
+                            onOpenDetail={setOpenArtifact}
+                            busy={busyTypeId === a.type_id}
+                          />
+                        );
+                      }
+                      return (
+                        <EmptyArtifactCard
+                          key={t.id}
+                          typeId={t.id}
+                          typeLabel={t.label}
+                          description={descByTypeId.get(t.id)}
+                          busy={busyTypeId === t.id}
+                          onGenerate={async (typeId) => {
+                            await onRegenerate(typeId);
+                            await loadAll();
+                          }}
+                        />
+                      );
+                    })}
                   </div>
                 </section>
               );

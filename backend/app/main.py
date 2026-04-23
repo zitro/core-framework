@@ -40,6 +40,14 @@ async def _lifespan(_app: FastAPI):
             logger.exception("Storage ensure_collections failed")
     else:
         logger.info("Skipping ensure_collections (set COSMOS_ENSURE_COLLECTIONS=true to enable)")
+    # Customer seed — bootstrap downstream-defined customers + sources.
+    # No-op when the seed dir is missing; idempotent otherwise.
+    try:
+        from app.utils.customer_seed import seed_customers_from_dir
+
+        await seed_customers_from_dir()
+    except Exception:  # noqa: BLE001
+        logger.exception("Customer seed failed")
     yield
 
 
