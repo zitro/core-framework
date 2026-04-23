@@ -311,8 +311,10 @@ export default function SynthesisPage() {
                       <ArtifactCard
                         key={a.id}
                         artifact={a}
+                        projectId={projectId}
                         typeLabel={labelByTypeId.get(a.type_id)}
                         onRegenerate={onRegenerate}
+                        onItemAdded={loadAll}
                         onUpdate={(updated) =>
                           setArtifacts((prev) =>
                             prev.map((p) => (p.id === updated.id ? { ...p, ...updated } : p)),

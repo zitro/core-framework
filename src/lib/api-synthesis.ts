@@ -161,6 +161,19 @@ export const synthesisApi = {
       { method: "POST" },
     ),
 
+  addNote: (
+    projectId: string,
+    payload: { text: string; target_type_id?: string; propagate?: boolean },
+  ) =>
+    request<{
+      note_id: string;
+      regenerated: SynthesisArtifact[];
+      failures: string[];
+    }>(`/api/synthesis/${encodeURIComponent(projectId)}/notes`, {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
+
   writebackVertex: (projectId: string) =>
     request<SynthesisWriteBackResult>(
       `/api/synthesis/${encodeURIComponent(projectId)}/writeback/vertex`,

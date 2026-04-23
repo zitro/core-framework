@@ -31,6 +31,8 @@ KNOWN_COLLECTIONS: list[str] = [
     "engagement_contexts",
     "artifact_threads",
     "artifact_comments",
+    # v2.2.8 user-authored project notes (added via Refine "+ Add")
+    "project_notes",
 ]
 
 # Collections partitioned by ``project_id`` when
@@ -64,6 +66,7 @@ PARTITIONED_COLLECTIONS: frozenset[str] = frozenset(
         "engagement_contexts",
         "artifact_threads",
         "artifact_comments",
+        "project_notes",
     }
 )
 

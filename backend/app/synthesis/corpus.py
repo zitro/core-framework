@@ -16,6 +16,7 @@ from app.synthesis.sources.github import GitHubSourceAdapter
 from app.synthesis.sources.http_json import HttpJsonSourceAdapter
 from app.synthesis.sources.local_dir import LocalDirSourceAdapter
 from app.synthesis.sources.msgraph import MsGraphSourceAdapter
+from app.synthesis.sources.user_notes import UserNotesSourceAdapter
 from app.synthesis.sources.vertex import VertexSourceAdapter
 from app.synthesis.sources.web import WebSourceAdapter
 from app.utils.audit import stamp_create
@@ -34,6 +35,7 @@ def get_adapters() -> list[SourceAdapter]:
         GitHubSourceAdapter(),
         WebSourceAdapter(),
         HttpJsonSourceAdapter(),
+        UserNotesSourceAdapter(),
     ]
 
 

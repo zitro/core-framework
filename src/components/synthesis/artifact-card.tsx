@@ -1,14 +1,17 @@
 "use client";
 
-import { RefreshCw, Mail, Copy, MessageSquare } from "lucide-react";
+import { useState } from "react";
+import { RefreshCw, Mail, Copy, MessageSquare, Plus } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { CritiqueChip } from "@/components/synthesis/critique-chip";
+import { AddItemDialog } from "@/components/synthesis/add-item-dialog";
 import type { SynthesisArtifact } from "@/lib/api-synthesis";
 
 interface Props {
   artifact: SynthesisArtifact;
+  projectId: string;
   /** Friendly type label from the catalog (e.g. "Personas", "Workstreams"). */
   typeLabel?: string;
   /** Project name kept for legacy callers; no longer used in the title. */
@@ -16,6 +19,7 @@ interface Props {
   onRegenerate: (typeId: string) => Promise<void> | void;
   onUpdate?: (updated: SynthesisArtifact) => void;
   onOpenDetail?: (artifact: SynthesisArtifact) => void;
+  onItemAdded?: () => Promise<void> | void;
   busy?: boolean;
 }
 
@@ -28,12 +32,15 @@ function humanizeTypeId(id: string): string {
 
 export function ArtifactCard({
   artifact,
+  projectId,
   typeLabel,
   onRegenerate,
   onOpenDetail,
+  onItemAdded,
   busy,
 }: Props) {
   const title = typeLabel || humanizeTypeId(artifact.type_id);
+  const [addOpen, setAddOpen] = useState(false);
 
   return (
     <Card className="flex h-full flex-col">
@@ -52,6 +59,16 @@ export function ArtifactCard({
             {artifact.type_id === "weekly-email-update" && (
               <EmailActions artifact={artifact} />
             )}
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => setAddOpen(true)}
+              disabled={busy}
+              title="Add an item (AI will fold it in)"
+              aria-label="Add an item"
+            >
+              <Plus className="size-3.5" />
+            </Button>
             <Button
               size="sm"
               variant="ghost"
@@ -86,6 +103,17 @@ export function ArtifactCard({
           </Button>
         )}
       </CardContent>
+
+      <AddItemDialog
+        projectId={projectId}
+        typeId={artifact.type_id}
+        typeLabel={title}
+        open={addOpen}
+        onOpenChange={setAddOpen}
+        onAdded={async () => {
+          if (onItemAdded) await onItemAdded();
+        }}
+      />
     </Card>
   );
 }

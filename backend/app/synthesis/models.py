@@ -26,6 +26,7 @@ class SourceKind(StrEnum):
     GITHUB = "github"
     WEB = "web"
     HTTP_JSON = "http_json"
+    USER_NOTE = "user_note"
 
 
 class SourceDoc(BaseModel):

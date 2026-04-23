@@ -250,6 +250,7 @@ function ArtifactsInner() {
             <ArtifactCard
               key={a.id}
               artifact={a}
+              projectId={projectId}
               onRegenerate={() => {}}
               onOpenDetail={setOpenArtifact}
               onUpdate={(updated) =>
