@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.2.2] - 2026-04-23
+
+### Fixed
+
+- **Capture page Company and Web tabs**: re-wired `<CompanyPanel />` and
+  `<WebSearchPanel />` into `/capture` after the v2.2 IA refactor left
+  them as "Coming soon" placeholders. Both flows (company researcher
+  + Bing-backed web search) work again under the new IA.
+
 ## [2.2.1] - 2026-04-23
 
 ### Fixed
