@@ -1,21 +1,30 @@
 "use client";
 
 /**
- * Settings — engagement, reviews, connections, and preferences in one place.
- * URL-driven tabs: ?tab=engagement|reviews|connections|preferences
+ * Settings — customer connections, integrations, and preferences.
+ * Engagement-context editing now lives in /capture (Engagement context tab).
+ * URL-driven tabs: ?tab=customer|connections|preferences
  */
 
 import { Suspense, useCallback, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { FileSliders, Settings2, Sliders, Users } from "lucide-react";
+import {
+  ExternalLink,
+  GitBranch,
+  Plug,
+  Settings2,
+  Sliders,
+  Users,
+} from "lucide-react";
+import Link from "next/link";
 
-import ContextPage from "@/app/context/page";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CustomerPanel } from "@/components/settings/customer-panel";
 
-type Tab = "engagement" | "customer" | "preferences";
-const TABS: Tab[] = ["engagement", "customer", "preferences"];
+type Tab = "customer" | "connections" | "preferences";
+const TABS: Tab[] = ["customer", "connections", "preferences"];
 
 export default function SettingsPage() {
   return (
@@ -28,8 +37,8 @@ export default function SettingsPage() {
 function SettingsInner() {
   const router = useRouter();
   const params = useSearchParams();
-  const initial = (params.get("tab") as Tab) || "engagement";
-  const [tab, setTab] = useState<Tab>(TABS.includes(initial) ? initial : "engagement");
+  const initial = (params.get("tab") as Tab) || "customer";
+  const [tab, setTab] = useState<Tab>(TABS.includes(initial) ? initial : "customer");
 
   const onTab = useCallback(
     (next: string) => {
@@ -50,36 +59,87 @@ function SettingsInner() {
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Settings</h1>
           <p className="text-sm text-muted-foreground">
-            Engagement details, reviews, external connections, and personal preferences.
+            Customer entities, external connections, and personal preferences.
+            (Engagement context now lives in <Link href="/capture?tab=engagement" className="underline">Capture → Engagement context</Link>.)
           </p>
         </div>
       </header>
 
       <Tabs value={tab} onValueChange={onTab}>
         <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="engagement" className="gap-1.5">
-            <FileSliders className="size-3.5" aria-hidden /> Engagement
-          </TabsTrigger>
           <TabsTrigger value="customer" className="gap-1.5">
             <Users className="size-3.5" aria-hidden /> Customer
+          </TabsTrigger>
+          <TabsTrigger value="connections" className="gap-1.5">
+            <Plug className="size-3.5" aria-hidden /> Connections
           </TabsTrigger>
           <TabsTrigger value="preferences" className="gap-1.5">
             <Sliders className="size-3.5" aria-hidden /> Preferences
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="engagement" className="mt-4">
-          <ContextPage />
-        </TabsContent>
-
         <TabsContent value="customer" className="mt-4">
           <CustomerPanel />
+        </TabsContent>
+
+        <TabsContent value="connections" className="mt-4">
+          <ConnectionsPanel />
         </TabsContent>
 
         <TabsContent value="preferences" className="mt-4">
           <PreferencesPanel />
         </TabsContent>
       </Tabs>
+    </div>
+  );
+}
+
+function ConnectionsPanel() {
+  return (
+    <div className="space-y-4">
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base flex items-center gap-2">
+            <GitBranch className="size-4" aria-hidden /> GitHub (vertex repo)
+          </CardTitle>
+          <CardDescription>
+            CORE Discovery reads and writes your engagement&apos;s vertex repo
+            through a Source on the active customer. Add a GitHub source there
+            with a personal access token and pick &quot;Vertex&quot; as the role.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="flex flex-wrap gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              window.location.href = "/settings?tab=customer";
+            }}
+          >
+            Manage customer sources
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() =>
+              window.open("https://github.com/settings/tokens?type=beta", "_blank")
+            }
+          >
+            Create a GitHub token
+            <ExternalLink className="ml-1.5 size-3.5" aria-hidden />
+          </Button>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Connectors per project</CardTitle>
+          <CardDescription>
+            Per-project connectors (web search, HTTP JSON, page crawlers) are
+            configured in <Link href="/capture?tab=connectors" className="underline">Capture → Connectors</Link>.
+          </CardDescription>
+        </CardHeader>
+      </Card>
     </div>
   );
 }

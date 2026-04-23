@@ -10,6 +10,7 @@ import { Suspense, useCallback, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   Building2,
+  FileSliders,
   Globe,
   Inbox,
   type LucideIcon,
@@ -24,9 +25,10 @@ import { DropZone } from "@/components/capture/drop-zone";
 import { ConnectorsPanel } from "@/components/synthesis/connectors-panel";
 import { CompanyPanel } from "@/components/sources/company-panel";
 import { WebSearchPanel } from "@/components/sources/web-search-panel";
+import ContextPage from "@/app/context/page";
 
-type Tab = "drop" | "connectors" | "company" | "web";
-const TABS: Tab[] = ["drop", "connectors", "company", "web"];
+type Tab = "drop" | "engagement" | "connectors" | "company" | "web";
+const TABS: Tab[] = ["drop", "engagement", "connectors", "company", "web"];
 
 interface TabDef {
   value: Tab;
@@ -36,6 +38,7 @@ interface TabDef {
 
 const TAB_DEFS: TabDef[] = [
   { value: "drop", label: "Drop-zone", icon: Upload },
+  { value: "engagement", label: "Engagement context", icon: FileSliders },
   { value: "connectors", label: "Connectors", icon: Plug },
   { value: "company", label: "Company", icon: Building2 },
   { value: "web", label: "Web", icon: Globe },
@@ -83,7 +86,7 @@ function CaptureInner() {
       </header>
 
       <Tabs value={tab} onValueChange={onTab}>
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-5">
           {TAB_DEFS.map((t) => {
             const Icon = t.icon;
             return (
@@ -96,6 +99,10 @@ function CaptureInner() {
 
         <TabsContent value="drop" className="mt-4">
           <DropZone projectId={projectId} />
+        </TabsContent>
+
+        <TabsContent value="engagement" className="mt-4">
+          <ContextPage />
         </TabsContent>
 
         <TabsContent value="connectors" className="mt-4">

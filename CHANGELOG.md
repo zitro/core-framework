@@ -7,6 +7,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.2.10] - 2026-04-23
+
+### Added
+
+- **Every catalog type now has a card on Refine**, even when not yet
+  generated. Empty slots show a dashed placeholder with the type label,
+  description, and a `Generate` button. Weekly Email Update, Visual Story,
+  Status Update, and the rest are no longer hidden behind synthesize.
+- **Customer auto-seed**. The framework now reads `CUSTOMER_SEED_DIR`
+  (default `/data/seed/customers`) on startup and idempotently imports
+  customer entities and their (PAT-less) sources from any `*.json` files
+  found there. Downstream deployments mount their own seed dir; the
+  framework image stays customer-agnostic.
+- **Settings -> Connections** tab. Surfaces GitHub vertex setup with a
+  direct deep-link to managing customer sources and a one-click open of
+  the GitHub token settings page.
+
+### Changed
+
+- **Engagement context tab moved from Settings to Capture**. It lives
+  next to Drop-zone, Connectors, Company, and Web — where you bring
+  context into a project. Settings drops the Engagement tab and gains
+  Connections; the Settings header links forward to the new location
+  for anyone with old bookmarks.
+
 ## [2.2.9] - 2026-04-23
 
 ### Added
