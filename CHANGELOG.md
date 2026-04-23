@@ -7,6 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.2.9] - 2026-04-23
+
+### Added
+
+- **Orient page now drafts itself when there's data to draft from**. On
+  first visit (or whenever the brief is still empty), the engagement
+  brief is auto-generated from the project corpus and saved as v1. The
+  call is idempotent — no corpus, no change; brief already populated, no
+  change.
+- **Version history for the engagement brief**. Every save and every
+  auto-draft now writes a snapshot to `engagement_context_versions`. A
+  new "History" button on the Orient page opens a side-by-side dialog:
+  versions on the left (with timestamp + source badge), full read-only
+  snapshot on the right.
+- **Backend endpoints**:
+  - `POST /api/engagement-context/{project_id}/auto-draft?force=` —
+    drafts from corpus and persists to empty fields (or all fields when
+    `force=true`).
+  - `GET  /api/engagement-context/{project_id}/versions` — version list.
+  - `GET  /api/engagement-context/{project_id}/versions/{version_id}` —
+    full snapshot.
+
 ## [2.2.8] - 2026-04-23
 
 ### Added

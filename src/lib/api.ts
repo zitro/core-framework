@@ -299,6 +299,19 @@ export const api = {
         draft: Partial<EngagementContextRecord>;
         corpus_docs: number;
       }>(`/api/engagement-context/${projectId}/draft`, { method: "POST" }),
+    autoDraft: (projectId: string, force = false) =>
+      request<EngagementContextRecord>(
+        `/api/engagement-context/${projectId}/auto-draft${force ? "?force=true" : ""}`,
+        { method: "POST" },
+      ),
+    versions: (projectId: string) =>
+      request<{ versions: EngagementContextVersionRow[] }>(
+        `/api/engagement-context/${projectId}/versions`,
+      ),
+    version: (projectId: string, versionId: string) =>
+      request<EngagementContextVersion>(
+        `/api/engagement-context/${projectId}/versions/${versionId}`,
+      ),
   },
 
   // v2.2 Per-artifact threads + grounded chat
@@ -504,4 +517,18 @@ export interface EngagementContextRecord {
   notes: string;
   created_at: string;
   updated_at: string;
+}
+
+export interface EngagementContextVersionRow {
+  id: string;
+  version: number;
+  summary: string;
+  source: string;
+  created_at: string;
+}
+
+export interface EngagementContextVersion extends EngagementContextVersionRow {
+  project_id: string;
+  context_id: string;
+  snapshot: Partial<EngagementContextRecord>;
 }

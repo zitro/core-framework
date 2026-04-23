@@ -40,9 +40,75 @@ from app.utils.workspace import resolve_source_projects
 
 router = APIRouter(dependencies=[Depends(get_current_user)])
 COLLECTION = "engagement_contexts"
+VERSIONS_COLLECTION = "engagement_context_versions"
 PROJECTS_COLLECTION = "engagements"
 CUSTOMERS_COLLECTION = "customers"
 ARTIFACTS_COLLECTION = "artifacts"
+
+
+_VERSIONED_FIELDS: tuple[str, ...] = (
+    "title",
+    "one_liner",
+    "phase",
+    "problem",
+    "desired_outcome",
+    "scope_in",
+    "scope_out",
+    "constraints",
+    "assumptions",
+    "risks",
+    "stakeholders",
+    "success_metrics",
+    "milestones",
+    "notes",
+)
+
+
+def _is_empty(value: object) -> bool:
+    if value is None:
+        return True
+    if isinstance(value, str):
+        return not value.strip()
+    if isinstance(value, list | tuple | dict):
+        return len(value) == 0
+    return False
+
+
+def _context_is_empty(item: dict) -> bool:
+    return all(_is_empty(item.get(f)) for f in _VERSIONED_FIELDS)
+
+
+async def _next_version_number(project_id: str) -> int:
+    storage = get_storage_provider()
+    try:
+        items = await storage.list(VERSIONS_COLLECTION)
+    except Exception:
+        return 1
+    nums = [
+        int(v.get("version") or 0) for v in items if str(v.get("project_id") or "") == project_id
+    ]
+    return (max(nums) + 1) if nums else 1
+
+
+async def _snapshot(item: dict, summary: str, source: str) -> dict | None:
+    """Persist the prior state of an EngagementContext as a versioned snapshot."""
+    storage = get_storage_provider()
+    project_id = str(item.get("project_id") or "")
+    if not project_id:
+        return None
+    version = await _next_version_number(project_id)
+    payload = {
+        "project_id": project_id,
+        "context_id": str(item.get("id") or ""),
+        "version": version,
+        "summary": summary,
+        "source": source,  # "manual" | "auto-draft" | "ai-draft"
+        "snapshot": {f: item.get(f) for f in _VERSIONED_FIELDS},
+    }
+    try:
+        return await storage.create(VERSIONS_COLLECTION, stamp_create(payload))
+    except Exception:
+        return None
 
 
 async def _get_or_create(project_id: str) -> dict:
@@ -120,6 +186,12 @@ async def update_context(
     data = updates.model_dump(exclude_none=True, mode="json")
     if not data:
         raise HTTPException(status_code=422, detail="No valid fields to update")
+    # Snapshot the prior state so users can roll back / view history.
+    await _snapshot(
+        item,
+        summary=f"updated: {','.join(sorted(data.keys()))}",
+        source="manual",
+    )
     stamp_update(data)
     updated = await storage.update(COLLECTION, str(item["id"]), data)
     ctx = EngagementContext(**updated)
@@ -305,3 +377,95 @@ async def draft_brief(project_id: str) -> dict:
         summary=f"project={project_id} fields={','.join(sorted(draft.keys())) or 'none'}",
     )
     return {"draft": draft, "corpus_docs": len(corpus.docs)}
+
+
+@router.post("/{project_id}/auto-draft", response_model=EngagementContext)
+async def auto_draft_and_save(project_id: str, force: bool = False) -> EngagementContext:
+    """Run the LLM draft, fold proposals into empty fields, and save.
+
+    Idempotent: if the brief already has any populated fields and ``force``
+    is False, nothing changes. If the corpus is empty, nothing changes.
+    Saves create a new version snapshot tagged ``source="auto-draft"``.
+    """
+    storage = get_storage_provider()
+    item = await _get_or_create(project_id)
+    if not force and not _context_is_empty(item):
+        return EngagementContext(**item)
+
+    project = await storage.get(PROJECTS_COLLECTION, project_id)
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+    corpus = await build_corpus(project)
+    if len(corpus.docs) == 0:
+        return EngagementContext(**item)
+
+    artifact_dicts: list[dict] = []
+    for key in ("project_id", "projectId"):
+        try:
+            items = await storage.list(ARTIFACTS_COLLECTION, {key: project_id})
+        except Exception:
+            items = []
+        if items:
+            artifact_dicts = items
+            break
+
+    user_prompt = _draft_user_prompt(project, corpus, artifact_dicts)
+    try:
+        raw = await get_llm_provider().complete_json(_DRAFT_SYSTEM, user_prompt)
+    except Exception as exc:  # noqa: BLE001
+        raise HTTPException(status_code=502, detail=f"LLM auto-draft failed: {exc}") from exc
+    if not isinstance(raw, dict):
+        raise HTTPException(status_code=502, detail="LLM returned non-object response")
+    draft = _coerce_draft(raw)
+    if not draft:
+        return EngagementContext(**item)
+
+    # Apply only to empty fields when not forced.
+    apply_data: dict = {}
+    for k, v in draft.items():
+        if force or _is_empty(item.get(k)):
+            apply_data[k] = v
+    if not apply_data:
+        return EngagementContext(**item)
+
+    await _snapshot(
+        item, summary=f"auto-draft: {','.join(sorted(apply_data.keys()))}", source="auto-draft"
+    )
+    stamp_update(apply_data)
+    updated = await storage.update(COLLECTION, str(item["id"]), apply_data)
+    await audit(
+        "auto_draft",
+        collection=COLLECTION,
+        item_id=str(item["id"]),
+        summary=f"project={project_id} fields={','.join(sorted(apply_data.keys()))}",
+    )
+    return EngagementContext(**updated)
+
+
+@router.get("/{project_id}/versions")
+async def list_versions(project_id: str) -> dict:
+    storage = get_storage_provider()
+    items = await storage.list(VERSIONS_COLLECTION)
+    rows = [v for v in items if str(v.get("project_id") or "") == project_id]
+    rows.sort(key=lambda v: int(v.get("version") or 0), reverse=True)
+    return {
+        "versions": [
+            {
+                "id": str(v.get("id") or ""),
+                "version": int(v.get("version") or 0),
+                "summary": str(v.get("summary") or ""),
+                "source": str(v.get("source") or ""),
+                "created_at": str(v.get("created_at") or ""),
+            }
+            for v in rows
+        ]
+    }
+
+
+@router.get("/{project_id}/versions/{version_id}")
+async def get_version(project_id: str, version_id: str) -> dict:
+    storage = get_storage_provider()
+    v = await storage.get(VERSIONS_COLLECTION, version_id)
+    if not v or str(v.get("project_id") or "") != project_id:
+        raise HTTPException(status_code=404, detail="Version not found")
+    return v
