@@ -22,6 +22,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CustomerPanel } from "@/components/settings/customer-panel";
+import { GraphConnectionPanel } from "@/components/settings/graph-connection-panel";
 
 type Tab = "customer" | "connections" | "preferences";
 const TABS: Tab[] = ["customer", "connections", "preferences"];
@@ -97,6 +98,8 @@ function SettingsInner() {
 function ConnectionsPanel() {
   return (
     <div className="space-y-4">
+      <GraphConnectionPanel />
+
       <Card>
         <CardHeader>
           <CardTitle className="text-base flex items-center gap-2">

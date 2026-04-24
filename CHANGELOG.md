@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.2.16] - 2026-04-24
+
+### Added
+
+- **Microsoft Graph connection in Settings.** New panel under
+  Settings -> Connections lets each user connect their own Microsoft 365
+  account via MSAL Browser (PKCE). Users supply their own Entra ID app
+  registration (SPA platform); tenant and client IDs are stored in this
+  browser's `localStorage` only, never POSTed to the backend. Access
+  tokens land in `sessionStorage` (tab-scoped, cleared on close). The
+  built-in "Test connection" button calls `graph.microsoft.com/v1.0/me`
+  directly from the browser. "Disconnect & forget" wipes local config
+  and signs out of MSAL. No client secret is ever required or accepted.
+
 ## [2.2.15] - 2026-04-23
 
 ### Fixed
