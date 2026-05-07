@@ -7,6 +7,7 @@ ARG PNPM_VERSION=10.13.1
 FROM base AS deps
 WORKDIR /app
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY packages/create-core-app/package.json ./packages/create-core-app/package.json
 RUN corepack enable && corepack prepare pnpm@${PNPM_VERSION} --activate
 RUN pnpm install --frozen-lockfile
 
