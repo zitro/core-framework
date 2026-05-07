@@ -1,12 +1,20 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Search, MessageSquare, Upload } from "lucide-react";
+import { Search, MessageSquare, Upload, Plus, X } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
-import type { Question, Evidence, TranscriptAnalysis, QuestionSet } from "@/types/core";
+import { Separator } from "@/components/ui/separator";
+import type {
+  Question,
+  Evidence,
+  TranscriptAnalysis,
+  QuestionSet,
+  TechnologyTarget,
+} from "@/types/core";
 import { api } from "@/lib/api";
 import { useDiscovery } from "@/stores/discovery-store";
 import { PhaseShell } from "@/components/layout/phase-shell";
@@ -18,7 +26,7 @@ import {
 import { PreviousAnalysesList } from "@/components/capture/previous-analyses-list";
 
 export default function CapturePage() {
-  const { activeDiscovery } = useDiscovery();
+  const { activeDiscovery, setActiveDiscovery } = useDiscovery();
   const discoveryId = activeDiscovery?.id || "";
 
   const [questions, setQuestions] = useState<Question[]>([]);
@@ -31,6 +39,28 @@ export default function CapturePage() {
   const [extractedEvidence, setExtractedEvidence] = useState<Evidence[]>([]);
   const [savedAnalyses, setSavedAnalyses] = useState<TranscriptAnalysis[]>([]);
   const [analysisResult, setAnalysisResult] = useState<AnalysisSummary | null>(null);
+  const [technologyInput, setTechnologyInput] = useState("");
+  const [technologyFocusInput, setTechnologyFocusInput] = useState("");
+  const [technologyTargets, setTechnologyTargets] = useState<TechnologyTarget[]>([]);
+  const [savingTechnologies, setSavingTechnologies] = useState(false);
+  const [latestGroundingSources, setLatestGroundingSources] = useState<QuestionSet["grounding_sources"]>([]);
+
+  useEffect(() => {
+    if (!activeDiscovery) return;
+    if (activeDiscovery.target_technologies && activeDiscovery.target_technologies.length > 0) {
+      setTechnologyTargets(activeDiscovery.target_technologies);
+      return;
+    }
+    const fallback = (activeDiscovery.solution_providers ?? []).map((name) => ({
+      name,
+      focus: "",
+    }));
+    setTechnologyTargets(fallback);
+  }, [
+    activeDiscovery?.id,
+    activeDiscovery?.solution_providers,
+    activeDiscovery?.target_technologies,
+  ]);
 
   const loadSavedData = useCallback(async () => {
     if (!discoveryId) return;
@@ -44,6 +74,7 @@ export default function CapturePage() {
       if (qSets.length > 0) {
         const latest = qSets[qSets.length - 1];
         setQuestions(latest.questions);
+        setLatestGroundingSources(latest.grounding_sources ?? []);
         if (latest.context) setContext(latest.context);
       }
     } catch {
@@ -67,6 +98,7 @@ export default function CapturePage() {
       });
       setQuestions(result.questions);
       setSavedQuestionSets((prev) => [...prev, result]);
+      setLatestGroundingSources(result.grounding_sources ?? []);
     } catch (e) {
       setError(
         e instanceof Error ? e.message : "Failed to generate questions — is the backend running?",
@@ -74,6 +106,52 @@ export default function CapturePage() {
     } finally {
       setGenerating(false);
     }
+  };
+
+  const persistTechnologyTargets = async (targets: TechnologyTarget[]) => {
+    if (!discoveryId) return;
+    setSavingTechnologies(true);
+    try {
+      const updated = await api.discoveries.update(discoveryId, {
+        target_technologies: targets,
+        solution_providers: targets.map((item) => item.name),
+      });
+      setActiveDiscovery(updated);
+    } catch {
+      // keep local state optimistic; user can retry on next edit
+    } finally {
+      setSavingTechnologies(false);
+    }
+  };
+
+  const addTechnology = async () => {
+    if (!technologyInput.trim() || !discoveryId) return;
+    const name = technologyInput.trim();
+    const focus = technologyFocusInput.trim();
+    const exists = technologyTargets.some(
+      (target) =>
+        target.name.toLowerCase() === name.toLowerCase() &&
+        target.focus.toLowerCase() === focus.toLowerCase()
+    );
+    if (exists) {
+      setTechnologyInput("");
+      setTechnologyFocusInput("");
+      return;
+    }
+    const next = [...technologyTargets, { name, focus }];
+    setTechnologyTargets(next);
+    setTechnologyInput("");
+    setTechnologyFocusInput("");
+    await persistTechnologyTargets(next);
+  };
+
+  const removeTechnology = async (name: string, focus: string) => {
+    if (!discoveryId) return;
+    const next = technologyTargets.filter(
+      (target) => !(target.name === name && target.focus === focus)
+    );
+    setTechnologyTargets(next);
+    await persistTechnologyTargets(next);
   };
 
   const importExtractedEvidence = async (evidence: Evidence[]) => {
@@ -153,6 +231,76 @@ export default function CapturePage() {
         <TabsContent value="questions" className="space-y-4">
           <Card>
             <CardHeader>
+              <CardTitle className="text-base">Target Technologies</CardTitle>
+              <CardDescription>
+                Add the technologies this customer wants to use so CORE can tailor discovery
+                questions from the start.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="flex gap-2">
+                <Textarea
+                  value={technologyInput}
+                  onChange={(e) => setTechnologyInput(e.target.value)}
+                  placeholder="Technology, e.g., Microsoft Fabric"
+                  rows={1}
+                />
+                <Textarea
+                  value={technologyFocusInput}
+                  onChange={(e) => setTechnologyFocusInput(e.target.value)}
+                  placeholder="Specific focus, e.g., Ontologies"
+                  rows={1}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && !e.shiftKey) {
+                      e.preventDefault();
+                      void addTechnology();
+                    }
+                  }}
+                />
+                <Button
+                  onClick={() => {
+                    void addTechnology();
+                  }}
+                  disabled={savingTechnologies || !technologyInput.trim()}
+                  className="self-start"
+                >
+                  <Plus className="h-4 w-4" />
+                </Button>
+              </div>
+              {technologyTargets.length > 0 && (
+                <div className="space-y-2">
+                  {technologyTargets.map((target) => (
+                    <div
+                      key={`${target.name}::${target.focus}`}
+                      className="inline-flex items-center gap-2 rounded-md border px-2 py-1"
+                    >
+                      <Badge variant="secondary" className="px-2 py-1">
+                        {target.name}
+                      </Badge>
+                      {target.focus && (
+                        <Badge variant="outline" className="px-2 py-1">
+                          Focus: {target.focus}
+                        </Badge>
+                      )}
+                      <button
+                        type="button"
+                        aria-label={`Remove ${target.name}`}
+                        className="inline-flex items-center"
+                        onClick={() => {
+                          void removeTechnology(target.name, target.focus);
+                        }}
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
               <CardTitle className="text-base">Discovery Context</CardTitle>
               <CardDescription>
                 Describe the engagement so the AI can tailor questions to your situation.
@@ -173,6 +321,43 @@ export default function CapturePage() {
           </Card>
 
           <QuestionList questions={questions} />
+
+          {latestGroundingSources && latestGroundingSources.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Grounding Summary</CardTitle>
+                <CardDescription>
+                  These sources influenced the latest generated questions.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {latestGroundingSources.map((item, index) => (
+                  <div key={`${item.url}-${index}`} className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <Badge variant="outline" className="text-[10px]">
+                        {item.query || "topic"}
+                      </Badge>
+                      {item.source && (
+                        <Badge variant="secondary" className="text-[10px]">
+                          {item.source}
+                        </Badge>
+                      )}
+                    </div>
+                    <a
+                      href={item.url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-sm font-medium underline-offset-2 hover:underline"
+                    >
+                      {item.title || item.url}
+                    </a>
+                    {item.snippet && <p className="text-xs text-muted-foreground">{item.snippet}</p>}
+                    {index < latestGroundingSources.length - 1 && <Separator className="mt-2" />}
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+          )}
         </TabsContent>
 
         <TabsContent value="transcript" className="space-y-4">

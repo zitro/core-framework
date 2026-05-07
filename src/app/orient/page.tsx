@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Compass, Network, FileText, Briefcase } from "lucide-react";
+import { Compass, Network, FileText, Briefcase, ClipboardList, Sparkles } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -15,6 +15,110 @@ import { PhaseShell } from "@/components/layout/phase-shell";
 import { ProblemStatementBuilder } from "@/components/orient/problem-statement-builder";
 import { UseCaseBuilder } from "@/components/orient/use-case-builder";
 
+const INTRO_CALL_CONTEXT_TEMPLATE = `Meeting type: Intro discovery call
+Goal: Introduce teams and understand the customer's current state before solutioning.
+
+Capture:
+- Customer goals and desired outcomes
+- How work is done today (current process and pain points)
+- Existing technologies/platforms and key integrations
+- Environment setup path, prerequisites, and internal ownership
+- Required approvals/governance and expected lead times
+- Initial use case scope, business value, and success measures
+- Risks, assumptions, dependencies, and open questions
+
+Please generate practical questions to uncover unknowns and clarify next steps.`;
+
+const TOPIC_INSERTS: { label: string; body: string }[] = [
+  {
+    label: "Customer intros + stakeholders",
+    body: "Stakeholders and ownership:\n- Primary sponsor:\n- Business owner:\n- Technical owner:\n- Decision maker:\n- Working team:",
+  },
+  {
+    label: "Current process",
+    body: "How work is done today:\n- Current workflow steps:\n- Pain points / delays:\n- Workarounds in place:\n- What is currently working well:",
+  },
+  {
+    label: "Technology landscape",
+    body: "Technology landscape:\n- Core platforms in use:\n- Key integrations/dependencies:\n- Data and identity constraints:\n- Observability/security requirements:",
+  },
+  {
+    label: "Approvals + environment",
+    body: "Approvals and environment setup:\n- Required approvals (security, compliance, architecture, procurement):\n- Environment setup process:\n- Typical lead times:\n- Blockers and escalation path:",
+  },
+  {
+    label: "Use case + business value",
+    body: "Use case and value:\n- Initial use case:\n- Desired outcomes:\n- Success metrics:\n- Timeline pressure / constraints:",
+  },
+];
+
+const STARTER_INTRO_QUESTIONS: { text: string; purpose: string; follow_ups: string[] }[] = [
+  {
+    text: "What outcomes are most important for this initiative in the next 90 days?",
+    purpose: "Anchor discovery to measurable business outcomes.",
+    follow_ups: [
+      "How are you measuring success today?",
+      "What would make this initiative feel successful to leadership?",
+    ],
+  },
+  {
+    text: "Can you walk us through how this process works today from start to finish?",
+    purpose: "Understand the current-state operating flow.",
+    follow_ups: [
+      "Where do delays usually happen?",
+      "Where do manual handoffs or rework occur?",
+    ],
+  },
+  {
+    text: "What are the top pain points your team is dealing with in the current approach?",
+    purpose: "Identify friction and prioritize problem severity.",
+    follow_ups: [
+      "Which pain point has the highest business impact?",
+      "Who experiences this pain most often?",
+    ],
+  },
+  {
+    text: "Which platforms and systems are critical to this workflow today?",
+    purpose: "Map technology landscape and integration dependencies.",
+    follow_ups: [
+      "Which systems are hardest to integrate with?",
+      "Any data quality or latency constraints we should know?",
+    ],
+  },
+  {
+    text: "What security, compliance, or architecture approvals are required before work can start?",
+    purpose: "Surface governance process and potential delivery gates.",
+    follow_ups: [
+      "Who are the approvers and what artifacts do they need?",
+      "What are typical approval lead times?",
+    ],
+  },
+  {
+    text: "How does environment setup happen in your organization today?",
+    purpose: "Clarify environment provisioning flow and ownership.",
+    follow_ups: [
+      "Which team owns provisioning?",
+      "What prerequisites tend to block setup?",
+    ],
+  },
+  {
+    text: "What is the first use case we should target for fastest business value?",
+    purpose: "Prioritize an actionable initial use case.",
+    follow_ups: [
+      "What is in scope vs out of scope for this first step?",
+      "What result would justify moving to phase two?",
+    ],
+  },
+  {
+    text: "Who needs to be involved for decisions, execution, and adoption?",
+    purpose: "Map stakeholders, authority, and change-readiness.",
+    follow_ups: [
+      "Who is the executive sponsor?",
+      "Who will use the solution day-to-day?",
+    ],
+  },
+];
+
 export default function OrientPage() {
   const { activeDiscovery } = useDiscovery();
   const discoveryId = activeDiscovery?.id || "";
@@ -24,6 +128,7 @@ export default function OrientPage() {
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [captureEvidence, setCaptureEvidence] = useState<Evidence[]>([]);
+  const [usingStarterQuestions, setUsingStarterQuestions] = useState(false);
 
   const loadCaptureEvidence = useCallback(async () => {
     if (!discoveryId) return;
@@ -46,7 +151,11 @@ export default function OrientPage() {
       if (sets.length > 0 && questions.length === 0) {
         const latest = sets[sets.length - 1];
         setQuestions(latest.questions);
+        setUsingStarterQuestions(false);
         if (latest.context) setContext(latest.context);
+      } else if (sets.length === 0 && questions.length === 0) {
+        setQuestions(STARTER_INTRO_QUESTIONS);
+        setUsingStarterQuestions(true);
       }
     }).catch(() => { /* non-critical */ });
   }, [discoveryId]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -58,11 +167,28 @@ export default function OrientPage() {
       const result = await api.questions.generate({ discovery_id: discoveryId, phase: "orient", context });
       setQuestions(result.questions);
       setSavedQuestionSets((prev) => [...prev, result]);
+      setUsingStarterQuestions(false);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to generate questions");
     } finally {
       setGenerating(false);
     }
+  };
+
+  const applyIntroCallTemplate = () => {
+    setContext(INTRO_CALL_CONTEXT_TEMPLATE);
+  };
+
+  const loadStarterQuestions = () => {
+    setQuestions(STARTER_INTRO_QUESTIONS);
+    setUsingStarterQuestions(true);
+  };
+
+  const appendTopicBlock = (body: string) => {
+    setContext((prev) => {
+      if (!prev.trim()) return body;
+      return `${prev.trim()}\n\n${body}`;
+    });
   };
 
   if (!activeDiscovery) {
@@ -93,49 +219,91 @@ export default function OrientPage() {
         </TabsList>
 
         <TabsContent value="sensemaking" className="space-y-4">
-          {captureEvidence.length > 0 && (
-            <Card className="border-blue-500/20 bg-blue-500/5">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm text-blue-700">
-                  Capture Evidence Loaded
-                  <Badge variant="secondary" className="ml-2">{captureEvidence.length}</Badge>
+          <div className="grid gap-4 lg:grid-cols-3">
+            <Card className="lg:col-span-1 border-amber-500/20 bg-amber-500/5">
+              <CardHeader>
+                <CardTitle className="text-sm flex items-center gap-2">
+                  <ClipboardList className="h-4 w-4 text-amber-600" />
+                  Intro Call Playbook
                 </CardTitle>
+                <CardDescription>
+                  Build meeting-ready synthesis context in minutes.
+                </CardDescription>
               </CardHeader>
-              <CardContent>
-                <p className="text-xs text-muted-foreground">
-                  Evidence from the Capture phase has been loaded into context below.
-                </p>
+              <CardContent className="space-y-3">
+                <Button type="button" variant="outline" className="w-full" onClick={applyIntroCallTemplate}>
+                  Load Full Intro Call Template
+                </Button>
+                <Button type="button" variant="outline" className="w-full" onClick={loadStarterQuestions}>
+                  Load Starter Questions
+                </Button>
+                <div className="space-y-2">
+                  {TOPIC_INSERTS.map((topic) => (
+                    <Button
+                      key={topic.label}
+                      type="button"
+                      variant="ghost"
+                      className="w-full justify-start text-xs"
+                      onClick={() => appendTopicBlock(topic.body)}
+                    >
+                      + {topic.label}
+                    </Button>
+                  ))}
+                </div>
+                {captureEvidence.length > 0 && (
+                  <p className="text-xs text-muted-foreground">
+                    Capture evidence ready: <span className="font-medium">{captureEvidence.length}</span> items loaded.
+                  </p>
+                )}
               </CardContent>
             </Card>
-          )}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Orient Context</CardTitle>
-              <CardDescription>
-                What evidence have you captured? The AI will generate sensemaking questions.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <Textarea
-                value={context}
-                onChange={(e) => setContext(e.target.value)}
-                placeholder="e.g., We interviewed 5 portfolio managers. Common themes: slow trade execution, duplicate reconciliation, workarounds for compliance reporting."
-                rows={4}
-              />
-              <Button onClick={generateQuestions} disabled={generating}>
-                {generating ? "Generating..." : "Generate Orient Questions"}
-              </Button>
-              {error && <p className="text-sm text-red-500 mt-2">{error}</p>}
-            </CardContent>
-          </Card>
+
+            <Card className="lg:col-span-2">
+              <CardHeader>
+                <CardTitle className="text-base">Synthesis Context</CardTitle>
+                <CardDescription>
+                  Combine evidence, constraints, and goals. CORE will generate facilitation questions for this meeting.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="flex flex-wrap gap-2">
+                  <Badge variant="outline">Current Process</Badge>
+                  <Badge variant="outline">Technology Landscape</Badge>
+                  <Badge variant="outline">Approvals & Governance</Badge>
+                  <Badge variant="outline">Environment Setup</Badge>
+                  <Badge variant="outline">Use Case & Business Value</Badge>
+                </div>
+                <Textarea
+                  value={context}
+                  onChange={(e) => setContext(e.target.value)}
+                  placeholder="e.g., We interviewed 5 portfolio managers. Common themes: slow trade execution, duplicate reconciliation, workarounds for compliance reporting."
+                  rows={10}
+                />
+                <div className="flex flex-wrap gap-2">
+                  <Button onClick={generateQuestions} disabled={generating} className="gap-2">
+                    <Sparkles className="h-4 w-4" />
+                    {generating ? "Generating..." : "Generate Synthesis Questions"}
+                  </Button>
+                  <Badge variant="secondary">Saved sets: {savedQuestionSets.length}</Badge>
+                </div>
+                {error && <p className="text-sm text-red-500 mt-2">{error}</p>}
+              </CardContent>
+            </Card>
+          </div>
 
           {questions.length > 0 && (
             <Card>
               <CardHeader>
                 <CardTitle className="text-base">
-                  Sensemaking Questions
+                  Synthesis Questions
                   <Badge variant="secondary" className="ml-2">{questions.length}</Badge>
+                  {usingStarterQuestions && (
+                    <Badge variant="outline" className="ml-2 text-[10px]">Starter set</Badge>
+                  )}
                 </CardTitle>
+                <CardDescription>
+                  Click a question to copy it for your live customer conversation.
+                </CardDescription>
               </CardHeader>
               <CardContent className="space-y-3">
                 {questions.map((q, i) => (

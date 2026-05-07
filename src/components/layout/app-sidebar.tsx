@@ -35,7 +35,7 @@ const PHASE_NAV = [
   {
     phase: "orient",
     step: 2,
-    label: "Orient",
+    label: "Synthesis",
     icon: Compass,
     href: "/orient",
     color: "text-amber-500",
@@ -87,7 +87,7 @@ export function AppSidebar() {
               CORE Discovery
             </h2>
             <p className="text-[10px] text-muted-foreground">
-              Capture · Orient · Refine · Execute
+              Capture · Synthesis · Refine · Execute
             </p>
           </div>
         </Link>
@@ -239,7 +239,7 @@ export function AppSidebar() {
                     >
                       <span className="truncate text-xs">{d.name}</span>
                       <Badge variant="outline" className="ml-auto text-[9px] shrink-0">
-                        {d.current_phase}
+                        {PHASE_CONFIG[d.current_phase]?.label || d.current_phase}
                       </Badge>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
@@ -254,7 +254,7 @@ export function AppSidebar() {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2 text-xs text-muted-foreground">
             <Badge variant="outline" className="text-[10px]">
-              v1.0.2
+              v1.2.2
             </Badge>
             <span>CORE Framework</span>
           </div>

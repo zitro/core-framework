@@ -14,7 +14,7 @@ import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import type { Evidence, CorePhase, ConfidenceLevel } from "@/types/core";
+import { PHASE_CONFIG, type Evidence, type CorePhase, type ConfidenceLevel } from "@/types/core";
 import { api } from "@/lib/api";
 import { useDiscovery } from "@/stores/discovery-store";
 
@@ -170,7 +170,7 @@ export function EvidenceBoard() {
                 title="CORE phase"
               >
                 <option value="capture">Capture</option>
-                <option value="orient">Orient</option>
+                <option value="orient">Synthesis</option>
                 <option value="refine">Refine</option>
                 <option value="execute">Execute</option>
               </select>
@@ -208,7 +208,7 @@ export function EvidenceBoard() {
               onClick={() => setFilterPhase(p)}
               className="text-xs"
             >
-              {p === "all" ? "All" : p.charAt(0).toUpperCase() + p.slice(1)}
+              {p === "all" ? "All" : PHASE_CONFIG[p].label}
             </Button>
           )
         )}
@@ -245,7 +245,7 @@ export function EvidenceBoard() {
                           variant="outline"
                           className={`border-0 text-[10px] ${PHASE_COLORS[item.phase]}`}
                         >
-                          {item.phase}
+                          {PHASE_CONFIG[item.phase]?.label || item.phase}
                         </Badge>
                         <Badge
                           variant="outline"

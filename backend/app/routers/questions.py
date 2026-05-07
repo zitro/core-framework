@@ -4,14 +4,22 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 
 from app.dependencies import get_current_user
-from app.models.core import CorePhase, Question, QuestionSet
+from app.models.core import CorePhase, Question, QuestionGroundingSource, QuestionSet
 from app.providers.llm import get_llm_provider
+from app.providers.search import get_search_provider
 from app.providers.storage import get_storage_provider
 from app.utils.local_docs import read_docs_content
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(dependencies=[Depends(get_current_user)])
+
+# Topic grounding depth defaults for question synthesis.
+# We bias toward deeper research by default while keeping a hard cap so prompts
+# don't balloon unpredictably.
+_TOPIC_QUERY_LIMIT = 5
+_TOPIC_RESULTS_PER_QUERY = 4
+_TOPIC_SNIPPET_CAP = 16
 
 PHASE_PROMPTS = {
     CorePhase.CAPTURE: (
@@ -30,6 +38,13 @@ Generate sensemaking questions that help the team:
 - Frame the real problem (not just symptoms)
 - Build systems maps of cause and effect
 - Challenge assumptions with "what if we're wrong about..."
+When context indicates an intro or early discovery customer meeting, prioritize questions that clarify:
+- Current-state operating model and pain points
+- Existing technology landscape and integration constraints
+- Environment setup path and required dependencies
+- Approval and governance process (security, compliance, architecture, procurement)
+- Initial use case scope, business value, and success criteria
+Keep questions open-ended, practical, and non-leading.
 Focus on PATTERN RECOGNITION and FRAMING.""",
     CorePhase.REFINE: """You are a product discovery coach using the CORE framework (Refine phase).
 Generate solution exploration questions that help the team:
@@ -76,13 +91,82 @@ async def list_question_sets(discovery_id: str, phase: str | None = None):
 @router.post("/generate", response_model=QuestionSet)
 async def generate_questions(request: QuestionRequest):
     llm = get_llm_provider()
+    search = get_search_provider()
     storage = get_storage_provider()
 
     # Include local docs if configured on the discovery
     docs_context = ""
+    technologies_context = ""
+    topic_research_context = ""
+    grounding_sources: list[QuestionGroundingSource] = []
     try:
         disc = await storage.get("discoveries", request.discovery_id)
         docs_path = (disc or {}).get("docs_path", "")
+
+        technology_targets = (disc or {}).get("target_technologies", [])
+        topic_queries: list[str] = []
+
+        lines: list[str] = []
+        if technology_targets:
+            for target in technology_targets:
+                if not isinstance(target, dict):
+                    continue
+                name = str(target.get("name", "")).strip()
+                focus = str(target.get("focus", "")).strip()
+                if not name:
+                    continue
+                if focus:
+                    lines.append(f"{name} — focus: {focus}")
+                    topic_queries.append(f"{name} {focus}")
+                else:
+                    lines.append(name)
+                    topic_queries.append(name)
+
+        if not lines:
+            target_technologies = (disc or {}).get("solution_providers", [])
+            for item in target_technologies:
+                name = str(item).strip()
+                if not name:
+                    continue
+                lines.append(name)
+                topic_queries.append(name)
+
+        if lines:
+            technologies_context = (
+                "\n\nTarget technologies to consider when shaping questions:\n"
+                + "- "
+                + "\n- ".join(lines)
+            )
+
+        if search.enabled and topic_queries:
+            snippets: list[str] = []
+            for query in topic_queries[:_TOPIC_QUERY_LIMIT]:
+                results = await search.search(
+                    f"{query} implementation patterns", limit=_TOPIC_RESULTS_PER_QUERY
+                )
+                for result in results:
+                    snippets.append(
+                        f"[{query}] {result.title}: {result.snippet} ({result.url})"
+                    )
+                    grounding_sources.append(
+                        QuestionGroundingSource(
+                            query=query,
+                            title=result.title,
+                            url=result.url,
+                            snippet=result.snippet,
+                            source=result.source,
+                        )
+                    )
+                    if len(snippets) >= _TOPIC_SNIPPET_CAP:
+                        break
+                if len(snippets) >= _TOPIC_SNIPPET_CAP:
+                    break
+            if snippets:
+                topic_research_context = (
+                    "\n\nTopic research context (external sources):\n"
+                    + "\n".join(f"- {item}" for item in snippets)
+                )
+
         if docs_path:
             content = read_docs_content(docs_path)
             if content:
@@ -92,7 +176,7 @@ async def generate_questions(request: QuestionRequest):
 
     system_prompt = PHASE_PROMPTS[request.phase]
     user_prompt = f"""Context about this discovery engagement:
-{request.context}{docs_context}
+{request.context}{technologies_context}{topic_research_context}{docs_context}
 
 Generate {request.num_questions} questions for the {request.phase.value} phase.
 Return JSON with format:
@@ -120,6 +204,7 @@ Return JSON with format:
         phase=request.phase,
         context=request.context,
         questions=questions,
+        grounding_sources=grounding_sources,
     )
 
     try:

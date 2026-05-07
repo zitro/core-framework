@@ -6,10 +6,10 @@ from httpx import AsyncClient
 
 @pytest.mark.asyncio
 async def test_engagement_create_auto_derives_slug(client: AsyncClient) -> None:
-    res = await client.post("/api/engagements/", json={"name": "Customer Claims Modernization"})
+    res = await client.post("/api/engagements/", json={"name": "Example Claims Modernization"})
     assert res.status_code in (200, 201), res.text
     eng = res.json()
-    assert eng["slug"] == "customer-engagement-modernization"
+    assert eng["slug"] == "example-claims-modernization"
 
 
 @pytest.mark.asyncio

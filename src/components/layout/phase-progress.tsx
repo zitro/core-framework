@@ -7,7 +7,7 @@ import type { CorePhase } from "@/types/core";
 
 const STEPS: { phase: CorePhase; label: string; icon: typeof Search; href: string; color: string; bg: string }[] = [
   { phase: "capture", label: "Capture", icon: Search, href: "/capture", color: "text-blue-600", bg: "bg-blue-500" },
-  { phase: "orient", label: "Orient", icon: Compass, href: "/orient", color: "text-amber-600", bg: "bg-amber-500" },
+  { phase: "orient", label: "Synthesis", icon: Compass, href: "/orient", color: "text-amber-600", bg: "bg-amber-500" },
   { phase: "refine", label: "Refine", icon: Lightbulb, href: "/refine", color: "text-emerald-600", bg: "bg-emerald-500" },
   { phase: "execute", label: "Execute", icon: Rocket, href: "/execute", color: "text-violet-600", bg: "bg-violet-500" },
 ];

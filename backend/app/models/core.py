@@ -113,6 +113,11 @@ class SolutionMatchData(BaseModel):
     confidence: float = 0
 
 
+class TechnologyTarget(BaseModel):
+    name: str
+    focus: str = ""
+
+
 class DiscoveryUpdate(BaseModel):
     """Typed update payload — prevents arbitrary field injection."""
 
@@ -126,6 +131,7 @@ class DiscoveryUpdate(BaseModel):
     solution_matches: list[SolutionMatchData] | None = None
     docs_path: str | None = None
     solution_providers: list[str] | None = None
+    target_technologies: list[TechnologyTarget] | None = None
     engagement_repo_path: str | None = None
 
 
@@ -143,6 +149,7 @@ class Discovery(BaseModel):
     solution_matches: list[SolutionMatchData] = Field(default_factory=list)
     docs_path: str = ""
     solution_providers: list[str] = Field(default_factory=lambda: ["Microsoft Azure"])
+    target_technologies: list[TechnologyTarget] = Field(default_factory=list)
     engagement_repo_path: str = ""
     evidence: list[Evidence] = Field(default_factory=list)
     created_by: str = ""
@@ -156,6 +163,13 @@ class Question(BaseModel):
     purpose: str = ""
     follow_ups: list[str] = Field(default_factory=list)
 
+class QuestionGroundingSource(BaseModel):
+    query: str = ""
+    title: str = ""
+    url: str = ""
+    snippet: str = ""
+    source: str = ""
+
 
 class QuestionSet(BaseModel):
     id: str = ""
@@ -164,6 +178,7 @@ class QuestionSet(BaseModel):
     phase: CorePhase
     context: str = ""
     questions: list[Question] = Field(default_factory=list)
+    grounding_sources: list[QuestionGroundingSource] = Field(default_factory=list)
     created_at: datetime = Field(default_factory=_utcnow)
 
 

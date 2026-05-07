@@ -81,6 +81,11 @@ export interface Assumption {
   status: "untested" | "validated" | "invalidated";
 }
 
+export interface TechnologyTarget {
+  name: string;
+  focus: string;
+}
+
 export interface Discovery {
   id: string;
   name: string;
@@ -95,6 +100,7 @@ export interface Discovery {
   evidence: Evidence[];
   docs_path: string;
   solution_providers: string[];
+  target_technologies?: TechnologyTarget[];
   engagement_repo_path: string;
   created_at: string;
   updated_at: string;
@@ -106,12 +112,21 @@ export interface Question {
   follow_ups: string[];
 }
 
+export interface QuestionGroundingSource {
+  query: string;
+  title: string;
+  url: string;
+  snippet: string;
+  source: string;
+}
+
 export interface QuestionSet {
   id: string;
   discovery_id: string;
   phase: CorePhase;
   context: string;
   questions: Question[];
+  grounding_sources?: QuestionGroundingSource[];
   created_at: string;
 }
 
@@ -266,8 +281,8 @@ export const PHASE_CONFIG: Record<
     color: "blue",
   },
   orient: {
-    label: "Orient",
-    description: "Recognize patterns, frame the real problem, sensemaking",
+    label: "Synthesis",
+    description: "Synthesize evidence, frame the real problem, and align direction",
     icon: "Compass",
     color: "amber",
   },

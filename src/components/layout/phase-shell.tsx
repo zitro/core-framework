@@ -32,11 +32,11 @@ const PHASE_GUIDANCE: Record<CorePhase, { heading: string; steps: string[] }> = 
     ],
   },
   orient: {
-    heading: "Recognize patterns and frame the real problem",
+    heading: "Synthesize evidence and frame the real problem",
     steps: [
-      "Review sensemaking questions — they probe patterns in your Capture evidence",
-      "Let AI generate a problem statement from all your context",
-      "Edit, refine, and version your problem statement as understanding deepens",
+      "Review synthesis questions to expose patterns and unknowns from Capture",
+      "Draft a shared problem frame with constraints, approvals, and environment realities",
+      "Convert synthesis into a clear problem statement and actionable use case",
     ],
   },
   refine: {

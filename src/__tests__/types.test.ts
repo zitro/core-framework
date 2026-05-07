@@ -19,7 +19,7 @@ describe("PHASE_CONFIG", () => {
 
   it("labels are properly capitalized", () => {
     expect(PHASE_CONFIG.capture.label).toBe("Capture");
-    expect(PHASE_CONFIG.orient.label).toBe("Orient");
+    expect(PHASE_CONFIG.orient.label).toBe("Synthesis");
     expect(PHASE_CONFIG.refine.label).toBe("Refine");
     expect(PHASE_CONFIG.execute.label).toBe("Execute");
   });

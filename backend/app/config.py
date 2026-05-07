@@ -43,7 +43,7 @@ class Settings(BaseSettings):
     # Project artifacts mount root. Per-project ``repo_path`` values that are
     # not absolute are resolved relative to this directory. Customer deploys
     # mount their ``./projects`` folder here so engagements can reference
-    # subdirectories by name (e.g. ``repo_path: "customer-engagement"``).
+    # subdirectories by name (e.g. ``repo_path: "sample-claims"``).
     projects_root: str = "./data/projects"
 
     # When true, FastAPI startup will (re)create Cosmos containers. Default off so
