@@ -38,7 +38,8 @@ Generate sensemaking questions that help the team:
 - Frame the real problem (not just symptoms)
 - Build systems maps of cause and effect
 - Challenge assumptions with "what if we're wrong about..."
-When context indicates an intro or early discovery customer meeting, prioritize questions that clarify:
+When context indicates an intro or early discovery customer meeting,
+prioritize questions that clarify:
 - Current-state operating model and pain points
 - Existing technology landscape and integration constraints
 - Environment setup path and required dependencies
@@ -145,9 +146,7 @@ async def generate_questions(request: QuestionRequest):
                     f"{query} implementation patterns", limit=_TOPIC_RESULTS_PER_QUERY
                 )
                 for result in results:
-                    snippets.append(
-                        f"[{query}] {result.title}: {result.snippet} ({result.url})"
-                    )
+                    snippets.append(f"[{query}] {result.title}: {result.snippet} ({result.url})")
                     grounding_sources.append(
                         QuestionGroundingSource(
                             query=query,
