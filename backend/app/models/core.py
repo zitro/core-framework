@@ -163,6 +163,7 @@ class Question(BaseModel):
     purpose: str = ""
     follow_ups: list[str] = Field(default_factory=list)
 
+
 class QuestionGroundingSource(BaseModel):
     query: str = ""
     title: str = ""
