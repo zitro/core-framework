@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect } from "react";
+import packageJson from "../../../../package.json";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Search, Compass, Lightbulb, Rocket, Home, BookOpen, FolderOpen, FolderGit2, Sparkles, Globe, BookMarked, Briefcase, Building2, ShieldCheck, Cloud, Wand2 } from "lucide-react";
+import { Search, Compass, Lightbulb, Rocket, Home, BookOpen, FolderGit2, Sparkles, Globe, BookMarked, Building2, Briefcase, ShieldCheck, Cloud, Wand2 } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -18,9 +18,9 @@ import {
 } from "@/components/ui/sidebar";
 import { Badge } from "@/components/ui/badge";
 import { ThemeToggle } from "@/components/layout/theme-toggle";
-import { ProjectSwitcher } from "@/components/layout/project-switcher";
-import { useDiscovery } from "@/stores/discovery-store";
-import { PHASE_CONFIG } from "@/types/core";
+import { useProject } from "@/stores/project-store";
+
+const APP_VERSION = packageJson.version;
 
 const PHASE_NAV = [
   {
@@ -33,11 +33,11 @@ const PHASE_NAV = [
     bgColor: "bg-blue-500/10",
   },
   {
-    phase: "orient",
+    phase: "orchestrate",
     step: 2,
-    label: "Synthesis",
+    label: "Orchestrate",
     icon: Compass,
-    href: "/orient",
+    href: "/orchestrate",
     color: "text-amber-500",
     bgColor: "bg-amber-500/10",
   },
@@ -63,17 +63,20 @@ const PHASE_NAV = [
 
 export function AppSidebar() {
   const pathname = usePathname();
-  const { discoveries, activeDiscovery, setActiveDiscovery, loadDiscoveries } = useDiscovery();
+  const { projects, selectedCustomer, activeProject } = useProject();
+  const customerOptions = Array.from(
+    new Set(
+      projects
+        .map((p) => (p.customer || "").trim())
+        .filter((c) => c.length > 0)
+    )
+  );
 
-  useEffect(() => {
-    if (discoveries.length === 0) {
-      loadDiscoveries().catch(() => {});
-    }
-  }, [discoveries.length, loadDiscoveries]);
-
-  const recentDiscoveries = [...discoveries]
-    .sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime())
-    .slice(0, 5);
+  const activeCustomer =
+    selectedCustomer ||
+    (activeProject?.customer || "").trim() ||
+    customerOptions[0] ||
+    "Customer";
 
   return (
     <Sidebar>
@@ -87,12 +90,13 @@ export function AppSidebar() {
               CORE Discovery
             </h2>
             <p className="text-[10px] text-muted-foreground">
-              Capture · Synthesis · Refine · Execute
+              Capture · Orchestrate · Refine · Execute
             </p>
           </div>
         </Link>
-        <div className="mt-2">
-          <ProjectSwitcher />
+        <div className="mt-2 flex items-center gap-2 px-1 py-1.5">
+          <Building2 className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+          <span className="truncate text-base font-semibold">{activeCustomer}</span>
         </div>
       </SidebarHeader>
 
@@ -144,12 +148,6 @@ export function AppSidebar() {
                 <SidebarMenuButton render={<Link href="/evidence" />} isActive={pathname === "/evidence"}>
                   <BookOpen className="h-4 w-4 text-orange-500" />
                   <span>All Evidence</span>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-              <SidebarMenuItem>
-                <SidebarMenuButton render={<Link href="/discoveries" />} isActive={pathname === "/discoveries"}>
-                  <FolderOpen className="h-4 w-4 text-indigo-500" />
-                  <span>All Discoveries</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
               <SidebarMenuItem>
@@ -226,35 +224,14 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
 
-        {recentDiscoveries.length > 0 && (
-          <SidebarGroup>
-            <SidebarGroupLabel>Recent Discoveries</SidebarGroupLabel>
-            <SidebarGroupContent>
-              <SidebarMenu>
-                {recentDiscoveries.map((d) => (
-                  <SidebarMenuItem key={d.id}>
-                    <SidebarMenuButton
-                      isActive={activeDiscovery?.id === d.id}
-                      onClick={() => setActiveDiscovery(d)}
-                    >
-                      <span className="truncate text-xs">{d.name}</span>
-                      <Badge variant="outline" className="ml-auto text-[9px] shrink-0">
-                        {PHASE_CONFIG[d.current_phase]?.label || d.current_phase}
-                      </Badge>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                ))}
-              </SidebarMenu>
-            </SidebarGroupContent>
-          </SidebarGroup>
-        )}
+
       </SidebarContent>
 
       <SidebarFooter className="border-t p-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2 text-xs text-muted-foreground">
             <Badge variant="outline" className="text-[10px]">
-              v1.2.2
+              v{APP_VERSION}
             </Badge>
             <span>CORE Framework</span>
           </div>
