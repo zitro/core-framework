@@ -1,6 +1,6 @@
 "use client";
 
-import packageJson from "../../../../package.json";
+import packageJson from "../../../package.json";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Search, Compass, Lightbulb, Rocket, Home, BookOpen, FolderGit2, Sparkles, Globe, BookMarked, Building2, Briefcase, ShieldCheck, Cloud, Wand2 } from "lucide-react";
