@@ -11,8 +11,10 @@ import type {
   EngagementScanResult,
   EngagementExportResult,
   EngagementContentResult,
+  EngagementSourceDeleteResult,
   IngestClassification,
   IngestWriteResult,
+  EngagementPublishResult,
 } from "@/types/core";
 import { toast } from "sonner";
 import { API_URL, authHeader, request } from "@/lib/http";
@@ -32,9 +34,19 @@ export const api = {
       tenant_id: string;
     }>("/api/me"),
 
+  // GitHub OAuth
+  githubAuth: {
+    status: () => request<{ connected: boolean; login: string }>("/api/github/oauth/status"),
+    disconnect: () =>
+      request<{ disconnected: boolean }>("/api/github/oauth/disconnect", {
+        method: "POST",
+      }),
+  },
+
   // Discoveries
   discoveries: {
-    list: () => request<Discovery[]>("/api/discovery/"),
+    list: (projectId?: string) =>
+      request<Discovery[]>(`/api/discovery/${projectId ? `?project_id=${projectId}` : ""}`),
     get: (id: string) => request<Discovery>(`/api/discovery/${id}`),
     create: (data: Partial<Discovery>) =>
       request<Discovery>("/api/discovery/", {
@@ -160,10 +172,10 @@ export const api = {
 
   // Engagement Repo Integration
   engagement: {
-    scan: (path: string) =>
+    scan: (path: string, options?: { refresh?: boolean }) =>
       request<EngagementScanResult>("/api/engagement/scan", {
         method: "POST",
-        body: JSON.stringify({ path }),
+        body: JSON.stringify({ path, refresh: options?.refresh ?? false }),
       }),
     content: (path: string) =>
       request<EngagementContentResult>("/api/engagement/content", {
@@ -220,6 +232,26 @@ export const api = {
       request<{ path: string; count: number }>("/api/engagement/references/rebuild", {
         method: "POST",
         body: JSON.stringify({ path }),
+      }),
+    publish: (data: {
+      discovery_id: string;
+      repo_paths?: string[];
+      dry_run?: boolean;
+      use_ai_placement?: boolean;
+    }) =>
+      request<EngagementPublishResult>("/api/engagement/publish", {
+        method: "POST",
+        body: JSON.stringify(data),
+      }),
+    deleteSource: (data: {
+      discovery_id: string;
+      source_type: "local_folder" | "repository";
+      source_value: string;
+      purge_cached_data?: boolean;
+    }) =>
+      request<EngagementSourceDeleteResult>("/api/engagement/source/delete", {
+        method: "POST",
+        body: JSON.stringify(data),
       }),
   },
 
