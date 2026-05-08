@@ -1,4 +1,4 @@
-export type CorePhase = "capture" | "orient" | "refine" | "execute";
+export type CorePhase = "capture" | "orchestrate" | "refine" | "execute";
 export type DiscoveryMode = "standard" | "fde" | "workshop_sprint";
 export type ConfidenceLevel = "validated" | "assumed" | "unknown" | "conflicting";
 
@@ -86,8 +86,35 @@ export interface TechnologyTarget {
   focus: string;
 }
 
+export type EngagementSourceType = "local_folder" | "repository";
+
+export interface EngagementSource {
+  type: EngagementSourceType;
+  value: string;
+}
+
+export interface EngagementSourceDeleteResult {
+  discovery_id: string;
+  removed: { type: string; value: string };
+  remaining_sources: number;
+  remaining_paths: string[];
+  purged_cached_data: boolean;
+}
+
+export interface EngagementSourceUpdateStatus {
+  type: EngagementSourceType;
+  value: string;
+  checked_at: string;
+  changed: boolean;
+  previous_fingerprint: string;
+  current_fingerprint: string;
+  file_count: number;
+  error?: string;
+}
+
 export interface Discovery {
   id: string;
+  project_id: string;
   name: string;
   description: string;
   mode: DiscoveryMode;
@@ -102,6 +129,8 @@ export interface Discovery {
   solution_providers: string[];
   target_technologies?: TechnologyTarget[];
   engagement_repo_path: string;
+  engagement_repo_paths?: string[];
+  engagement_sources?: EngagementSource[];
   created_at: string;
   updated_at: string;
 }
@@ -270,6 +299,30 @@ export interface IngestWriteResult {
   action: string;
 }
 
+export interface EngagementPublishItem {
+  repo_path: string;
+  collection: string;
+  id: string;
+  filename: string;
+  directory: string;
+  action: string;
+  append_target: string;
+  placement_confidence: string;
+  dry_run: boolean;
+  written_path?: string;
+}
+
+export interface EngagementPublishResult {
+  discovery_id: string;
+  dry_run: boolean;
+  use_ai_placement: boolean;
+  repo_paths: string[];
+  count: number;
+  published: EngagementPublishItem[];
+  skipped: { repo_path: string; collection: string; id: string; status: string }[];
+  errors: { repo_path: string; collection?: string; id?: string; error: string }[];
+}
+
 export const PHASE_CONFIG: Record<
   CorePhase,
   { label: string; description: string; icon: string; color: string }
@@ -280,8 +333,8 @@ export const PHASE_CONFIG: Record<
     icon: "Search",
     color: "blue",
   },
-  orient: {
-    label: "Synthesis",
+  orchestrate: {
+    label: "Orchestrate",
     description: "Synthesize evidence, frame the real problem, and align direction",
     icon: "Compass",
     color: "amber",
