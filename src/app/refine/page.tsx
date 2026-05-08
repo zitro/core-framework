@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { FlaskConical, Target, Lightbulb, Cpu } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import type { SolutionMatch, Assumption, QuestionSet } from "@/types/core";
+import type { SolutionMatch, Assumption } from "@/types/core";
 import { api } from "@/lib/api";
 import { useDiscovery } from "@/stores/discovery-store";
 import { AssumptionTracker } from "@/components/refine/assumption-tracker";
@@ -16,7 +16,6 @@ export default function RefinePage() {
   const discoveryId = activeDiscovery?.id || "";
 
   const [questions, setQuestions] = useState<{ text: string; purpose: string; follow_ups: string[] }[]>([]);
-  const [savedQuestionSets, setSavedQuestionSets] = useState<QuestionSet[]>([]);
   const [context, setContext] = useState("");
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -30,7 +29,7 @@ export default function RefinePage() {
   // Assumptions
   const [assumptions, setAssumptions] = useState<Assumption[]>([]);
 
-  // Load problem statement from Orient and persisted assumptions
+  // Load problem statement from Orchestrate and persisted assumptions
   useEffect(() => {
     const ps = activeDiscovery?.problem_statement;
     if (ps?.statement && !problemInput) {
@@ -48,7 +47,6 @@ export default function RefinePage() {
   useEffect(() => {
     if (!discoveryId) return;
     api.questions.list(discoveryId, "refine").then((sets) => {
-      setSavedQuestionSets(sets);
       if (sets.length > 0 && questions.length === 0) {
         const latest = sets[sets.length - 1];
         setQuestions(latest.questions);
@@ -94,7 +92,6 @@ export default function RefinePage() {
         context,
       });
       setQuestions(result.questions);
-      setSavedQuestionSets((prev) => [...prev, result]);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to generate questions — is the backend running?");
     } finally {

@@ -12,8 +12,8 @@ import type { Evidence, QuestionSet } from "@/types/core";
 import { api } from "@/lib/api";
 import { useDiscovery } from "@/stores/discovery-store";
 import { PhaseShell } from "@/components/layout/phase-shell";
-import { ProblemStatementBuilder } from "@/components/orient/problem-statement-builder";
-import { UseCaseBuilder } from "@/components/orient/use-case-builder";
+import { ProblemStatementBuilder } from "@/components/orchestrate/problem-statement-builder";
+import { UseCaseBuilder } from "@/components/orchestrate/use-case-builder";
 
 const INTRO_CALL_CONTEXT_TEMPLATE = `Meeting type: Intro discovery call
 Goal: Introduce teams and understand the customer's current state before solutioning.
@@ -119,13 +119,17 @@ const STARTER_INTRO_QUESTIONS: { text: string; purpose: string; follow_ups: stri
   },
 ];
 
-export default function OrientPage() {
+export default function OrchestratePage() {
   const { activeDiscovery } = useDiscovery();
   const discoveryId = activeDiscovery?.id || "";
   const [questions, setQuestions] = useState<{ text: string; purpose: string; follow_ups: string[] }[]>([]);
   const [savedQuestionSets, setSavedQuestionSets] = useState<QuestionSet[]>([]);
   const [context, setContext] = useState("");
+  const [workingNotes, setWorkingNotes] = useState("");
+  const [questionComments, setQuestionComments] = useState<Record<number, string>>({});
   const [generating, setGenerating] = useState(false);
+  const [bootstrapping, setBootstrapping] = useState(false);
+  const [savingComments, setSavingComments] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [captureEvidence, setCaptureEvidence] = useState<Evidence[]>([]);
   const [usingStarterQuestions, setUsingStarterQuestions] = useState(false);
@@ -146,7 +150,7 @@ export default function OrientPage() {
 
   useEffect(() => {
     if (!discoveryId) return;
-    api.questions.list(discoveryId, "orient").then((sets) => {
+    api.questions.list(discoveryId, "orchestrate").then((sets) => {
       setSavedQuestionSets(sets);
       if (sets.length > 0 && questions.length === 0) {
         const latest = sets[sets.length - 1];
@@ -164,7 +168,7 @@ export default function OrientPage() {
     setGenerating(true);
     setError(null);
     try {
-      const result = await api.questions.generate({ discovery_id: discoveryId, phase: "orient", context });
+      const result = await api.questions.generate({ discovery_id: discoveryId, phase: "orchestrate", context });
       setQuestions(result.questions);
       setSavedQuestionSets((prev) => [...prev, result]);
       setUsingStarterQuestions(false);
@@ -174,6 +178,73 @@ export default function OrientPage() {
       setGenerating(false);
     }
   };
+
+  const saveCommentsAsEvidence = async () => {
+    if (!discoveryId) return;
+    const commentEntries = Object.entries(questionComments).filter(([, value]) => value.trim());
+    if (commentEntries.length === 0) return;
+
+    setSavingComments(true);
+    setError(null);
+    try {
+      for (const [index, note] of commentEntries) {
+        const q = questions[Number(index)];
+        if (!q) continue;
+        await api.evidence.create({
+          discovery_id: discoveryId,
+          phase: "orchestrate",
+          source: "Orchestrate comments",
+          content: `Question: ${q.text}\nComment: ${note.trim()}`,
+        });
+      }
+      setQuestionComments({});
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to save comments");
+    } finally {
+      setSavingComments(false);
+    }
+  };
+
+  useEffect(() => {
+    const bootstrap = async () => {
+      if (!discoveryId || bootstrapping || savedQuestionSets.length > 0 || questions.length > 0) return;
+      setBootstrapping(true);
+      setError(null);
+      try {
+        const [problemVersions, useCaseVersions] = await Promise.all([
+          api.problemStatements.list(discoveryId),
+          api.useCases.list(discoveryId),
+        ]);
+
+        const seedContext = context.trim() || INTRO_CALL_CONTEXT_TEMPLATE;
+        const generated = await api.questions.generate({
+          discovery_id: discoveryId,
+          phase: "orchestrate",
+          context: seedContext,
+        });
+        setQuestions(generated.questions);
+        setSavedQuestionSets((prev) => [...prev, generated]);
+        setUsingStarterQuestions(false);
+
+        const jobs: Promise<unknown>[] = [];
+        if (problemVersions.length === 0) {
+          jobs.push(api.problemStatements.generate({ discovery_id: discoveryId }));
+        }
+        if (useCaseVersions.length === 0) {
+          jobs.push(api.useCases.generate({ discovery_id: discoveryId }));
+        }
+        if (jobs.length > 0) {
+          await Promise.all(jobs);
+        }
+      } catch (e) {
+        setError(e instanceof Error ? e.message : "Failed to auto-generate orchestrate artifacts");
+      } finally {
+        setBootstrapping(false);
+      }
+    };
+
+    void bootstrap();
+  }, [bootstrapping, context, discoveryId, questions.length, savedQuestionSets.length]);
 
   const applyIntroCallTemplate = () => {
     setContext(INTRO_CALL_CONTEXT_TEMPLATE);
@@ -195,18 +266,18 @@ export default function OrientPage() {
     return (
       <div className="p-6 max-w-6xl mx-auto flex flex-col items-center justify-center py-20 text-center">
         <Compass className="h-8 w-8 text-muted-foreground mb-2" />
-        <p className="text-muted-foreground text-sm">Select or create a discovery from the Dashboard to start orienting.</p>
+        <p className="text-muted-foreground text-sm">Select or create a discovery from the Dashboard to start orchestrating.</p>
       </div>
     );
   }
 
   return (
-    <PhaseShell phase="orient" discoveryId={discoveryId}>
+    <PhaseShell phase="orchestrate" discoveryId={discoveryId}>
       <Tabs defaultValue="sensemaking" className="space-y-4">
         <TabsList>
           <TabsTrigger value="sensemaking" className="gap-1.5">
             <Network className="h-3.5 w-3.5" />
-            Sensemaking
+            Orchestrate
           </TabsTrigger>
           <TabsTrigger value="problem" className="gap-1.5">
             <FileText className="h-3.5 w-3.5" />
@@ -227,7 +298,7 @@ export default function OrientPage() {
                   Intro Call Playbook
                 </CardTitle>
                 <CardDescription>
-                  Build meeting-ready synthesis context in minutes.
+                  Build meeting-ready orchestration context in minutes.
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-3">
@@ -260,7 +331,7 @@ export default function OrientPage() {
 
             <Card className="lg:col-span-2">
               <CardHeader>
-                <CardTitle className="text-base">Synthesis Context</CardTitle>
+                <CardTitle className="text-base">Orchestrate Context</CardTitle>
                 <CardDescription>
                   Combine evidence, constraints, and goals. CORE will generate facilitation questions for this meeting.
                 </CardDescription>
@@ -282,10 +353,24 @@ export default function OrientPage() {
                 <div className="flex flex-wrap gap-2">
                   <Button onClick={generateQuestions} disabled={generating} className="gap-2">
                     <Sparkles className="h-4 w-4" />
-                    {generating ? "Generating..." : "Generate Synthesis Questions"}
+                    {generating ? "Generating..." : "Generate Orchestrate Questions"}
                   </Button>
                   <Badge variant="secondary">Saved sets: {savedQuestionSets.length}</Badge>
+                  {bootstrapping && <Badge variant="outline">Auto-generating from capture data...</Badge>}
                 </div>
+                <Textarea
+                  value={workingNotes}
+                  onChange={(e) => setWorkingNotes(e.target.value)}
+                  placeholder="Add notes from your customer conversation, then regenerate questions with this context."
+                  rows={3}
+                />
+                <Button
+                  variant="outline"
+                  onClick={() => setContext((prev) => [prev.trim(), workingNotes.trim()].filter(Boolean).join("\n\n"))}
+                  disabled={!workingNotes.trim()}
+                >
+                  Add Notes To Context
+                </Button>
                 {error && <p className="text-sm text-red-500 mt-2">{error}</p>}
               </CardContent>
             </Card>
@@ -295,7 +380,7 @@ export default function OrientPage() {
             <Card>
               <CardHeader>
                 <CardTitle className="text-base">
-                  Synthesis Questions
+                  Orchestrate Questions
                   <Badge variant="secondary" className="ml-2">{questions.length}</Badge>
                   {usingStarterQuestions && (
                     <Badge variant="outline" className="ml-2 text-[10px]">Starter set</Badge>
@@ -317,11 +402,25 @@ export default function OrientPage() {
                       <div>
                         <p className="text-sm font-medium">{q.text}</p>
                         <p className="text-xs text-muted-foreground mt-1">Purpose: {q.purpose}</p>
+                        <Textarea
+                          value={questionComments[i] || ""}
+                          onChange={(e) => setQuestionComments((prev) => ({ ...prev, [i]: e.target.value }))}
+                          placeholder="Your comment, edit, or pushback on this question..."
+                          rows={2}
+                          className="mt-2"
+                        />
                       </div>
                     </div>
                     {i < questions.length - 1 && <Separator className="mt-2" />}
                   </div>
                 ))}
+                <Button
+                  variant="outline"
+                  onClick={saveCommentsAsEvidence}
+                  disabled={savingComments}
+                >
+                  {savingComments ? "Saving..." : "Save Comments To Evidence"}
+                </Button>
               </CardContent>
             </Card>
           )}
@@ -332,7 +431,7 @@ export default function OrientPage() {
         </TabsContent>
 
         <TabsContent value="usecase">
-          <UseCaseBuilder discoveryId={discoveryId} activeDiscovery={activeDiscovery} />
+          <UseCaseBuilder discoveryId={discoveryId} />
         </TabsContent>
       </Tabs>
     </PhaseShell>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { GavelIcon, ShieldCheck, ShieldX, Hourglass } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -33,15 +33,18 @@ export default function ReviewsPage() {
   const [filter, setFilter] = useState<ReviewStatus | "all">("all");
   const [comments, setComments] = useState<Record<string, string>>({});
 
-  const reload = () =>
-    reviewsApi
-      .list(filter === "all" ? {} : { status: filter })
-      .then(setItems)
-      .catch(() => {});
+  const reload = useCallback(
+    () =>
+      reviewsApi
+        .list(filter === "all" ? {} : { status: filter })
+        .then(setItems)
+        .catch(() => {}),
+    [filter],
+  );
 
   useEffect(() => {
     reload();
-  }, [filter]);
+  }, [reload]);
 
   const decide = async (id: string, status: ReviewStatus) => {
     await reviewsApi.decide(id, { status, comment: comments[id] ?? "" });

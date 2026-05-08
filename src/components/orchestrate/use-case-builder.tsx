@@ -1,21 +1,20 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Sparkles, RefreshCw, ChevronDown, ChevronUp } from "lucide-react";
+import { Sparkles, ChevronDown, ChevronUp } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
-import type { UseCaseVersion, Discovery } from "@/types/core";
+import type { UseCaseVersion } from "@/types/core";
 import { api } from "@/lib/api";
 
 interface UseCaseBuilderProps {
   discoveryId: string;
-  activeDiscovery: Discovery;
 }
 
-export function UseCaseBuilder({ discoveryId, activeDiscovery }: UseCaseBuilderProps) {
+export function UseCaseBuilder({ discoveryId }: UseCaseBuilderProps) {
   const [versions, setVersions] = useState<UseCaseVersion[]>([]);
   const [generating, setGenerating] = useState(false);
   const [instructions, setInstructions] = useState("");
