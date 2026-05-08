@@ -20,7 +20,7 @@ import { useDiscovery } from "@/stores/discovery-store";
 
 const PHASE_COLORS: Record<CorePhase, string> = {
   capture: "bg-blue-500/10 text-blue-700 border-blue-500/30",
-  orient: "bg-amber-500/10 text-amber-700 border-amber-500/30",
+  orchestrate: "bg-amber-500/10 text-amber-700 border-amber-500/30",
   refine: "bg-emerald-500/10 text-emerald-700 border-emerald-500/30",
   execute: "bg-violet-500/10 text-violet-700 border-violet-500/30",
 };
@@ -170,7 +170,7 @@ export function EvidenceBoard() {
                 title="CORE phase"
               >
                 <option value="capture">Capture</option>
-                <option value="orient">Synthesis</option>
+                <option value="orchestrate">Orchestrate</option>
                 <option value="refine">Refine</option>
                 <option value="execute">Execute</option>
               </select>
@@ -199,7 +199,7 @@ export function EvidenceBoard() {
 
       <div className="flex items-center gap-2">
         <span className="text-sm font-medium">Filter:</span>
-        {(["all", "capture", "orient", "refine", "execute"] as const).map(
+        {(["all", "capture", "orchestrate", "refine", "execute"] as const).map(
           (p) => (
             <Button
               key={p}

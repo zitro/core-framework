@@ -10,14 +10,14 @@ import { DtMethodsPanel } from "@/components/layout/dt-methods-panel";
 
 const PHASE_ICONS: Record<CorePhase, LucideIcon> = {
   capture: Search,
-  orient: Compass,
+  orchestrate: Compass,
   refine: Lightbulb,
   execute: Rocket,
 };
 
 const PHASE_ICON_BG: Record<CorePhase, string> = {
   capture: "bg-blue-500/10 text-blue-500",
-  orient: "bg-amber-500/10 text-amber-500",
+  orchestrate: "bg-amber-500/10 text-amber-500",
   refine: "bg-emerald-500/10 text-emerald-500",
   execute: "bg-violet-500/10 text-violet-500",
 };
@@ -28,10 +28,10 @@ const PHASE_GUIDANCE: Record<CorePhase, { heading: string; steps: string[] }> = 
     steps: [
       "Paste a meeting transcript — AI extracts evidence, themes, and insights",
       "Generate discovery questions tailored to your engagement context",
-      "Add evidence manually as you go — it carries forward to Orient",
+      "Add evidence manually as you go — it carries forward to Orchestrate",
     ],
   },
-  orient: {
+  orchestrate: {
     heading: "Synthesize evidence and frame the real problem",
     steps: [
       "Review synthesis questions to expose patterns and unknowns from Capture",
@@ -61,9 +61,17 @@ interface PhaseShellProps {
   phase: CorePhase;
   discoveryId: string;
   children: ReactNode;
+  showEvidencePanel?: boolean;
+  showDtMethodsPanel?: boolean;
 }
 
-export function PhaseShell({ phase, discoveryId, children }: PhaseShellProps) {
+export function PhaseShell({
+  phase,
+  discoveryId,
+  children,
+  showEvidencePanel = true,
+  showDtMethodsPanel = true,
+}: PhaseShellProps) {
   const config = PHASE_CONFIG[phase];
   const Icon = PHASE_ICONS[phase];
   const iconStyle = PHASE_ICON_BG[phase];
@@ -98,11 +106,13 @@ export function PhaseShell({ phase, discoveryId, children }: PhaseShellProps) {
       {/* Main Content */}
       {children}
 
-      {/* Design thinking methods for this phase */}
-      <DtMethodsPanel phase={phase} />
-
       {/* Phase Evidence Panel */}
-      <PhaseEvidencePanel discoveryId={discoveryId} phase={phase} />
+      {showEvidencePanel && (
+        <PhaseEvidencePanel discoveryId={discoveryId} phase={phase} collapsible={phase !== "capture"} />
+      )}
+
+      {/* Design thinking methods for this phase */}
+      {showDtMethodsPanel && <DtMethodsPanel phase={phase} discoveryId={discoveryId} />}
 
       {/* Next Phase CTA */}
       <NextPhaseCTA currentPhase={phase} />

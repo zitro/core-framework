@@ -11,7 +11,6 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -21,25 +20,25 @@ import { MODE_CONFIG, PHASE_CONFIG } from "@/types/core";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { DocsPathConfig } from "@/components/settings/docs-path-config";
-import { EngagementConfig } from "@/components/settings/engagement-config";
-import { api } from "@/lib/api";
+import { useProject } from "@/stores/project-store";
 
 const PHASE_ICONS = {
   capture: Search,
-  orient: Compass,
+  orchestrate: Compass,
   refine: Lightbulb,
   execute: Rocket,
 } as const;
 
 const PHASE_COLORS = {
   capture: "border-blue-500/30 bg-blue-500/5",
-  orient: "border-amber-500/30 bg-amber-500/5",
+  orchestrate: "border-amber-500/30 bg-amber-500/5",
   refine: "border-emerald-500/30 bg-emerald-500/5",
   execute: "border-violet-500/30 bg-violet-500/5",
 } as const;
 
 export default function DashboardPage() {
   const { discoveries, loadDiscoveries, createDiscovery, setActiveDiscovery, activeDiscovery, loading } = useDiscovery();
+  const { activeProject } = useProject();
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
@@ -49,12 +48,34 @@ export default function DashboardPage() {
   const [engagementPath, setEngagementPath] = useState("");
 
   useEffect(() => {
-    loadDiscoveries().catch(() => {});
-  }, [loadDiscoveries]);
+    if (!activeProject?.id) return;
+    loadDiscoveries(activeProject.id).catch(() => {});
+  }, [activeProject?.id, loadDiscoveries]);
+
+  const autoOpenFromQuery =
+    typeof window !== "undefined" &&
+    new URLSearchParams(window.location.search).get("newDiscovery") === "1";
+
+  const handleOpenChange = (nextOpen: boolean) => {
+    setOpen(nextOpen);
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    if (!nextOpen && params.get("newDiscovery") === "1") {
+      router.replace("/", { scroll: false });
+    }
+  };
 
   const handleCreate = async () => {
     if (!name.trim()) return;
-    await createDiscovery({ name, description, mode, docs_path: docsPath, engagement_repo_path: engagementPath });
+    await createDiscovery({
+      name,
+      description,
+      mode,
+      docs_path: docsPath,
+      engagement_repo_path: engagementPath,
+      engagement_repo_paths: engagementPath.trim() ? [engagementPath.trim()] : [],
+      project_id: activeProject?.id,
+    });
     setName("");
     setDescription("");
     setDocsPath("");
@@ -71,11 +92,7 @@ export default function DashboardPage() {
             AI-powered product discovery coaching
           </p>
         </div>
-        <Dialog open={open} onOpenChange={setOpen}>
-          <DialogTrigger render={<Button />}>
-              <Plus className="h-4 w-4 mr-2" />
-              New Discovery
-          </DialogTrigger>
+        <Dialog open={open || autoOpenFromQuery} onOpenChange={handleOpenChange}>
           <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-lg">
             <DialogHeader>
               <DialogTitle>Start a New Discovery</DialogTitle>
@@ -151,9 +168,26 @@ export default function DashboardPage() {
         </Dialog>
       </div>
 
+      {/* Platform Overview */}
+      <Card className="border-border/70 bg-muted/20">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base">What This Platform Does</CardTitle>
+          <CardDescription className="text-sm">
+            CORE helps teams run disciplined discovery from first signals to execution-ready outcomes. Capture evidence, orchestrate insights, refine priorities, and execute with confidence in a single workflow.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="pt-0">
+          <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
+            <Badge variant="outline">Evidence-Driven Decisions</Badge>
+            <Badge variant="outline">AI-Assisted Discovery</Badge>
+            <Badge variant="outline">Structured Delivery Flow</Badge>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* CORE Phase Overview */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        {(["capture", "orient", "refine", "execute"] as const).map((phase) => {
+        {(["capture", "orchestrate", "refine", "execute"] as const).map((phase) => {
           const config = PHASE_CONFIG[phase];
           const Icon = PHASE_ICONS[phase];
           return (
@@ -178,9 +212,17 @@ export default function DashboardPage() {
         })}
       </div>
 
+
       {/* Active Discoveries */}
-      <div>
-        <h2 className="text-lg font-semibold mb-3">Active Discoveries</h2>
+      <div className="space-y-3">
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg font-semibold">Active Discoveries</h2>
+          <Button size="sm" className="cursor-pointer" onClick={() => setOpen(true)}>
+            <Plus className="h-4 w-4 mr-2" />
+            New Discovery
+          </Button>
+        </div>
+
         {discoveries.length === 0 ? (
           <Card className="border-dashed">
             <CardContent className="flex flex-col items-center justify-center py-10 text-center">
@@ -189,7 +231,7 @@ export default function DashboardPage() {
               </p>
               <Button
                 variant="outline"
-                className="mt-4"
+                className="mt-4 cursor-pointer"
                 onClick={() => setOpen(true)}
               >
                 <Plus className="h-4 w-4 mr-2" />
@@ -229,9 +271,7 @@ export default function DashboardPage() {
                       <Badge variant="secondary" className="text-[10px]">
                         {MODE_CONFIG[d.mode].label}
                       </Badge>
-                      <span>
-                        {d.evidence?.length || 0} evidence items
-                      </span>
+                      <span>{d.evidence?.length || 0} evidence items</span>
                     </div>
                   </CardContent>
                 </Card>
@@ -240,18 +280,6 @@ export default function DashboardPage() {
           </div>
         )}
       </div>
-
-      {/* Engagement repo config for active discovery */}
-      {activeDiscovery && (
-        <EngagementConfig
-          discovery={activeDiscovery}
-          onUpdate={(patch) => {
-            api.discoveries.update(activeDiscovery.id, patch).then((updated) => {
-              setActiveDiscovery(updated);
-            }).catch(() => {});
-          }}
-        />
-      )}
     </div>
   );
 }

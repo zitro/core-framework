@@ -7,12 +7,12 @@ import type { CorePhase } from "@/types/core";
 
 const STEPS: { phase: CorePhase; label: string; icon: typeof Search; href: string; color: string; bg: string }[] = [
   { phase: "capture", label: "Capture", icon: Search, href: "/capture", color: "text-blue-600", bg: "bg-blue-500" },
-  { phase: "orient", label: "Synthesis", icon: Compass, href: "/orient", color: "text-amber-600", bg: "bg-amber-500" },
+  { phase: "orchestrate", label: "Orchestrate", icon: Compass, href: "/orchestrate", color: "text-amber-600", bg: "bg-amber-500" },
   { phase: "refine", label: "Refine", icon: Lightbulb, href: "/refine", color: "text-emerald-600", bg: "bg-emerald-500" },
   { phase: "execute", label: "Execute", icon: Rocket, href: "/execute", color: "text-violet-600", bg: "bg-violet-500" },
 ];
 
-const PHASE_ORDER: CorePhase[] = ["capture", "orient", "refine", "execute"];
+const PHASE_ORDER: CorePhase[] = ["capture", "orchestrate", "refine", "execute"];
 
 function phaseIndex(phase: CorePhase) {
   return PHASE_ORDER.indexOf(phase);
@@ -70,7 +70,7 @@ export function NextPhaseCTA({ currentPhase }: { currentPhase: CorePhase }) {
   const NextIcon = next.icon;
 
   return (
-    <div className="flex items-center justify-end pt-4 border-t mt-6">
+    <div className="flex items-center justify-end pt-2 mt-6">
       <Link
         href={next.href}
         className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${next.bg}/10 ${next.color} hover:${next.bg}/20`}

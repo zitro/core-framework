@@ -6,7 +6,7 @@
  * at the right time, not to teach the method in full.
  */
 
-export type CorePhase = "capture" | "orient" | "refine" | "execute";
+export type CorePhase = "capture" | "orchestrate" | "refine" | "execute";
 
 export interface DtMethod {
   id: string;
@@ -54,11 +54,11 @@ export const DT_METHODS: DtMethod[] = [
     whenToUse: "When the gap between reported and actual workflow is suspected.",
   },
 
-  // Orient / Define
+  // Orchestrate / Define
   {
     id: "affinity-clustering",
     name: "Affinity Clustering",
-    phase: "orient",
+    phase: "orchestrate",
     dtStage: "define",
     oneLiner: "Group raw evidence into themes to see patterns.",
     whenToUse: "Once you have 20+ pieces of evidence and need to find structure.",
@@ -66,7 +66,7 @@ export const DT_METHODS: DtMethod[] = [
   {
     id: "five-whys",
     name: "5 Whys",
-    phase: "orient",
+    phase: "orchestrate",
     dtStage: "define",
     oneLiner: "Push past symptom to root cause by asking 'why' five times.",
     whenToUse: "When the visible problem feels suspiciously surface-level.",
@@ -74,7 +74,7 @@ export const DT_METHODS: DtMethod[] = [
   {
     id: "hmw",
     name: "How Might We",
-    phase: "orient",
+    phase: "orchestrate",
     dtStage: "define",
     oneLiner: "Reframe a pain point as a solvable, optimistic invitation.",
     whenToUse: "Bridging from problem framing to ideation.",
@@ -83,7 +83,7 @@ export const DT_METHODS: DtMethod[] = [
   {
     id: "persona",
     name: "Persona",
-    phase: "orient",
+    phase: "orchestrate",
     dtStage: "define",
     oneLiner: "A grounded, evidence-based archetype of a key user group.",
     whenToUse: "When the team keeps saying 'the user' without agreeing who that is.",
@@ -92,7 +92,7 @@ export const DT_METHODS: DtMethod[] = [
   {
     id: "journey-map",
     name: "Journey Map",
-    phase: "orient",
+    phase: "orchestrate",
     dtStage: "define",
     oneLiner: "End-to-end view of the user's experience across touchpoints.",
     whenToUse: "When pain points feel scattered and you need to see the system.",
@@ -163,7 +163,7 @@ export const DT_METHODS: DtMethod[] = [
 
 export const PHASE_TO_DT_STAGE: Record<CorePhase, string> = {
   capture: "Empathize",
-  orient: "Define",
+  orchestrate: "Define",
   refine: "Ideate / Prototype",
   execute: "Test / Deliver",
 };

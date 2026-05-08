@@ -1,82 +1,170 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
-import { Search, MessageSquare, Upload, Plus, X } from "lucide-react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { Search, Plus, X } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
-import { Separator } from "@/components/ui/separator";
 import type {
-  Question,
   Evidence,
   TranscriptAnalysis,
-  QuestionSet,
   TechnologyTarget,
 } from "@/types/core";
 import { api } from "@/lib/api";
 import { useDiscovery } from "@/stores/discovery-store";
 import { PhaseShell } from "@/components/layout/phase-shell";
-import { QuestionList } from "@/components/capture/question-list";
+import { EngagementConfig } from "@/components/settings/engagement-config";
+import { PhaseEvidencePanel } from "@/components/layout/phase-evidence-panel";
+import { DtMethodsPanel } from "@/components/layout/dt-methods-panel";
 import {
   TranscriptAnalysisResult,
   type AnalysisSummary,
 } from "@/components/capture/transcript-analysis-result";
 import { PreviousAnalysesList } from "@/components/capture/previous-analyses-list";
 
+interface CaptureDraft {
+  context: string;
+  transcript: string;
+  quickNote: string;
+  captureItemType: CaptureItemType;
+  captureReference: string;
+  technologyInput: string;
+  technologyFocusInput: string;
+  technologyTargets: TechnologyTarget[];
+}
+
+type CaptureItemType = "note" | "document" | "presentation" | "file";
+
 export default function CapturePage() {
   const { activeDiscovery, setActiveDiscovery } = useDiscovery();
   const discoveryId = activeDiscovery?.id || "";
 
-  const [questions, setQuestions] = useState<Question[]>([]);
-  const [, setSavedQuestionSets] = useState<QuestionSet[]>([]);
-  const [context, setContext] = useState("");
+  const [context, setContext] = useState(activeDiscovery?.description ?? "");
   const [transcript, setTranscript] = useState("");
-  const [generating, setGenerating] = useState(false);
+  const [savingContext, setSavingContext] = useState(false);
   const [analyzing, setAnalyzing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [extractedEvidence, setExtractedEvidence] = useState<Evidence[]>([]);
   const [savedAnalyses, setSavedAnalyses] = useState<TranscriptAnalysis[]>([]);
   const [analysisResult, setAnalysisResult] = useState<AnalysisSummary | null>(null);
+  const [captureEvidence, setCaptureEvidence] = useState<Evidence[]>([]);
+  const [quickNote, setQuickNote] = useState("");
+  const [captureItemType, setCaptureItemType] = useState<CaptureItemType>("note");
+  const [captureReference, setCaptureReference] = useState("");
+  const [savingNote, setSavingNote] = useState(false);
   const [technologyInput, setTechnologyInput] = useState("");
   const [technologyFocusInput, setTechnologyFocusInput] = useState("");
   const [technologyTargets, setTechnologyTargets] = useState<TechnologyTarget[]>([]);
   const [savingTechnologies, setSavingTechnologies] = useState(false);
-  const [latestGroundingSources, setLatestGroundingSources] = useState<QuestionSet["grounding_sources"]>([]);
+  const [draftHydrated, setDraftHydrated] = useState(false);
+
+  const captureDraftKey = useMemo(
+    () => `core:capture-draft:${discoveryId || activeDiscovery?.project_id || "global"}`,
+    [activeDiscovery?.project_id, discoveryId],
+  );
+
+  const readCaptureDraft = useCallback((): CaptureDraft | null => {
+    if (typeof window === "undefined") return null;
+    try {
+      const raw = window.localStorage.getItem(captureDraftKey);
+      if (!raw) return null;
+      const parsed = JSON.parse(raw) as CaptureDraft;
+      return {
+        context: parsed.context || "",
+        transcript: parsed.transcript || "",
+        quickNote: parsed.quickNote || "",
+        captureItemType: (parsed.captureItemType as CaptureItemType) || "note",
+        captureReference: parsed.captureReference || "",
+        technologyInput: parsed.technologyInput || "",
+        technologyFocusInput: parsed.technologyFocusInput || "",
+        technologyTargets: Array.isArray(parsed.technologyTargets) ? parsed.technologyTargets : [],
+      };
+    } catch {
+      return null;
+    }
+  }, [captureDraftKey]);
 
   useEffect(() => {
-    if (!activeDiscovery) return;
-    if (activeDiscovery.target_technologies && activeDiscovery.target_technologies.length > 0) {
-      setTechnologyTargets(activeDiscovery.target_technologies);
+    if (!activeDiscovery) {
+      setDraftHydrated(false);
       return;
     }
-    const fallback = (activeDiscovery.solution_providers ?? []).map((name) => ({
+
+    const draft = readCaptureDraft();
+    const persistedTargets = activeDiscovery.target_technologies ?? [];
+    const providerFallbackTargets = (activeDiscovery.solution_providers ?? []).map((name) => ({
       name,
       focus: "",
     }));
-    setTechnologyTargets(fallback);
+
+    const nextTargets =
+      persistedTargets.length > 0
+        ? persistedTargets
+        : providerFallbackTargets.length > 0
+          ? providerFallbackTargets
+          : (draft?.technologyTargets ?? []);
+
+    setContext(activeDiscovery.description || draft?.context || "");
+    setTranscript(draft?.transcript || "");
+    setQuickNote(draft?.quickNote || "");
+    setCaptureItemType(draft?.captureItemType || "note");
+    setCaptureReference(draft?.captureReference || "");
+    setTechnologyInput(draft?.technologyInput || "");
+    setTechnologyFocusInput(draft?.technologyFocusInput || "");
+    setTechnologyTargets(nextTargets);
+    setDraftHydrated(true);
   }, [
+    activeDiscovery,
+    activeDiscovery?.description,
     activeDiscovery?.id,
     activeDiscovery?.solution_providers,
     activeDiscovery?.target_technologies,
+    readCaptureDraft,
+  ]);
+
+  useEffect(() => {
+    if (!activeDiscovery || !draftHydrated || typeof window === "undefined") return;
+    const payload: CaptureDraft = {
+      context,
+      transcript,
+      quickNote,
+      captureItemType,
+      captureReference,
+      technologyInput,
+      technologyFocusInput,
+      technologyTargets,
+    };
+    try {
+      window.localStorage.setItem(captureDraftKey, JSON.stringify(payload));
+    } catch {
+      /* ignore localStorage failures */
+    }
+  }, [
+    activeDiscovery,
+    captureDraftKey,
+    captureItemType,
+    captureReference,
+    context,
+    draftHydrated,
+    quickNote,
+    technologyFocusInput,
+    technologyInput,
+    technologyTargets,
+    transcript,
   ]);
 
   const loadSavedData = useCallback(async () => {
     if (!discoveryId) return;
     try {
-      const [analyses, qSets] = await Promise.all([
+      const [analyses, evidenceItems] = await Promise.all([
         api.transcripts.list(discoveryId),
-        api.questions.list(discoveryId, "capture"),
+        api.evidence.list(discoveryId, "capture"),
       ]);
       setSavedAnalyses(analyses);
-      setSavedQuestionSets(qSets);
-      if (qSets.length > 0) {
-        const latest = qSets[qSets.length - 1];
-        setQuestions(latest.questions);
-        setLatestGroundingSources(latest.grounding_sources ?? []);
-        if (latest.context) setContext(latest.context);
-      }
+      setCaptureEvidence(evidenceItems);
     } catch {
       /* non-critical — first load may have no data */
     }
@@ -86,25 +174,17 @@ export default function CapturePage() {
     loadSavedData();
   }, [loadSavedData]);
 
-  const generateQuestions = async () => {
-    setGenerating(true);
+  const saveContext = async () => {
+    if (!discoveryId) return;
+    setSavingContext(true);
     setError(null);
     try {
-      const result = await api.questions.generate({
-        discovery_id: discoveryId,
-        phase: "capture",
-        context,
-        num_questions: 8,
-      });
-      setQuestions(result.questions);
-      setSavedQuestionSets((prev) => [...prev, result]);
-      setLatestGroundingSources(result.grounding_sources ?? []);
+      const updated = await api.discoveries.update(discoveryId, { description: context });
+      setActiveDiscovery(updated);
     } catch (e) {
-      setError(
-        e instanceof Error ? e.message : "Failed to generate questions — is the backend running?",
-      );
+      setError(e instanceof Error ? e.message : "Failed to save customer context");
     } finally {
-      setGenerating(false);
+      setSavingContext(false);
     }
   };
 
@@ -152,6 +232,35 @@ export default function CapturePage() {
     );
     setTechnologyTargets(next);
     await persistTechnologyTargets(next);
+  };
+
+  const addQuickNote = async () => {
+    if (!quickNote.trim() || !discoveryId) return;
+    setSavingNote(true);
+    setError(null);
+    const sourceByType: Record<CaptureItemType, string> = {
+      note: "Capture note",
+      document: "Document evidence",
+      presentation: "Presentation evidence",
+      file: "File evidence",
+    };
+    try {
+      const created = await api.evidence.create({
+        discovery_id: discoveryId,
+        phase: "capture",
+        content: quickNote.trim(),
+        source: captureReference.trim() || sourceByType[captureItemType],
+        evidence_type: captureItemType === "note" ? "observation" : "general",
+        tags: captureItemType === "note" ? ["note"] : ["evidence", captureItemType],
+      });
+      setCaptureEvidence((prev) => [...prev, created]);
+      setQuickNote("");
+      setCaptureReference("");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to save capture note");
+    } finally {
+      setSavingNote(false);
+    }
   };
 
   const importExtractedEvidence = async (evidence: Evidence[]) => {
@@ -215,20 +324,127 @@ export default function CapturePage() {
   }
 
   return (
-    <PhaseShell phase="capture" discoveryId={discoveryId}>
-      <Tabs defaultValue="questions" className="space-y-4">
-        <TabsList>
-          <TabsTrigger value="questions" className="gap-1.5">
-            <MessageSquare className="h-3.5 w-3.5" />
-            Question Generator
-          </TabsTrigger>
-          <TabsTrigger value="transcript" className="gap-1.5">
-            <Upload className="h-3.5 w-3.5" />
-            Transcript Analyzer
-          </TabsTrigger>
+    <PhaseShell
+      phase="capture"
+      discoveryId={discoveryId}
+      showEvidencePanel={false}
+      showDtMethodsPanel={false}
+    >
+      <Tabs defaultValue="sources" className="space-y-4">
+        <TabsList className="h-auto w-full justify-start gap-1 overflow-x-auto overflow-y-hidden whitespace-nowrap [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          <TabsTrigger value="sources">Sources</TabsTrigger>
+          <TabsTrigger value="context">Context</TabsTrigger>
+          <TabsTrigger value="technologies">Technologies</TabsTrigger>
+          <TabsTrigger value="methods">Methods</TabsTrigger>
+          <TabsTrigger value="transcript">Transcript</TabsTrigger>
+          <TabsTrigger value="analysis">Analyses</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="questions" className="space-y-4">
+        <TabsContent value="sources" className="space-y-4">
+          <EngagementConfig
+            discovery={activeDiscovery}
+            onUpdate={(patch) => {
+              api.discoveries.update(activeDiscovery.id, patch).then((updated) => {
+                setActiveDiscovery(updated);
+              }).catch(() => {});
+            }}
+          />
+        </TabsContent>
+
+        <TabsContent value="context" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Customer Context</CardTitle>
+              <CardDescription>
+                Capture everything you know about the customer before moving into orchestration.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <Textarea
+                value={context}
+                onChange={(e) => setContext(e.target.value)}
+                placeholder="Customer goals, operating model, constraints, stakeholders, urgency, environment realities, and known risks."
+                rows={6}
+              />
+              <Button onClick={saveContext} disabled={savingContext}>
+                {savingContext ? "Saving..." : "Save Customer Context"}
+              </Button>
+              {error && <p className="text-sm text-red-500 mt-2">{error}</p>}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Capture Notes and Evidence</CardTitle>
+              <CardDescription>
+                Add fast notes or evidence references in one place, then review all capture evidence below.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="grid gap-2 sm:grid-cols-2">
+                <div className="space-y-1">
+                  <p className="text-xs text-muted-foreground uppercase tracking-wider">Item Type</p>
+                  <select
+                    value={captureItemType}
+                    onChange={(e) => setCaptureItemType(e.target.value as CaptureItemType)}
+                    aria-label="Capture item type"
+                    title="Capture item type"
+                    className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm"
+                  >
+                    <option value="note">Note</option>
+                    <option value="document">Evidence: Document</option>
+                    <option value="presentation">Evidence: Presentation</option>
+                    <option value="file">Evidence: Other File</option>
+                  </select>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-xs text-muted-foreground uppercase tracking-wider">Reference (optional)</p>
+                  <Input
+                    value={captureReference}
+                    onChange={(e) => setCaptureReference(e.target.value)}
+                    placeholder="URL, filename, or source note"
+                  />
+                </div>
+              </div>
+
+              <Textarea
+                value={quickNote}
+                onChange={(e) => setQuickNote(e.target.value)}
+                placeholder={
+                  captureItemType === "note"
+                    ? "Add a capture note, quote, or finding..."
+                    : "Describe the evidence from this file or reference..."
+                }
+                rows={3}
+              />
+              <Button onClick={addQuickNote} disabled={savingNote || !quickNote.trim()}>
+                {savingNote
+                  ? "Saving..."
+                  : captureItemType === "note"
+                    ? "Add Capture Note"
+                    : "Add Evidence Item"}
+              </Button>
+              {error && <p className="text-sm text-red-500 mt-2">{error}</p>}
+              {captureEvidence.length > 0 && (
+                <div className="space-y-2 pt-2">
+                  <p className="text-xs text-muted-foreground uppercase tracking-wider">
+                    Recent capture items
+                  </p>
+                  {captureEvidence.slice(-8).reverse().map((item) => (
+                    <div key={item.id} className="rounded-md border p-2">
+                      <p className="text-sm">{item.content}</p>
+                      <p className="text-[11px] text-muted-foreground mt-1">{item.source || "Capture note"}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          <PhaseEvidencePanel discoveryId={discoveryId} phase="capture" collapsible={false} />
+        </TabsContent>
+
+        <TabsContent value="technologies" className="space-y-4">
           <Card>
             <CardHeader>
               <CardTitle className="text-base">Target Technologies</CardTitle>
@@ -298,66 +514,10 @@ export default function CapturePage() {
               )}
             </CardContent>
           </Card>
+        </TabsContent>
 
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Discovery Context</CardTitle>
-              <CardDescription>
-                Describe the engagement so the AI can tailor questions to your situation.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <Textarea
-                value={context}
-                onChange={(e) => setContext(e.target.value)}
-                placeholder="e.g., We're working with a fintech firm that has a legacy trading platform. They want to modernize but aren't sure what the real pain points are."
-                rows={4}
-              />
-              <Button onClick={generateQuestions} disabled={generating}>
-                {generating ? "Generating..." : "Generate Capture Questions"}
-              </Button>
-              {error && <p className="text-sm text-red-500 mt-2">{error}</p>}
-            </CardContent>
-          </Card>
-
-          <QuestionList questions={questions} />
-
-          {latestGroundingSources && latestGroundingSources.length > 0 && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base">Grounding Summary</CardTitle>
-                <CardDescription>
-                  These sources influenced the latest generated questions.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                {latestGroundingSources.map((item, index) => (
-                  <div key={`${item.url}-${index}`} className="space-y-1">
-                    <div className="flex items-center gap-2">
-                      <Badge variant="outline" className="text-[10px]">
-                        {item.query || "topic"}
-                      </Badge>
-                      {item.source && (
-                        <Badge variant="secondary" className="text-[10px]">
-                          {item.source}
-                        </Badge>
-                      )}
-                    </div>
-                    <a
-                      href={item.url}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="text-sm font-medium underline-offset-2 hover:underline"
-                    >
-                      {item.title || item.url}
-                    </a>
-                    {item.snippet && <p className="text-xs text-muted-foreground">{item.snippet}</p>}
-                    {index < latestGroundingSources.length - 1 && <Separator className="mt-2" />}
-                  </div>
-                ))}
-              </CardContent>
-            </Card>
-          )}
+        <TabsContent value="methods" className="space-y-4">
+          <DtMethodsPanel phase="capture" discoveryId={discoveryId} />
         </TabsContent>
 
         <TabsContent value="transcript" className="space-y-4">
@@ -381,7 +541,9 @@ export default function CapturePage() {
               {error && <p className="text-sm text-red-500 mt-2">{error}</p>}
             </CardContent>
           </Card>
+        </TabsContent>
 
+        <TabsContent value="analysis" className="space-y-4">
           {analysisResult && (
             <TranscriptAnalysisResult
               result={analysisResult}

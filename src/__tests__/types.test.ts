@@ -7,7 +7,7 @@ import {
 } from "@/types/core";
 
 describe("PHASE_CONFIG", () => {
-  const phases: CorePhase[] = ["capture", "orient", "refine", "execute"];
+  const phases: CorePhase[] = ["capture", "orchestrate", "refine", "execute"];
 
   it("has config for all four phases", () => {
     phases.forEach((phase) => {
@@ -19,7 +19,7 @@ describe("PHASE_CONFIG", () => {
 
   it("labels are properly capitalized", () => {
     expect(PHASE_CONFIG.capture.label).toBe("Capture");
-    expect(PHASE_CONFIG.orient.label).toBe("Synthesis");
+    expect(PHASE_CONFIG.orchestrate.label).toBe("Orchestrate");
     expect(PHASE_CONFIG.refine.label).toBe("Refine");
     expect(PHASE_CONFIG.execute.label).toBe("Execute");
   });
