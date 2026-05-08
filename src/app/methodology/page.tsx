@@ -10,7 +10,7 @@ import {
   type CorePhase,
 } from "@/lib/dt-methods";
 
-const PHASES: CorePhase[] = ["capture", "orient", "refine", "execute"];
+const PHASES: CorePhase[] = ["capture", "orchestrate", "refine", "execute"];
 
 export default function MethodologyPage() {
   return (

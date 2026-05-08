@@ -20,11 +20,12 @@ const CONFIDENCE_COLORS: Record<ConfidenceLevel, string> = {
 interface PhaseEvidencePanelProps {
   discoveryId: string;
   phase: CorePhase;
+  collapsible?: boolean;
 }
 
-export function PhaseEvidencePanel({ discoveryId, phase }: PhaseEvidencePanelProps) {
+export function PhaseEvidencePanel({ discoveryId, phase, collapsible = true }: PhaseEvidencePanelProps) {
   const [evidence, setEvidence] = useState<Evidence[]>([]);
-  const [expanded, setExpanded] = useState(false);
+  const [expanded, setExpanded] = useState(!collapsible);
   const [showForm, setShowForm] = useState(false);
   const [content, setContent] = useState("");
   const [source, setSource] = useState("");
@@ -70,17 +71,22 @@ export function PhaseEvidencePanel({ discoveryId, phase }: PhaseEvidencePanelPro
   return (
     <Card className="border-dashed">
       <CardHeader className="py-3 px-4">
-        <button
-          className="flex items-center justify-between w-full text-left"
-          onClick={() => setExpanded(!expanded)}
-        >
+        <div className="flex items-center justify-between w-full text-left">
           <CardTitle className="text-sm flex items-center gap-2">
             <BookOpen className="h-3.5 w-3.5 text-muted-foreground" />
             Evidence
             <Badge variant="secondary" className="text-[10px]">{evidence.length}</Badge>
           </CardTitle>
-          {expanded ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
-        </button>
+          {collapsible && (
+            <button
+              className="inline-flex items-center justify-center rounded p-1 text-muted-foreground hover:bg-muted"
+              onClick={() => setExpanded(!expanded)}
+              aria-label={expanded ? "Collapse evidence" : "Expand evidence"}
+            >
+              {expanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+            </button>
+          )}
+        </div>
       </CardHeader>
       {expanded && (
         <CardContent className="pt-0 px-4 pb-3 space-y-2">
@@ -98,6 +104,8 @@ export function PhaseEvidencePanel({ discoveryId, phase }: PhaseEvidencePanelPro
               <button
                 className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-red-500 transition-opacity"
                 onClick={() => remove(item.id)}
+                title="Delete evidence"
+                aria-label="Delete evidence"
               >
                 <Trash2 className="h-3 w-3" />
               </button>

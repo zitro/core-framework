@@ -19,11 +19,13 @@ interface DiscoveryState {
 }
 
 interface DiscoveryActions {
-  loadDiscoveries: () => Promise<void>;
+  loadDiscoveries: (projectId?: string) => Promise<void>;
   createDiscovery: (data: Partial<Discovery>) => Promise<Discovery>;
   setActiveDiscovery: (discovery: Discovery | null) => void;
   updatePhase: (id: string, phase: CorePhase) => Promise<void>;
   refreshActive: () => Promise<void>;
+  /** Auto-load or create the single discovery for a project. */
+  bootstrapForProject: (projectId: string, projectName: string) => Promise<void>;
 }
 
 const DiscoveryContext = createContext<
@@ -38,10 +40,10 @@ export function DiscoveryProvider({ children }: { children: ReactNode }) {
     error: null,
   });
 
-  const loadDiscoveries = useCallback(async () => {
+  const loadDiscoveries = useCallback(async (projectId?: string) => {
     setState((s) => ({ ...s, loading: true, error: null }));
     try {
-      const discoveries = await api.discoveries.list();
+      const discoveries = await api.discoveries.list(projectId);
       setState((s) => ({ ...s, discoveries, loading: false }));
     } catch (e) {
       setState((s) => ({
@@ -100,6 +102,44 @@ export function DiscoveryProvider({ children }: { children: ReactNode }) {
     setState((s) => ({ ...s, activeDiscovery: updated }));
   }, [state.activeDiscovery?.id]);
 
+  const bootstrapForProject = useCallback(
+    async (projectId: string, projectName: string) => {
+      setState((s) => ({ ...s, loading: true }));
+      try {
+        // Only fetch discoveries belonging to this project
+        const mine = await api.discoveries.list(projectId);
+        if (mine.length > 0) {
+          const latest = [...mine].sort(
+            (a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
+          )[0];
+          setState((s) => ({
+            ...s,
+            discoveries: mine,
+            activeDiscovery: latest,
+            loading: false,
+          }));
+        } else {
+          // Create the single discovery for this project
+          const created = await api.discoveries.create({
+            name: projectName,
+            description: "",
+            current_phase: "capture",
+            project_id: projectId,
+          });
+          setState((s) => ({
+            ...s,
+            discoveries: [created],
+            activeDiscovery: created,
+            loading: false,
+          }));
+        }
+      } catch {
+        setState((s) => ({ ...s, loading: false }));
+      }
+    },
+    []
+  );
+
   return (
     <DiscoveryContext.Provider
       value={{
@@ -109,6 +149,7 @@ export function DiscoveryProvider({ children }: { children: ReactNode }) {
         setActiveDiscovery,
         updatePhase,
         refreshActive,
+        bootstrapForProject,
       }}
     >
       {children}
