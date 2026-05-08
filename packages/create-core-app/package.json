@@ -1,8 +1,13 @@
 {
   "name": "create-core-discovery-app",
-  "version": "1.1.1",
+  "version": "1.2.1",
   "description": "Scaffold a new CORE Discovery customer repository (compose-based deploy of zitro/core-framework)",
-  "keywords": ["core-discovery", "scaffold", "cli", "create-app"],
+  "keywords": [
+    "core-discovery",
+    "scaffold",
+    "cli",
+    "create-app"
+  ],
   "homepage": "https://github.com/zitro/core-framework/tree/master/packages/create-core-app",
   "repository": {
     "type": "git",
@@ -14,7 +19,11 @@
   "bin": {
     "create-core-discovery-app": "dist/cli.js"
   },
-  "files": ["dist", "templates", "README.md"],
+  "files": [
+    "dist",
+    "templates",
+    "README.md"
+  ],
   "scripts": {
     "build": "tsc",
     "dev": "tsx src/cli.ts",
