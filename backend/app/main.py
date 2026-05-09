@@ -76,16 +76,16 @@ def create_app() -> FastAPI:
         evidence,
         execute_outputs,
         export,
-        graph,
         github_auth,
+        graph,
         grounding,
         me,
         narrative,
         problem_statements,
         projects,
         questions,
-        refine,
         realtime,
+        refine,
         reviews,
         search,
         transcripts,
@@ -174,7 +174,9 @@ def create_app() -> FastAPI:
     app.include_router(engagement.router, prefix="/api/engagement", tags=["engagement"])
     app.include_router(search.router, prefix="/api", tags=["search"])
     app.include_router(narrative.router, prefix="/api/narrative", tags=["narrative"])
-    app.include_router(execute_outputs.router, prefix="/api/execute-outputs", tags=["execute-outputs"])
+    app.include_router(
+        execute_outputs.router, prefix="/api/execute-outputs", tags=["execute-outputs"]
+    )
     app.include_router(agents.router, prefix="/api/agents", tags=["agents"])
     app.include_router(dt_templates.router, prefix="/api/dt-templates", tags=["dt-templates"])
     app.include_router(me.router, prefix="/api/me", tags=["me"])

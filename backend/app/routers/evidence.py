@@ -1,5 +1,5 @@
-from pathlib import Path
 import tempfile
+from pathlib import Path
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile
 
@@ -38,7 +38,9 @@ def _format_upload_metadata(filename: str, content_type: str, size: int) -> str:
     return "\n".join(parts)
 
 
-async def _extract_uploaded_content(filename: str, content_type: str, data: bytes) -> tuple[str, list[str]]:
+async def _extract_uploaded_content(
+    filename: str, content_type: str, data: bytes
+) -> tuple[str, list[str]]:
     tags: list[str] = []
     try:
         extracted = extract_to_markdown(filename, data)
@@ -48,7 +50,10 @@ async def _extract_uploaded_content(filename: str, content_type: str, data: byte
         pass
     except ExtractionError as exc:
         tags.append("extraction-failed")
-        return f"{_format_upload_metadata(filename, content_type, len(data))}\nExtraction failed: {exc}", tags
+        return (
+            f"{_format_upload_metadata(filename, content_type, len(data))}\nExtraction failed: {exc}",
+            tags,
+        )
 
     ext = Path(filename).suffix.lower()
     if ext in _AUDIO_VIDEO_EXTENSIONS or content_type.startswith(("audio/", "video/")):
@@ -65,7 +70,7 @@ async def _extract_uploaded_content(filename: str, content_type: str, data: byte
                 if transcript.strip():
                     tags.extend(["media", "transcribed"])
                     return transcript.strip(), tags
-            except Exception as exc:
+            except Exception:
                 tags.extend(["media", "transcription-failed"])
                 return (
                     f"{_format_upload_metadata(filename, content_type, len(data))}\n"
@@ -114,9 +119,7 @@ async def upload_evidence(
     user_tags = [tag.strip() for tag in tags.split(",") if tag.strip()]
     source_value = source.strip() or filename
     note_text = note.strip()
-    content = (
-        f"{note_text}\n\n---\n\n{extracted_content}" if note_text else extracted_content
-    )
+    content = f"{note_text}\n\n---\n\n{extracted_content}" if note_text else extracted_content
 
     evidence = Evidence(
         discovery_id=discovery_id,

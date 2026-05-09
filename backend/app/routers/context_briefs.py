@@ -68,7 +68,10 @@ async def generate_context_brief(request: GenerateRequest):
     working_context = request.working_context.strip()
     context = "\n\n".join(
         part
-        for part in [gathered_context.strip(), f"Orchestrate working material:\n{working_context}" if working_context else ""]
+        for part in [
+            gathered_context.strip(),
+            f"Orchestrate working material:\n{working_context}" if working_context else "",
+        ]
         if part
     )
     if not context.strip():
@@ -91,7 +94,9 @@ async def generate_context_brief(request: GenerateRequest):
     next_version = len(existing) + 1
     user_block = ""
     if request.user_instructions.strip():
-        user_block = f"\n\nHuman review instructions for this version:\n{request.user_instructions.strip()}"
+        user_block = (
+            f"\n\nHuman review instructions for this version:\n{request.user_instructions.strip()}"
+        )
 
     user_prompt = f"""Here is the latest discovery context:
 
@@ -122,7 +127,9 @@ Generate project context brief version {next_version}."""
     )
 
     try:
-        saved = await storage.create("context_briefs", stamp_create(version.model_dump(mode="json")))
+        saved = await storage.create(
+            "context_briefs", stamp_create(version.model_dump(mode="json"))
+        )
     except Exception:
         logger.exception("Failed to save context brief version")
         raise HTTPException(status_code=500, detail="Failed to save context brief")

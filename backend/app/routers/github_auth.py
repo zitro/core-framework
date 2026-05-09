@@ -6,7 +6,8 @@ import json
 from urllib.parse import urlencode
 from urllib.request import Request, urlopen
 
-from fastapi import APIRouter, Depends, HTTPException, Request as FastAPIRequest
+from fastapi import APIRouter, Depends, HTTPException
+from fastapi import Request as FastAPIRequest
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 
 from app.config import settings
@@ -23,7 +24,10 @@ router = APIRouter(dependencies=[Depends(get_current_user)])
 
 
 def _require_oauth_config() -> None:
-    if not settings.github_oauth_client_id.strip() or not settings.github_oauth_client_secret.strip():
+    if (
+        not settings.github_oauth_client_id.strip()
+        or not settings.github_oauth_client_secret.strip()
+    ):
         raise HTTPException(
             status_code=503,
             detail="GitHub OAuth is not configured. Set GITHUB_OAUTH_CLIENT_ID and GITHUB_OAUTH_CLIENT_SECRET in local environment.",
@@ -76,16 +80,13 @@ def _fetch_login(access_token: str) -> str:
 async def oauth_start() -> RedirectResponse:
     _require_oauth_config()
     state = create_state()
-    url = (
-        "https://github.com/login/oauth/authorize?"
-        + urlencode(
-            {
-                "client_id": settings.github_oauth_client_id,
-                "redirect_uri": settings.github_oauth_redirect_uri,
-                "scope": settings.github_oauth_scope,
-                "state": state,
-            }
-        )
+    url = "https://github.com/login/oauth/authorize?" + urlencode(
+        {
+            "client_id": settings.github_oauth_client_id,
+            "redirect_uri": settings.github_oauth_redirect_uri,
+            "scope": settings.github_oauth_scope,
+            "state": state,
+        }
     )
     return RedirectResponse(url=url, status_code=302)
 

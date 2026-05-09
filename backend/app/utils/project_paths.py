@@ -10,8 +10,8 @@ from __future__ import annotations
 
 import re
 from collections import deque
-from urllib.parse import unquote, urlparse
 from pathlib import Path
+from urllib.parse import unquote, urlparse
 
 from app.config import settings
 

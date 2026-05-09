@@ -9,9 +9,9 @@ from pathlib import Path
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile
 from pydantic import BaseModel
 
+from app.config import settings
 from app.dependencies import get_current_user
 from app.providers.storage import get_storage_provider
-from app.config import settings
 from app.utils.engagement import (
     _find_content_dir,
     read_engagement_content_structured,
@@ -31,9 +31,10 @@ from app.utils.file_extract import (
     UnsupportedFileTypeError,
     extract_to_markdown,
 )
+from app.utils.github_oauth_store import get_session
 from app.utils.ingest import classify_and_place, write_classified_content
 from app.utils.project_paths import resolve_project_repo_path
-from app.utils.github_oauth_store import get_session
+from app.utils.references import regenerate_references
 from app.utils.repo_source import (
     RepoSourceError,
     delete_github_repo_source_cache,
@@ -41,7 +42,6 @@ from app.utils.repo_source import (
     is_github_repo_url,
     normalize_github_repo_source,
 )
-from app.utils.references import regenerate_references
 from app.utils.review_gate import latest_status
 
 logger = logging.getLogger(__name__)
@@ -264,9 +264,7 @@ async def delete_source(payload: SourceDeleteRequest):
     ]
 
     paths = [
-        str(p).strip()
-        for p in (discovery.get("engagement_repo_paths") or [])
-        if str(p).strip()
+        str(p).strip() for p in (discovery.get("engagement_repo_paths") or []) if str(p).strip()
     ]
     next_paths = [p for p in paths if p != source_value]
     legacy_path = str(discovery.get("engagement_repo_path", "")).strip()
@@ -367,7 +365,9 @@ async def export_to_repo(payload: ExportRequest, request: Request):
         if has_root_content:
             project_path = content_dir
         else:
-            projects = [d for d in sorted(content_dir.iterdir()) if d.is_dir() and any(d.glob("*.md"))]
+            projects = [
+                d for d in sorted(content_dir.iterdir()) if d.is_dir() and any(d.glob("*.md"))
+            ]
             project_path = projects[0] if projects else content_dir
 
     if not project_path.is_dir():
@@ -496,7 +496,8 @@ async def publish_to_repos(payload: PublishRequest, request: Request):
                             ),
                         }
                         placement_confidence = str(
-                            (classification.get("classification") or {}).get("confidence") or "medium"
+                            (classification.get("classification") or {}).get("confidence")
+                            or "medium"
                         )
 
                 if not placement["filename"].strip():

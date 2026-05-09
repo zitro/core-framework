@@ -29,7 +29,9 @@ def test_backslash_relative_path_normalized_under_projects_root() -> None:
     assert result == expected
 
 
-def test_windows_absolute_path_kept_when_projects_root_is_not_container_style(tmp_path: Path) -> None:
+def test_windows_absolute_path_kept_when_projects_root_is_not_container_style(
+    tmp_path: Path,
+) -> None:
     original_projects_root = settings.projects_root
     try:
         settings.projects_root = str(tmp_path)

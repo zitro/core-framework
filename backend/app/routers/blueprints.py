@@ -79,7 +79,9 @@ async def generate_blueprint(request: BlueprintRequest):
         )
 
     providers = await get_solution_providers(request.discovery_id)
-    provider_str = ", ".join(providers) if providers else "No provider configured; stay provider-neutral."
+    provider_str = (
+        ", ".join(providers) if providers else "No provider configured; stay provider-neutral."
+    )
 
     existing = await storage.list("solution_blueprints", {"discoveryId": request.discovery_id})
     if not existing:

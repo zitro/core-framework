@@ -141,7 +141,9 @@ class LocalStorageProvider(StorageProvider):
         if item is None:
             raise ValueError(f"Item {item_id} not found in {collection}")
         item.update(updates)
-        path = self._resolve_item_path(collection, item_id, str(item.get("project_id") or "").strip() or None)
+        path = self._resolve_item_path(
+            collection, item_id, str(item.get("project_id") or "").strip() or None
+        )
         path.write_text(json.dumps(item, indent=2, default=str), encoding="utf-8")
         return item
 

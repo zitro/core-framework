@@ -2,13 +2,13 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import re
 import shutil
 import tempfile
 import time
-import hashlib
 from pathlib import Path
 from urllib.error import HTTPError
 from urllib.parse import urlparse
@@ -252,9 +252,18 @@ def _download_archive(
     # Prefer API zipball (supports private repos with GITHUB_TOKEN), then
     # fallback to public archive URL for unauthenticated access.
     candidates = [
-        (f"https://api.github.com/repos/{owner}/{repo}/zipball/{branch}" if branch else f"https://api.github.com/repos/{owner}/{repo}/zipball", True),
-        (f"https://github.com/{owner}/{repo}/archive/refs/heads/{branch}.zip", False) if branch else ("", False),
-        (f"https://codeload.github.com/{owner}/{repo}/zip/refs/heads/{branch}", False) if branch else ("", False),
+        (
+            f"https://api.github.com/repos/{owner}/{repo}/zipball/{branch}"
+            if branch
+            else f"https://api.github.com/repos/{owner}/{repo}/zipball",
+            True,
+        ),
+        (f"https://github.com/{owner}/{repo}/archive/refs/heads/{branch}.zip", False)
+        if branch
+        else ("", False),
+        (f"https://codeload.github.com/{owner}/{repo}/zip/refs/heads/{branch}", False)
+        if branch
+        else ("", False),
     ]
 
     last_error: Exception | None = None

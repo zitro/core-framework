@@ -6,10 +6,10 @@ backend process. Nothing is written to source-controlled files.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
-from threading import Lock
 import secrets
 import time
+from dataclasses import dataclass
+from threading import Lock
 
 
 @dataclass

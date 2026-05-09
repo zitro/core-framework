@@ -1,5 +1,5 @@
-from pathlib import Path
 import tempfile
+from pathlib import Path
 
 from openai import AsyncOpenAI
 
@@ -12,7 +12,11 @@ class OpenAISpeechProvider(SpeechProvider):
 
     def __init__(self):
         api_key = settings.openai_transcription_api_key.strip() or settings.openai_api_key
-        base_url = settings.openai_transcription_base_url.strip() or settings.openai_base_url.strip() or None
+        base_url = (
+            settings.openai_transcription_base_url.strip()
+            or settings.openai_base_url.strip()
+            or None
+        )
         self.client = AsyncOpenAI(api_key=api_key, base_url=base_url)
         self.model = settings.openai_transcription_model.strip() or "gpt-4o-transcribe"
 

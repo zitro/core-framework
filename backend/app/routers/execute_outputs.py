@@ -218,7 +218,9 @@ async def _generate_output(
         )
 
     storage = get_storage_provider()
-    existing = [item for item in await _load_outputs(discovery_id) if item.output_id == definition.id]
+    existing = [
+        item for item in await _load_outputs(discovery_id) if item.output_id == definition.id
+    ]
     next_version = len(existing) + 1
 
     user_prompt = (
@@ -255,7 +257,9 @@ async def _generate_output(
     )
 
     try:
-        saved = await storage.create("execute_outputs", stamp_create(output.model_dump(mode="json")))
+        saved = await storage.create(
+            "execute_outputs", stamp_create(output.model_dump(mode="json"))
+        )
     except Exception:
         logger.exception("Failed to save execute output %s", definition.id)
         raise HTTPException(status_code=500, detail="Failed to save Execute output")
@@ -300,7 +304,9 @@ async def ensure_execute_outputs(request: ExecuteOutputEnsureRequest):
     requested_ids = request.output_ids or [definition.id for definition in OUTPUT_DEFINITIONS]
     unknown = [output_id for output_id in requested_ids if output_id not in _OUTPUT_BY_ID]
     if unknown:
-        raise HTTPException(status_code=400, detail=f"Unknown Execute outputs: {', '.join(unknown)}")
+        raise HTTPException(
+            status_code=400, detail=f"Unknown Execute outputs: {', '.join(unknown)}"
+        )
 
     context = await _execute_context(request.discovery_id)
     context_fingerprint = _fingerprint(context)
@@ -317,12 +323,14 @@ async def ensure_execute_outputs(request: ExecuteOutputEnsureRequest):
         generation_tasks.append(
             (
                 output_id,
-                asyncio.create_task(_generate_output(
-                    request.discovery_id,
-                    _OUTPUT_BY_ID[output_id],
-                    context,
-                    context_fingerprint,
-                )),
+                asyncio.create_task(
+                    _generate_output(
+                        request.discovery_id,
+                        _OUTPUT_BY_ID[output_id],
+                        context,
+                        context_fingerprint,
+                    )
+                ),
             )
         )
 
@@ -330,9 +338,7 @@ async def ensure_execute_outputs(request: ExecuteOutputEnsureRequest):
         ensured_by_id[output_id] = await task
 
     ensured = [
-        ensured_by_id[output_id]
-        for output_id in requested_ids
-        if output_id in ensured_by_id
+        ensured_by_id[output_id] for output_id in requested_ids if output_id in ensured_by_id
     ]
     ensured.sort(key=lambda item: requested_ids.index(item.output_id))
     return ensured

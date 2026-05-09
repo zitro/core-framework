@@ -7,9 +7,9 @@ import json
 from pathlib import Path
 from zipfile import ZipFile
 
-from app.config import settings
 import pytest
 
+from app.config import settings
 from app.utils.repo_source import (
     RepoSourceError,
     ensure_github_repo_source,
@@ -97,6 +97,7 @@ def test_ensure_github_repo_source_rejects_non_zip_payload(tmp_path: Path, monke
     settings.local_storage_path = str(tmp_path)
 
     try:
+
         def fake_urlopen(req, timeout=0):  # noqa: ANN001
             url = req.full_url
             if url.endswith("/repos/octocat/Hello-World"):

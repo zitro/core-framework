@@ -8,8 +8,8 @@ from pydantic import BaseModel, Field
 from app.dependencies import get_current_user
 from app.models.core import (
     RefineAgentDefinition,
-    RefineChatMessage,
     RefineAgentOpinion,
+    RefineChatMessage,
     RefineReview,
     RefineRoundtableTurn,
     RefineSolutionOption,
@@ -487,8 +487,7 @@ async def generate_refine_review(request: RefineReviewRequest):
             disagreements=synthesis_data.get("disagreements", []),
             recommended_direction=synthesis_data.get("recommended_direction", ""),
             solution_options=[
-                RefineSolutionOption(**item)
-                for item in synthesis_data.get("solution_options", [])
+                RefineSolutionOption(**item) for item in synthesis_data.get("solution_options", [])
             ],
             validation_plan=synthesis_data.get("validation_plan", []),
             execute_readiness=synthesis_data.get("execute_readiness", ""),
@@ -545,7 +544,7 @@ Missing agents:
 {missing_block}
 
 User guidance:
-{user_instructions or 'None'}
+{user_instructions or "None"}
 
 Platform and Orchestrate context:
 {context}
@@ -556,13 +555,18 @@ Return JSON with this exact shape:
   "roundtable": []
 }}"""
     try:
-        supplement = await llm.complete_json(REFINE_REVIEW_SYSTEM, supplement_prompt, max_tokens=4000)
+        supplement = await llm.complete_json(
+            REFINE_REVIEW_SYSTEM, supplement_prompt, max_tokens=4000
+        )
     except Exception:
         logger.exception("LLM call failed while completing missing refine agent opinions")
         return result
 
     result["opinions"] = [*(result.get("opinions") or []), *(supplement.get("opinions") or [])]
-    result["roundtable"] = [*(result.get("roundtable") or []), *(supplement.get("roundtable") or [])]
+    result["roundtable"] = [
+        *(result.get("roundtable") or []),
+        *(supplement.get("roundtable") or []),
+    ]
     return result
 
 
@@ -585,8 +589,12 @@ async def _complete_missing_roundtable_phases(
     if not missing_phases:
         return result
 
-    agent_block = "\n".join(f"- {agent.id}: {agent.title} ({agent.goal})" for agent in selected_agents)
-    phase_block = "\n".join(f"- {phase}: {ROUNDTABLE_PHASE_DESCRIPTIONS[phase]}" for phase in missing_phases)
+    agent_block = "\n".join(
+        f"- {agent.id}: {agent.title} ({agent.goal})" for agent in selected_agents
+    )
+    phase_block = "\n".join(
+        f"- {phase}: {ROUNDTABLE_PHASE_DESCRIPTIONS[phase]}" for phase in missing_phases
+    )
     supplement_prompt = f"""The previous Refine review response omitted required roundtable phases.
 Return only roundtable turns for the missing phases below. Include concise role-specific turns from the selected agents, and make the final missing phase converge on the current agreement if it is included.
 
@@ -597,7 +605,7 @@ Missing phases:
 {phase_block}
 
 User guidance:
-{user_instructions or 'None'}
+{user_instructions or "None"}
 
 Platform and Orchestrate context:
 {context}
@@ -607,12 +615,17 @@ Return JSON with this exact shape:
   "roundtable": []
 }}"""
     try:
-        supplement = await llm.complete_json(REFINE_REVIEW_SYSTEM, supplement_prompt, max_tokens=3500)
+        supplement = await llm.complete_json(
+            REFINE_REVIEW_SYSTEM, supplement_prompt, max_tokens=3500
+        )
     except Exception:
         logger.exception("LLM call failed while completing missing refine roundtable phases")
         return result
 
-    result["roundtable"] = [*(result.get("roundtable") or []), *(supplement.get("roundtable") or [])]
+    result["roundtable"] = [
+        *(result.get("roundtable") or []),
+        *(supplement.get("roundtable") or []),
+    ]
     return result
 
 
@@ -751,8 +764,8 @@ async def send_refine_chat_message(request: RefineChatRequest):
 Answer only through this role's professional lens.
 Goal: {agent.goal}
 Mission: {agent.mission}
-Review lens: {'; '.join(agent.review_lens)}
-Work item focus: {'; '.join(agent.work_item_focus)}
+Review lens: {"; ".join(agent.review_lens)}
+Work item focus: {"; ".join(agent.work_item_focus)}
 
 Use the platform context, Orchestrate handoff, prior expert review, and chat history. Do not reveal hidden chain-of-thought. If the user's question is outside your role, answer only the part your role can responsibly address and say what another role should cover.
 
@@ -834,7 +847,9 @@ Return JSON with this exact shape:
     saved_agent_messages: list[RefineChatMessage] = []
     for item in result.get("messages", [])[:8]:
         speaker_id = str(item.get("speaker_id") or request.agent_id or "agent")
-        speaker = str(item.get("speaker") or AGENTS_BY_ID.get(speaker_id, AGENT_DEFINITIONS[0]).title)
+        speaker = str(
+            item.get("speaker") or AGENTS_BY_ID.get(speaker_id, AGENT_DEFINITIONS[0]).title
+        )
         content = str(item.get("content") or "").strip()
         if not content:
             continue
@@ -865,14 +880,18 @@ Return JSON with this exact shape:
         saved_user["review_version"] = review_version
         if saved_user.get("id"):
             try:
-                await storage.update("refine_chats", str(saved_user["id"]), {"review_version": review_version})
+                await storage.update(
+                    "refine_chats", str(saved_user["id"]), {"review_version": review_version}
+                )
             except Exception:
                 logger.debug("Could not stamp user refine chat message with review version")
         for message in saved_agent_messages:
             message.review_version = review_version
             if message.id:
                 try:
-                    await storage.update("refine_chats", message.id, {"review_version": review_version})
+                    await storage.update(
+                        "refine_chats", message.id, {"review_version": review_version}
+                    )
                 except Exception:
                     logger.debug("Could not stamp refine chat message with review version")
 
@@ -898,9 +917,16 @@ async def _gather_refine_handoff(discovery_id: str) -> str:
             parts.append(f"{label}:\n{latest[-1]}")
 
     question_sets = await _list_by_discovery(storage, "question_sets", discovery_id)
-    unresolved = [item for item in question_sets if str(item.get("phase", "")).lower() in {"orchestrate", "orient", "refine"}]
+    unresolved = [
+        item
+        for item in question_sets
+        if str(item.get("phase", "")).lower() in {"orchestrate", "orient", "refine"}
+    ]
     if unresolved:
-        parts.append("Recent Orchestrate/Refine question context:\n" + "\n".join(str(item) for item in unresolved[-3:]))
+        parts.append(
+            "Recent Orchestrate/Refine question context:\n"
+            + "\n".join(str(item) for item in unresolved[-3:])
+        )
 
     return "\n\n".join(parts)
 
@@ -941,7 +967,9 @@ async def _save_chat_review_version(
     update = result.get("review_update") or {}
     contribution_types = {message.contribution_type for message in messages}
     should_create = bool(update.get("should_create_version")) or bool(
-        contribution_types.intersection({"question", "work_item", "risk", "recommendation", "agreement"})
+        contribution_types.intersection(
+            {"question", "work_item", "risk", "recommendation", "agreement"}
+        )
     )
     if not should_create:
         return 0
@@ -964,7 +992,9 @@ async def _save_chat_review_version(
 
     if thread_type == "agent" and agent_id in AGENTS_BY_ID and not updated_opinions_data:
         agent = AGENTS_BY_ID[agent_id]
-        combined = "\n\n".join(message.content for message in messages if message.speaker_id == agent_id)
+        combined = "\n\n".join(
+            message.content for message in messages if message.speaker_id == agent_id
+        )
         existing = opinion_by_agent.get(agent_id)
         if existing:
             existing.recommendations = [*existing.recommendations, combined][:12]

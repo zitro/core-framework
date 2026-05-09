@@ -20,9 +20,7 @@ class AzureOpenAIProvider(LLMProvider):
             credential = DefaultAzureCredential()
 
             async def token_provider() -> str:
-                token = await credential.get_token(
-                    "https://cognitiveservices.azure.com/.default"
-                )
+                token = await credential.get_token("https://cognitiveservices.azure.com/.default")
                 return token.token
 
             self.client = AsyncAzureOpenAI(

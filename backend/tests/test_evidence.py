@@ -60,7 +60,9 @@ async def test_upload_evidence_saves_unsupported_file_metadata(client: AsyncClie
 
 
 @pytest.mark.asyncio
-async def test_upload_evidence_accepts_recording_without_speech_provider(client: AsyncClient, monkeypatch):
+async def test_upload_evidence_accepts_recording_without_speech_provider(
+    client: AsyncClient, monkeypatch
+):
     from app.config import settings
 
     original_provider = settings.speech_provider
@@ -87,7 +89,9 @@ async def test_upload_evidence_accepts_recording_without_speech_provider(client:
 
 
 @pytest.mark.asyncio
-async def test_upload_evidence_transcribes_recording_with_speech_provider(client: AsyncClient, monkeypatch):
+async def test_upload_evidence_transcribes_recording_with_speech_provider(
+    client: AsyncClient, monkeypatch
+):
     from app.config import settings
 
     class FakeSpeechProvider:
@@ -101,7 +105,9 @@ async def test_upload_evidence_transcribes_recording_with_speech_provider(client
     original_provider = settings.speech_provider
     try:
         monkeypatch.setattr(settings, "speech_provider", "azure")
-        monkeypatch.setattr("app.providers.speech.get_speech_provider", lambda: FakeSpeechProvider())
+        monkeypatch.setattr(
+            "app.providers.speech.get_speech_provider", lambda: FakeSpeechProvider()
+        )
         resp = await client.post(
             "/api/evidence/upload",
             data={"discovery_id": "disc-recording-2", "phase": "capture"},
