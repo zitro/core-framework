@@ -6,7 +6,7 @@ CORE Discovery is built around a **one-customer-per-deploy, many-projects-per-cu
 
 - **Customer** — the organization that owns a deployment (e.g. Example Corp). Implied by the deploy itself; not a stored entity.
 - **Project** — a unit of work for that customer. Stored as an `Engagement` record (the legacy name) and exposed at both `/api/projects/*` (preferred) and `/api/engagements/*` (compatibility).
-- **Discovery** — a CORE-method workstream within a Project (capture → orient → refine → execute).
+- **Discovery** — a CORE-method workstream within a Project (capture → orchestrate → refine → execute).
 - **Evidence**, **Question Set**, **Problem Statement**, **Use Case**, **Blueprint**, etc. — artifacts attached to a Discovery.
 
 ```

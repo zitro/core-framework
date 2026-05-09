@@ -32,7 +32,7 @@ Generate discovery questions that help the team:
 - Identify who is affected and how
 Focus on LISTENING and PROBING. Avoid leading questions."""
     ),
-    CorePhase.ORIENT: """You are a product discovery coach using the CORE framework (Orient phase).
+    CorePhase.ORCHESTRATE: """You are a product discovery coach using the CORE framework (Orchestrate phase).
 Generate sensemaking questions that help the team:
 - Recognize patterns across the evidence collected
 - Frame the real problem (not just symptoms)
@@ -71,7 +71,7 @@ class QuestionRequest(BaseModel):
     discovery_id: str
     phase: CorePhase
     context: str = ""
-    num_questions: int = Field(default=8, ge=1, le=20)
+    num_questions: int = Field(default=10, ge=1, le=20)
 
 
 @router.get("/{discovery_id}", response_model=list[QuestionSet])
@@ -81,11 +81,17 @@ async def list_question_sets(discovery_id: str, phase: str | None = None):
     if phase:
         filters["phase"] = phase
     items = await storage.list("question_sets", filters)
+    if not items and phase == "orchestrate":
+        filters["phase"] = "orient"
+        items = await storage.list("question_sets", filters)
     if not items:
         filters_alt: dict = {"discovery_id": discovery_id}
         if phase:
             filters_alt["phase"] = phase
         items = await storage.list("question_sets", filters_alt)
+        if not items and phase == "orchestrate":
+            filters_alt["phase"] = "orient"
+            items = await storage.list("question_sets", filters_alt)
     return [QuestionSet(**item) for item in items]
 
 

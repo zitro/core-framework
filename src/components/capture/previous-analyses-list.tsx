@@ -6,8 +6,30 @@ import { ConfidenceBadge } from "./confidence-badge";
 
 const MAX_INSIGHTS_PREVIEW = 3;
 
-export function PreviousAnalysesList({ analyses }: { analyses: TranscriptAnalysis[] }) {
-  if (analyses.length === 0) return null;
+export function PreviousAnalysesList({
+  analyses,
+}: {
+  analyses: TranscriptAnalysis[];
+}) {
+  if (analyses.length === 0) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Previous Analyses</CardTitle>
+          <CardDescription>
+            Transcript analysis results will appear here after you analyze meeting notes,
+            interviews, calls, or workshop transcripts.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="rounded-md border border-dashed px-4 py-6 text-sm text-muted-foreground">
+            No transcript analyses have been saved for this discovery yet.
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
     <Card>
       <CardHeader>

@@ -33,6 +33,34 @@ class LocalStorageProvider(StorageProvider):
         path.mkdir(parents=True, exist_ok=True)
         return path
 
+    def _project_path(self, collection: str, project_id: str) -> Path:
+        _validate_name(project_id, "project ID")
+        path = self._collection_path(collection) / project_id
+        path.mkdir(parents=True, exist_ok=True)
+        return path
+
+    def _resolve_item_path(
+        self,
+        collection: str,
+        item_id: str,
+        project_id: str | None,
+    ) -> Path:
+        """Resolve item file path, preferring project-scoped layout when applicable.
+
+        Backward compatibility:
+        - For project-partitioned collections, reads first from
+          `<collection>/<project_id>/<id>.json`, then falls back to the legacy
+          flat path `<collection>/<id>.json`.
+        """
+        legacy = self._collection_path(collection) / f"{item_id}.json"
+        if not is_project_partitioned(collection):
+            return legacy
+        if project_id:
+            scoped = self._project_path(collection, project_id) / f"{item_id}.json"
+            if scoped.exists() or not legacy.exists():
+                return scoped
+        return legacy
+
     async def ensure_collections(self, collections: list[str]) -> None:
         for name in collections:
             self._collection_path(name)
@@ -47,13 +75,17 @@ class LocalStorageProvider(StorageProvider):
             pid = get_current_project_id()
             if pid:
                 item["project_id"] = pid
-        path = self._collection_path(collection) / f"{item['id']}.json"
+        path = self._resolve_item_path(
+            collection,
+            item["id"],
+            str(item.get("project_id") or "").strip() or None,
+        )
         path.write_text(json.dumps(item, indent=2, default=str), encoding="utf-8")
         return item
 
     async def get(self, collection: str, item_id: str) -> dict | None:
         _validate_name(item_id, "item ID")
-        path = self._collection_path(collection) / f"{item_id}.json"
+        path = self._resolve_item_path(collection, item_id, get_current_project_id())
         if not path.exists():
             return None
         return json.loads(path.read_text(encoding="utf-8"))
@@ -69,13 +101,38 @@ class LocalStorageProvider(StorageProvider):
         if not scoped:
             scoped = None
         items = []
-        for file in col_path.glob("*.json"):
+        files: list[Path] = []
+        if is_project_partitioned(collection):
+            pid = scoped.get("project_id") if scoped else None
+            if pid:
+                project_dir = col_path / str(pid)
+                if project_dir.exists():
+                    files.extend(project_dir.glob("*.json"))
+                # Include legacy flat files for backward compatibility.
+                files.extend(col_path.glob("*.json"))
+            else:
+                for project_dir in col_path.iterdir():
+                    if project_dir.is_dir() and _SAFE_NAME.match(project_dir.name):
+                        files.extend(project_dir.glob("*.json"))
+                files.extend(col_path.glob("*.json"))
+        else:
+            files.extend(col_path.glob("*.json"))
+
+        seen_ids: set[str] = set()
+        for file in files:
             item = json.loads(file.read_text(encoding="utf-8"))
+            item_id = str(item.get("id", ""))
+            if item_id and item_id in seen_ids:
+                continue
             if scoped:
                 if all(item.get(k) == v for k, v in scoped.items()):
                     items.append(item)
+                    if item_id:
+                        seen_ids.add(item_id)
             else:
                 items.append(item)
+                if item_id:
+                    seen_ids.add(item_id)
         return items
 
     async def update(self, collection: str, item_id: str, updates: dict) -> dict:
@@ -84,14 +141,25 @@ class LocalStorageProvider(StorageProvider):
         if item is None:
             raise ValueError(f"Item {item_id} not found in {collection}")
         item.update(updates)
-        path = self._collection_path(collection) / f"{item_id}.json"
+        path = self._resolve_item_path(collection, item_id, str(item.get("project_id") or "").strip() or None)
         path.write_text(json.dumps(item, indent=2, default=str), encoding="utf-8")
         return item
 
     async def delete(self, collection: str, item_id: str) -> bool:
         _validate_name(item_id, "item ID")
-        path = self._collection_path(collection) / f"{item_id}.json"
+        path = self._resolve_item_path(collection, item_id, get_current_project_id())
         if path.exists():
             path.unlink()
             return True
+        # Fallback for project-partitioned collections when request context is
+        # missing/mismatched: scan project subfolders for the item id.
+        if is_project_partitioned(collection):
+            col_path = self._collection_path(collection)
+            for project_dir in col_path.iterdir():
+                if not project_dir.is_dir() or not _SAFE_NAME.match(project_dir.name):
+                    continue
+                candidate = project_dir / f"{item_id}.json"
+                if candidate.exists():
+                    candidate.unlink()
+                    return True
         return False

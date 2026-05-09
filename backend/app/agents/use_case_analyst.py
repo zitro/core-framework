@@ -50,7 +50,7 @@ class UseCaseAnalyst(BaseAgent):
             "state, business value, impact, and success metrics."
         ),
         icon="Briefcase",
-        phase="orient",
+        phase="orchestrate",
         expertise=[
             "use case definition",
             "business value analysis",

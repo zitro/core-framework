@@ -25,7 +25,9 @@ import { IngestPanel } from "@/components/context/ingest-panel";
 
 export default function ContextPage() {
   const { activeDiscovery } = useDiscovery();
-  const [path, setPath] = useState(activeDiscovery?.engagement_repo_path || "");
+  const [path, setPath] = useState(
+    activeDiscovery?.engagement_repo_paths?.[0] || activeDiscovery?.engagement_repo_path || "",
+  );
   const [data, setData] = useState<EngagementContentResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -48,11 +50,13 @@ export default function ContextPage() {
 
   // Auto-load when discovery has an engagement path
   useEffect(() => {
-    if (activeDiscovery?.engagement_repo_path) {
-      setPath(activeDiscovery.engagement_repo_path);
-      loadContent(activeDiscovery.engagement_repo_path);
+    const primaryPath =
+      activeDiscovery?.engagement_repo_paths?.[0] || activeDiscovery?.engagement_repo_path || "";
+    if (primaryPath) {
+      setPath(primaryPath);
+      loadContent(primaryPath);
     }
-  }, [activeDiscovery?.engagement_repo_path, loadContent]);
+  }, [activeDiscovery?.engagement_repo_path, activeDiscovery?.engagement_repo_paths, loadContent]);
 
   // Reload after ingest writes a file
   const handleFileWritten = useCallback(() => {

@@ -1,7 +1,7 @@
 ---
 title: "Journey Map: <flow>"
 type: journey-map
-phase: orient
+phase: orchestrate
 date: <yyyy-mm-dd>
 source: CORE Discovery Framework
 ---

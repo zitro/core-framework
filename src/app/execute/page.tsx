@@ -1,15 +1,11 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Rocket, Zap, AlertTriangle, CheckCircle2 } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Rocket } from "lucide-react";
 import type { QuickWin, Blocker, ExecuteData } from "@/types/core";
 import { useDiscovery } from "@/stores/discovery-store";
 import { api } from "@/lib/api";
-import { QuickWinTracker } from "@/components/execute/quick-win-tracker";
-import { BlockerList } from "@/components/execute/blocker-list";
-import { HandoffPanel } from "@/components/execute/handoff-panel";
+import { OutputCommandCenter } from "@/components/execute/output-command-center";
 import { PhaseShell } from "@/components/layout/phase-shell";
 
 export default function ExecutePage() {
@@ -75,11 +71,6 @@ export default function ExecutePage() {
     persistExecuteData({ quick_wins: wins, blockers, handoff_notes: handoffNotes });
   };
 
-  const completedWins = wins.filter((w) => w.done).length;
-  const resolvedBlockers = blockers.filter((b) => b.resolved).length;
-  const hasCriticalBlockers = blockers.some((b) => !b.resolved && b.severity === "critical");
-  const validatedAssumptions = (activeDiscovery?.assumptions ?? []).filter((a) => a.status === "validated");
-
   if (!activeDiscovery) {
     return (
       <div className="p-6 max-w-6xl mx-auto flex flex-col items-center justify-center py-20 text-center">
@@ -90,88 +81,25 @@ export default function ExecutePage() {
   }
 
   return (
-    <PhaseShell phase="execute" discoveryId={activeDiscovery.id}>
-      <div className="grid grid-cols-3 gap-4">
-        <Card>
-          <CardContent className="pt-4 text-center">
-            <p className="text-2xl font-bold">{completedWins}/{wins.length}</p>
-            <p className="text-xs text-muted-foreground">Quick Wins Done</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-4 text-center">
-            <p className="text-2xl font-bold">{resolvedBlockers}/{blockers.length}</p>
-            <p className="text-xs text-muted-foreground">Blockers Resolved</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-4 text-center">
-            <p className="text-2xl font-bold">{wins.length > 0 && !hasCriticalBlockers ? "Ready" : "Not Yet"}</p>
-            <p className="text-xs text-muted-foreground">Handoff Status</p>
-          </CardContent>
-        </Card>
-      </div>
-
-      {(activeDiscovery?.problem_statement?.statement || validatedAssumptions.length > 0) && (
-        <Card className="border-amber-500/20 bg-amber-500/5">
-          <CardContent className="pt-4 space-y-2">
-            {activeDiscovery?.problem_statement?.statement && (
-              <div>
-                <p className="text-xs uppercase tracking-wider text-amber-600 font-medium">Problem Statement</p>
-                <p className="text-sm mt-1">{activeDiscovery.problem_statement.statement}</p>
-              </div>
-            )}
-            {validatedAssumptions.length > 0 && (
-              <div>
-                <p className="text-xs uppercase tracking-wider text-emerald-600 font-medium mt-2">
-                  Validated Assumptions ({validatedAssumptions.length})
-                </p>
-                <ul className="text-sm mt-1 space-y-1">
-                  {validatedAssumptions.map((a) => (
-                    <li key={a.id} className="text-xs text-muted-foreground">• {a.text}</li>
-                  ))}
-                </ul>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      )}
-
-      <Tabs defaultValue="wins" className="space-y-4">
-        <TabsList>
-          <TabsTrigger value="wins" className="gap-1.5">
-            <Zap className="h-3.5 w-3.5" />
-            Quick Wins
-          </TabsTrigger>
-          <TabsTrigger value="blockers" className="gap-1.5">
-            <AlertTriangle className="h-3.5 w-3.5" />
-            Blockers
-          </TabsTrigger>
-          <TabsTrigger value="handoff" className="gap-1.5">
-            <CheckCircle2 className="h-3.5 w-3.5" />
-            Handoff
-          </TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="wins" className="space-y-4">
-          <QuickWinTracker wins={wins} onAdd={addWin} onToggle={toggleWin} />
-        </TabsContent>
-
-        <TabsContent value="blockers" className="space-y-4">
-          <BlockerList blockers={blockers} onAdd={addBlocker} onToggle={toggleBlocker} />
-        </TabsContent>
-
-        <TabsContent value="handoff" className="space-y-4">
-          <HandoffPanel
-            wins={wins}
-            blockers={blockers}
-            handoffNotes={handoffNotes}
-            onNotesChange={setHandoffNotes}
-            onSave={saveHandoffNotes}
-            saving={saving}
-          />
-        </TabsContent>
-      </Tabs>
+    <PhaseShell
+      phase="execute"
+      discoveryId={activeDiscovery.id}
+      showEvidencePanel={false}
+      showDtMethodsPanel={false}
+    >
+      <OutputCommandCenter
+        discovery={activeDiscovery}
+        wins={wins}
+        blockers={blockers}
+        handoffNotes={handoffNotes}
+        saving={saving}
+        onAddWin={addWin}
+        onToggleWin={toggleWin}
+        onAddBlocker={addBlocker}
+        onToggleBlocker={toggleBlocker}
+        onHandoffNotesChange={setHandoffNotes}
+        onSaveHandoffNotes={saveHandoffNotes}
+      />
     </PhaseShell>
   );
 }

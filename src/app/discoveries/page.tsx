@@ -12,7 +12,7 @@ import { PHASE_CONFIG, type Discovery } from "@/types/core";
 
 const PHASE_COLORS: Record<string, string> = {
   capture: "bg-blue-500/10 text-blue-700 border-blue-500/30",
-  orient: "bg-amber-500/10 text-amber-700 border-amber-500/30",
+  orchestrate: "bg-amber-500/10 text-amber-700 border-amber-500/30",
   refine: "bg-emerald-500/10 text-emerald-700 border-emerald-500/30",
   execute: "bg-violet-500/10 text-violet-700 border-violet-500/30",
 };

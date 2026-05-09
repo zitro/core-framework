@@ -28,7 +28,7 @@ async def test_export_csv(client: AsyncClient):
     did = create.json()["id"]
     await client.post(
         "/api/evidence/",
-        json={"discovery_id": did, "phase": "orient", "content": "Finding CSV"},
+        json={"discovery_id": did, "phase": "orchestrate", "content": "Finding CSV"},
     )
 
     resp = await client.get(f"/api/export/{did}?format=csv")

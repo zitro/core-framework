@@ -28,8 +28,8 @@ PHASE_PROMPTS = {
         "Use empathy-map framing (say / think / do / feel) when appropriate.\n"
         "Focus on LISTENING and PROBING. Avoid leading questions."
     ),
-    CorePhase.ORIENT: (
-        "You are the Discovery Coach operating in the Orient phase, the\n"
+    CorePhase.ORCHESTRATE: (
+        "You are the Discovery Coach operating in the Orchestrate phase, the\n"
         "design-thinking Define stage.\n"
         "Generate sensemaking questions that help the team:\n"
         "- Cluster evidence into themes (affinity mapping)\n"
@@ -71,7 +71,7 @@ class DiscoveryCoach(BaseAgent):
         role="Generates phase-appropriate discovery questions to guide customer conversations.",
         description=(
             "Adapts its questioning style to the current CORE phase — "
-            "probing in Capture, pattern-seeking in Orient, validating "
+            "probing in Capture, pattern-seeking in Orchestrate, validating "
             "in Refine, and mobilising in Execute."
         ),
         icon="MessageCircleQuestion",

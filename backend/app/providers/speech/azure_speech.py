@@ -22,10 +22,10 @@ def _get_speech_config() -> speechsdk.SpeechConfig:
         )
     credential = DefaultAzureCredential()
     token = credential.get_token(_SPEECH_SCOPE)
-    auth = speechsdk.auth.AuthorizationToken(
-        auth_token=f"aad#{settings.azure_speech_resource_id}#{token.token}"
+    return speechsdk.SpeechConfig(
+        auth_token=f"aad#{settings.azure_speech_resource_id}#{token.token}",
+        region=settings.azure_speech_region,
     )
-    return speechsdk.SpeechConfig(auth_token=auth.token, region=settings.azure_speech_region)
 
 
 class AzureSpeechProvider(SpeechProvider):

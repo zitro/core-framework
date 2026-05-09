@@ -146,5 +146,53 @@ class CosmosStorageProvider(StorageProvider):
             await container.delete_item(item=item_id, partition_key=pk)
             return True
         except Exception:
-            logger.debug("Failed to delete %s from %s", item_id, collection)
-            return False
+            try:
+                items = container.query_items(
+                    query="SELECT TOP 1 * FROM c WHERE c.id = @id",
+                    parameters=[{"name": "@id", "value": item_id}],
+                )
+                found = None
+                async for row in items:
+                    found = dict(row)
+                    break
+                if not found:
+                    logger.debug(
+                        "Failed to delete %s from %s: no matching item found in fallback query",
+                        item_id,
+                        collection,
+                    )
+                    return False
+
+                partition_candidates: list[Any] = []
+                try:
+                    props = await container.read()
+                    pk_paths = ((props or {}).get("partitionKey") or {}).get("paths") or []
+                    if pk_paths:
+                        pk_field = str(pk_paths[0]).lstrip("/")
+                        if pk_field in found:
+                            partition_candidates.append(found.get(pk_field))
+                except Exception:
+                    pass
+                if "project_id" in found:
+                    partition_candidates.append(found.get("project_id"))
+                if "discovery_id" in found:
+                    partition_candidates.append(found.get("discovery_id"))
+                partition_candidates.append(item_id)
+                partition_candidates.append({})
+
+                for candidate in partition_candidates:
+                    try:
+                        await container.delete_item(item=item_id, partition_key=candidate)
+                        return True
+                    except Exception:
+                        continue
+
+                logger.debug(
+                    "Failed to delete %s from %s with fallback partition candidates",
+                    item_id,
+                    collection,
+                )
+                return False
+            except Exception:
+                logger.debug("Failed to delete %s from %s", item_id, collection)
+                return False

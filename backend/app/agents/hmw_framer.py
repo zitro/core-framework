@@ -52,7 +52,7 @@ class HMWFramer(BaseAgent):
             "ideate against."
         ),
         icon="Lightbulb",
-        phase="orient",
+        phase="orchestrate",
         expertise=[
             "How Might We",
             "problem reframing",

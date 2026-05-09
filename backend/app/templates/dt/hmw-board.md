@@ -1,7 +1,7 @@
 ---
 title: "HMW Board"
 type: hmw-board
-phase: orient
+phase: orchestrate
 date: <yyyy-mm-dd>
 source: CORE Discovery Framework
 ---

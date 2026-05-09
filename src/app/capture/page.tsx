@@ -1,7 +1,23 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { Search, Plus, X } from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  AlertTriangle,
+  CheckCircle2,
+  Eye,
+  FileText,
+  HelpCircle,
+  Lightbulb,
+  Link as LinkIcon,
+  Mic,
+  Paperclip,
+  Pencil,
+  Plus,
+  Quote,
+  Search,
+  Trash2,
+  X,
+} from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -10,23 +26,15 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import type {
   Evidence,
-  TranscriptAnalysis,
   TechnologyTarget,
 } from "@/types/core";
 import { api } from "@/lib/api";
 import { useDiscovery } from "@/stores/discovery-store";
 import { PhaseShell } from "@/components/layout/phase-shell";
 import { EngagementConfig } from "@/components/settings/engagement-config";
-import { PhaseEvidencePanel } from "@/components/layout/phase-evidence-panel";
-import { DtMethodsPanel } from "@/components/layout/dt-methods-panel";
-import {
-  TranscriptAnalysisResult,
-  type AnalysisSummary,
-} from "@/components/capture/transcript-analysis-result";
-import { PreviousAnalysesList } from "@/components/capture/previous-analyses-list";
+import { methodsForPhase } from "@/lib/dt-methods";
 
 interface CaptureDraft {
-  context: string;
   transcript: string;
   quickNote: string;
   captureItemType: CaptureItemType;
@@ -36,30 +44,257 @@ interface CaptureDraft {
   technologyTargets: TechnologyTarget[];
 }
 
-type CaptureItemType = "note" | "document" | "presentation" | "file";
+type CaptureItemType =
+  | "note"
+  | "observation"
+  | "quote"
+  | "pain_point"
+  | "jtbd"
+  | "assumption"
+  | "question"
+  | "decision"
+  | "document"
+  | "presentation"
+  | "recording"
+  | "file"
+  | "url";
+
+type ContextOption = {
+  value: CaptureItemType;
+  label: string;
+  description: string;
+  placeholder: string;
+  source: string;
+  evidenceType: Evidence["evidence_type"];
+  tags: string[];
+  icon: typeof Lightbulb;
+  methodIds: string[];
+};
+
+const CAPTURE_METHODS = methodsForPhase("capture");
+
+const CONTEXT_OPTIONS: ContextOption[] = [
+  {
+    value: "note",
+    label: "Note",
+    description: "General project knowledge, meeting notes, or context fragments.",
+    placeholder: "Add project context, stakeholder input, or a useful note...",
+    source: "Capture note",
+    evidenceType: "observation",
+    tags: ["note"],
+    icon: Lightbulb,
+    methodIds: ["stakeholder-interviews"],
+  },
+  {
+    value: "observation",
+    label: "Observation",
+    description: "What was seen or heard before interpretation.",
+    placeholder: "Describe what happened, who was involved, and what stood out...",
+    source: "Direct observation",
+    evidenceType: "observation",
+    tags: ["design-thinking", "observation"],
+    icon: Eye,
+    methodIds: ["observation", "empathy-map"],
+  },
+  {
+    value: "quote",
+    label: "Quote",
+    description: "Verbatim stakeholder language worth preserving.",
+    placeholder: "Paste the quote and add speaker/context if known...",
+    source: "Stakeholder quote",
+    evidenceType: "quote",
+    tags: ["design-thinking", "quote"],
+    icon: Quote,
+    methodIds: ["stakeholder-interviews", "empathy-map"],
+  },
+  {
+    value: "pain_point",
+    label: "Pain Point",
+    description: "A friction, delay, risk, or unmet need.",
+    placeholder: "Name the friction, who feels it, and the impact...",
+    source: "Pain point",
+    evidenceType: "pain_point",
+    tags: ["design-thinking", "pain-point"],
+    icon: AlertTriangle,
+    methodIds: ["jtbd", "observation"],
+  },
+  {
+    value: "jtbd",
+    label: "JTBD",
+    description: "A job, motivation, and desired outcome.",
+    placeholder: "When..., I want to..., so I can...",
+    source: "Job-to-be-done",
+    evidenceType: "jtbd",
+    tags: ["design-thinking", "jtbd"],
+    icon: CheckCircle2,
+    methodIds: ["jtbd", "stakeholder-interviews"],
+  },
+  {
+    value: "assumption",
+    label: "Assumption",
+    description: "A belief that should be validated later.",
+    placeholder: "State the assumption and what would prove or disprove it...",
+    source: "Assumption",
+    evidenceType: "assumption",
+    tags: ["design-thinking", "assumption"],
+    icon: HelpCircle,
+    methodIds: ["stakeholder-interviews"],
+  },
+  {
+    value: "question",
+    label: "Question",
+    description: "An open question the team needs to answer.",
+    placeholder: "Capture the question and why it matters...",
+    source: "Open question",
+    evidenceType: "hypothesis",
+    tags: ["question", "follow-up"],
+    icon: HelpCircle,
+    methodIds: ["stakeholder-interviews"],
+  },
+  {
+    value: "decision",
+    label: "Decision",
+    description: "A confirmed choice, constraint, or direction.",
+    placeholder: "Record the decision, owner, date, and rationale...",
+    source: "Decision",
+    evidenceType: "insight",
+    tags: ["decision"],
+    icon: CheckCircle2,
+    methodIds: [],
+  },
+  {
+    value: "document",
+    label: "Document",
+    description: "Docs, PDFs, spreadsheets, exports, or reference files.",
+    placeholder: "Add any context that helps interpret the attached document...",
+    source: "Document evidence",
+    evidenceType: "general",
+    tags: ["evidence", "document"],
+    icon: FileText,
+    methodIds: ["empathy-map"],
+  },
+  {
+    value: "presentation",
+    label: "Deck",
+    description: "Slides, briefings, and stakeholder presentations.",
+    placeholder: "Describe the deck, audience, date, or important sections...",
+    source: "Presentation evidence",
+    evidenceType: "general",
+    tags: ["evidence", "presentation"],
+    icon: FileText,
+    methodIds: [],
+  },
+  {
+    value: "recording",
+    label: "Recording",
+    description: "Calls, interviews, workshops, demos, and voice notes.",
+    placeholder: "Add meeting context, speakers, or what the recording captures...",
+    source: "Recording evidence",
+    evidenceType: "general",
+    tags: ["evidence", "recording"],
+    icon: Mic,
+    methodIds: ["stakeholder-interviews"],
+  },
+  {
+    value: "file",
+    label: "Other File",
+    description: "Any other artifact that should be preserved as context.",
+    placeholder: "Describe what this file is and why it matters...",
+    source: "File evidence",
+    evidenceType: "general",
+    tags: ["evidence", "file"],
+    icon: Paperclip,
+    methodIds: [],
+  },
+  {
+    value: "url",
+    label: "URL",
+    description: "External links, docs, articles, repos, or dashboards.",
+    placeholder: "Add why this link matters and what to look for...",
+    source: "Link evidence",
+    evidenceType: "general",
+    tags: ["evidence", "url"],
+    icon: LinkIcon,
+    methodIds: [],
+  },
+];
+
+interface PendingEvidenceFile {
+  file: File;
+  name: string;
+  type: string;
+  size: number;
+}
 
 export default function CapturePage() {
+  // State and refs
   const { activeDiscovery, setActiveDiscovery } = useDiscovery();
   const discoveryId = activeDiscovery?.id || "";
 
-  const [context, setContext] = useState(activeDiscovery?.description ?? "");
   const [transcript, setTranscript] = useState("");
-  const [savingContext, setSavingContext] = useState(false);
-  const [analyzing, setAnalyzing] = useState(false);
+  const [transcriptSource, setTranscriptSource] = useState("");
+  const [savingTranscript, setSavingTranscript] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [extractedEvidence, setExtractedEvidence] = useState<Evidence[]>([]);
-  const [savedAnalyses, setSavedAnalyses] = useState<TranscriptAnalysis[]>([]);
-  const [analysisResult, setAnalysisResult] = useState<AnalysisSummary | null>(null);
   const [captureEvidence, setCaptureEvidence] = useState<Evidence[]>([]);
+  const [editingEvidenceId, setEditingEvidenceId] = useState<string | null>(null);
+  const [editingEvidenceContent, setEditingEvidenceContent] = useState("");
   const [quickNote, setQuickNote] = useState("");
   const [captureItemType, setCaptureItemType] = useState<CaptureItemType>("note");
   const [captureReference, setCaptureReference] = useState("");
-  const [savingNote, setSavingNote] = useState(false);
+  const [savingNoteAction, setSavingNoteAction] = useState<"save" | "add-another" | null>(null);
+  const [evidenceUrl, setEvidenceUrl] = useState("");
+  const [pendingFiles, setPendingFiles] = useState<PendingEvidenceFile[]>([]);
   const [technologyInput, setTechnologyInput] = useState("");
   const [technologyFocusInput, setTechnologyFocusInput] = useState("");
   const [technologyTargets, setTechnologyTargets] = useState<TechnologyTarget[]>([]);
   const [savingTechnologies, setSavingTechnologies] = useState(false);
   const [draftHydrated, setDraftHydrated] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const quickNoteTextareaRef = useRef<HTMLTextAreaElement | null>(null);
+
+  const savingNote = savingNoteAction !== null;
+  const canSaveContext = quickNote.trim().length > 0 || evidenceUrl.trim().length > 0 || pendingFiles.length > 0;
+
+  const selectedContextOption = useMemo(
+    () => CONTEXT_OPTIONS.find((option) => option.value === captureItemType) ?? CONTEXT_OPTIONS[0],
+    [captureItemType],
+  );
+
+  const contextCaptureGuidance = useMemo(() => {
+    switch (selectedContextOption.value) {
+      case "document":
+        return "Describe the document, then attach the file or add a related link so the project context keeps both the artifact and your interpretation.";
+      case "presentation":
+        return "Describe the deck, audience, date, or important sections, then attach the presentation or supporting links.";
+      case "recording":
+        return "Add meeting context, speakers, or what the recording captures, then attach the audio or video file.";
+      case "file":
+        return "Describe what the file is and why it matters, then attach the artifact so downstream AI can use it as evidence.";
+      case "url":
+        return "Add why the link matters, paste the URL, and include any short note that helps interpret it later.";
+      default:
+        return selectedContextOption.description;
+    }
+  }, [selectedContextOption]);
+
+  const evidenceTypeCounts = useMemo(() => {
+    return captureEvidence.reduce<Record<string, number>>((acc, item) => {
+      const key = item.evidence_type || "general";
+      acc[key] = (acc[key] ?? 0) + 1;
+      return acc;
+    }, {});
+  }, [captureEvidence]);
+
+  const previewText = (value: string) => {
+    const normalized = value.replace(/\s+/g, " ").trim();
+    return normalized.length > 220 ? `${normalized.slice(0, 220)}...` : normalized;
+  };
+
+  const formatFileSize = (size: number) => {
+    if (size < 1024) return `${size} B`;
+    if (size < 1024 * 1024) return `${Math.round(size / 1024)} KB`;
+    return `${(size / (1024 * 1024)).toFixed(1)} MB`;
+  };
 
   const captureDraftKey = useMemo(
     () => `core:capture-draft:${discoveryId || activeDiscovery?.project_id || "global"}`,
@@ -73,7 +308,6 @@ export default function CapturePage() {
       if (!raw) return null;
       const parsed = JSON.parse(raw) as CaptureDraft;
       return {
-        context: parsed.context || "",
         transcript: parsed.transcript || "",
         quickNote: parsed.quickNote || "",
         captureItemType: (parsed.captureItemType as CaptureItemType) || "note",
@@ -107,7 +341,6 @@ export default function CapturePage() {
           ? providerFallbackTargets
           : (draft?.technologyTargets ?? []);
 
-    setContext(activeDiscovery.description || draft?.context || "");
     setTranscript(draft?.transcript || "");
     setQuickNote(draft?.quickNote || "");
     setCaptureItemType(draft?.captureItemType || "note");
@@ -118,7 +351,6 @@ export default function CapturePage() {
     setDraftHydrated(true);
   }, [
     activeDiscovery,
-    activeDiscovery?.description,
     activeDiscovery?.id,
     activeDiscovery?.solution_providers,
     activeDiscovery?.target_technologies,
@@ -128,7 +360,6 @@ export default function CapturePage() {
   useEffect(() => {
     if (!activeDiscovery || !draftHydrated || typeof window === "undefined") return;
     const payload: CaptureDraft = {
-      context,
       transcript,
       quickNote,
       captureItemType,
@@ -147,7 +378,6 @@ export default function CapturePage() {
     captureDraftKey,
     captureItemType,
     captureReference,
-    context,
     draftHydrated,
     quickNote,
     technologyFocusInput,
@@ -159,11 +389,7 @@ export default function CapturePage() {
   const loadSavedData = useCallback(async () => {
     if (!discoveryId) return;
     try {
-      const [analyses, evidenceItems] = await Promise.all([
-        api.transcripts.list(discoveryId),
-        api.evidence.list(discoveryId, "capture"),
-      ]);
-      setSavedAnalyses(analyses);
+      const evidenceItems = await api.evidence.list(discoveryId, "capture");
       setCaptureEvidence(evidenceItems);
     } catch {
       /* non-critical — first load may have no data */
@@ -173,20 +399,6 @@ export default function CapturePage() {
   useEffect(() => {
     loadSavedData();
   }, [loadSavedData]);
-
-  const saveContext = async () => {
-    if (!discoveryId) return;
-    setSavingContext(true);
-    setError(null);
-    try {
-      const updated = await api.discoveries.update(discoveryId, { description: context });
-      setActiveDiscovery(updated);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to save customer context");
-    } finally {
-      setSavingContext(false);
-    }
-  };
 
   const persistTechnologyTargets = async (targets: TechnologyTarget[]) => {
     if (!discoveryId) return;
@@ -234,81 +446,149 @@ export default function CapturePage() {
     await persistTechnologyTargets(next);
   };
 
-  const addQuickNote = async () => {
-    if (!quickNote.trim() || !discoveryId) return;
-    setSavingNote(true);
+  const addQuickNote = async (action: "save" | "add-another" = "save") => {
+    const hasNote = quickNote.trim().length > 0;
+    const hasUrl = evidenceUrl.trim().length > 0;
+    const hasFiles = pendingFiles.length > 0;
+    if ((!hasNote && !hasUrl && !hasFiles) || !discoveryId) return;
+    setSavingNoteAction(action);
     setError(null);
-    const sourceByType: Record<CaptureItemType, string> = {
-      note: "Capture note",
-      document: "Document evidence",
-      presentation: "Presentation evidence",
-      file: "File evidence",
-    };
+    const contextOption = selectedContextOption;
+    const baseTags = Array.from(new Set(["context", ...contextOption.tags]));
+    try {
+      const createdItems: Evidence[] = [];
+
+      if (hasNote && !hasUrl && !hasFiles) {
+        const created = await api.evidence.create({
+          discovery_id: discoveryId,
+          phase: "capture",
+          content: quickNote.trim(),
+          source: captureReference.trim() || contextOption.source,
+          evidence_type: contextOption.evidenceType,
+          tags: baseTags,
+        });
+        createdItems.push(created);
+      }
+
+      if (hasUrl) {
+        const created = await api.evidence.create({
+          discovery_id: discoveryId,
+          phase: "capture",
+          content:
+            quickNote.trim() || `Evidence link added: ${evidenceUrl.trim()}`,
+          source: evidenceUrl.trim(),
+          evidence_type: contextOption.value === "url" ? contextOption.evidenceType : "general",
+          tags: Array.from(new Set([...baseTags, "evidence", "url"])),
+        });
+        createdItems.push(created);
+      }
+
+      for (const file of pendingFiles) {
+        const created = await api.evidence.upload({
+          discovery_id: discoveryId,
+          phase: "capture",
+          source: captureReference.trim() || file.name,
+          evidence_type: contextOption.evidenceType,
+          note: quickNote.trim(),
+          tags: Array.from(new Set([...baseTags, "evidence", "file"])),
+          file: file.file,
+        });
+        createdItems.push(created);
+      }
+
+      setCaptureEvidence((prev) => [...prev, ...createdItems]);
+      setQuickNote("");
+      setCaptureReference("");
+      setEvidenceUrl("");
+      setPendingFiles([]);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+      if (action === "add-another") {
+        window.requestAnimationFrame(() => quickNoteTextareaRef.current?.focus());
+      }
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to save capture note");
+    } finally {
+      setSavingNoteAction(null);
+    }
+  };
+
+  const onSelectEvidenceFiles = async (files: FileList | null) => {
+    if (!files || files.length === 0) return;
+
+    const selected = await Promise.all(
+      Array.from(files).map(async (file) => {
+        return {
+          file,
+          name: file.name,
+          type: file.type,
+          size: file.size,
+        } satisfies PendingEvidenceFile;
+      }),
+    );
+
+    setPendingFiles((prev) => {
+      const next = [...prev];
+      for (const file of selected) {
+        if (!next.some((item) => item.name === file.name && item.size === file.size)) {
+          next.push(file);
+        }
+      }
+      return next;
+    });
+  };
+
+  const saveTranscript = async () => {
+    if (!transcript.trim()) return;
+    setSavingTranscript(true);
+    setError(null);
     try {
       const created = await api.evidence.create({
         discovery_id: discoveryId,
         phase: "capture",
-        content: quickNote.trim(),
-        source: captureReference.trim() || sourceByType[captureItemType],
-        evidence_type: captureItemType === "note" ? "observation" : "general",
-        tags: captureItemType === "note" ? ["note"] : ["evidence", captureItemType],
+        content: transcript.trim(),
+        source: transcriptSource.trim() || "Transcript",
+        evidence_type: "general",
+        tags: ["transcript", "raw-context"],
       });
       setCaptureEvidence((prev) => [...prev, created]);
-      setQuickNote("");
-      setCaptureReference("");
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to save capture note");
-    } finally {
-      setSavingNote(false);
-    }
-  };
-
-  const importExtractedEvidence = async (evidence: Evidence[]) => {
-    if (!evidence.length || !discoveryId) return;
-    const saved: Evidence[] = [];
-    for (const ev of evidence) {
-      try {
-        const created = await api.evidence.create({
-          discovery_id: discoveryId,
-          phase: "capture",
-          content: ev.content,
-          source: ev.source || "Transcript analysis",
-          confidence: ev.confidence || "unknown",
-          tags: ev.tags || [],
-        });
-        saved.push(created);
-      } catch {
-        /* skip individual failures */
-      }
-    }
-    setExtractedEvidence(saved);
-  };
-
-  const analyzeTranscript = async () => {
-    if (!transcript.trim()) return;
-    setAnalyzing(true);
-    setError(null);
-    try {
-      const result = await api.transcripts.analyze({
-        discovery_id: discoveryId,
-        transcript_text: transcript,
-      });
-      setSavedAnalyses((prev) => [...prev, result]);
-      setAnalysisResult({
-        insights: result.insights.map((i) => ({
-          text: typeof i === "string" ? i : i.text,
-          confidence: typeof i === "string" ? "unknown" : i.confidence,
-        })),
-        key_themes: result.key_themes,
-        sentiment: result.sentiment,
-      });
-      await importExtractedEvidence(result.evidence_extracted ?? []);
+      setTranscript("");
+      setTranscriptSource("");
     } catch (e) {
       setError(
-        e instanceof Error ? e.message : "Failed to analyze transcript — is the backend running?",
+        e instanceof Error ? e.message : "Failed to save transcript",
       );
     } finally {
-      setAnalyzing(false);
+      setSavingTranscript(false);
+    }
+  };
+
+  const startEditingEvidence = (item: Evidence) => {
+    setEditingEvidenceId(item.id);
+    setEditingEvidenceContent(item.content);
+  };
+
+  const saveEvidenceEdit = async () => {
+    if (!editingEvidenceId || !editingEvidenceContent.trim()) return;
+    try {
+      const updated = await api.evidence.update(editingEvidenceId, {
+        content: editingEvidenceContent.trim(),
+      });
+      setCaptureEvidence((prev) => prev.map((item) => (item.id === updated.id ? updated : item)));
+      setEditingEvidenceId(null);
+      setEditingEvidenceContent("");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to update context item");
+    }
+  };
+
+  const deleteEvidenceItem = async (id: string) => {
+    try {
+      await api.evidence.delete(id);
+      setCaptureEvidence((prev) => prev.filter((item) => item.id !== id));
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to delete context item");
     }
   };
 
@@ -335,9 +615,7 @@ export default function CapturePage() {
           <TabsTrigger value="sources">Sources</TabsTrigger>
           <TabsTrigger value="context">Context</TabsTrigger>
           <TabsTrigger value="technologies">Technologies</TabsTrigger>
-          <TabsTrigger value="methods">Methods</TabsTrigger>
           <TabsTrigger value="transcript">Transcript</TabsTrigger>
-          <TabsTrigger value="analysis">Analyses</TabsTrigger>
         </TabsList>
 
         <TabsContent value="sources" className="space-y-4">
@@ -352,96 +630,331 @@ export default function CapturePage() {
         </TabsContent>
 
         <TabsContent value="context" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Customer Context</CardTitle>
-              <CardDescription>
-                Capture everything you know about the customer before moving into orchestration.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <Textarea
-                value={context}
-                onChange={(e) => setContext(e.target.value)}
-                placeholder="Customer goals, operating model, constraints, stakeholders, urgency, environment realities, and known risks."
-                rows={6}
-              />
-              <Button onClick={saveContext} disabled={savingContext}>
-                {savingContext ? "Saving..." : "Save Customer Context"}
-              </Button>
-              {error && <p className="text-sm text-red-500 mt-2">{error}</p>}
-            </CardContent>
-          </Card>
+          <div className="grid gap-4 xl:grid-cols-[minmax(0,1.45fr)_minmax(320px,0.75fr)]">
+            <div className="space-y-4">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-base">Add Context</CardTitle>
+                  <CardDescription>
+                    Follow the steps to add raw context. AI turns this into a versioned project brief in Orchestrate.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-3 rounded-md border border-blue-500/25 bg-blue-500/5 p-3 shadow-sm">
+                    <div className="rounded-md bg-blue-500/10 px-3 py-2">
+                      <p className="text-sm font-medium text-blue-900 dark:text-blue-100">Step 1: Choose what you are adding</p>
+                      <p className="text-xs text-blue-950/70 dark:text-blue-100/75">
+                        Pick the closest type. It controls tagging only; you can still attach files, links, or notes.
+                      </p>
+                    </div>
+                    <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-3">
+                      {CONTEXT_OPTIONS.map((option) => {
+                        const Icon = option.icon;
+                        const active = captureItemType === option.value;
+                        const optionMethods = CAPTURE_METHODS.filter((method) =>
+                          option.methodIds.includes(method.id),
+                        );
+                        return (
+                          <button
+                            key={option.value}
+                            type="button"
+                            onClick={() => setCaptureItemType(option.value)}
+                            className={`rounded-md border p-3 text-left transition-colors ${
+                              active
+                                ? "min-h-[156px] border-primary bg-primary/5 text-foreground shadow-sm"
+                                : "bg-background hover:bg-muted/40"
+                            }`}
+                          >
+                            <span className="flex items-start justify-between gap-2">
+                              <span className="flex min-w-0 items-center gap-2 text-sm font-medium">
+                                <Icon className="h-4 w-4 shrink-0" />
+                                <span className="truncate">{option.label}</span>
+                              </span>
+                              {active && (
+                                <Badge variant="secondary" className="shrink-0 text-[10px]">
+                                  {option.evidenceType.replace("_", " ")}
+                                </Badge>
+                              )}
+                            </span>
+                            <span className="mt-1 block text-xs leading-relaxed text-muted-foreground">
+                              {option.description}
+                            </span>
+                            {active && (
+                              <span className="mt-3 block space-y-2 rounded-md border bg-background/70 p-2">
+                                {optionMethods.length > 0 && (
+                                  <span className="flex flex-wrap gap-1.5">
+                                    {optionMethods.map((method) => (
+                                      <Badge key={method.id} variant="outline" className="text-[10px]">
+                                        {method.name}
+                                      </Badge>
+                                    ))}
+                                  </span>
+                                )}
+                                <span className="block text-xs leading-relaxed text-muted-foreground">
+                                  {optionMethods[0]?.oneLiner ?? option.description}
+                                </span>
+                              </span>
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
 
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Capture Notes and Evidence</CardTitle>
-              <CardDescription>
-                Add fast notes or evidence references in one place, then review all capture evidence below.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <div className="grid gap-2 sm:grid-cols-2">
-                <div className="space-y-1">
-                  <p className="text-xs text-muted-foreground uppercase tracking-wider">Item Type</p>
-                  <select
-                    value={captureItemType}
-                    onChange={(e) => setCaptureItemType(e.target.value as CaptureItemType)}
-                    aria-label="Capture item type"
-                    title="Capture item type"
-                    className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm"
-                  >
-                    <option value="note">Note</option>
-                    <option value="document">Evidence: Document</option>
-                    <option value="presentation">Evidence: Presentation</option>
-                    <option value="file">Evidence: Other File</option>
-                  </select>
-                </div>
-                <div className="space-y-1">
-                  <p className="text-xs text-muted-foreground uppercase tracking-wider">Reference (optional)</p>
-                  <Input
-                    value={captureReference}
-                    onChange={(e) => setCaptureReference(e.target.value)}
-                    placeholder="URL, filename, or source note"
-                  />
-                </div>
-              </div>
+                  <div className="space-y-3 rounded-md border border-amber-500/30 bg-amber-500/5 p-3 shadow-sm">
+                    <div className="rounded-md bg-amber-500/10 px-3 py-2">
+                      <div className="flex flex-wrap items-start justify-between gap-2">
+                        <span>
+                          <p className="text-sm font-medium text-amber-950 dark:text-amber-100">
+                            Step 2: Add {selectedContextOption.label.toLowerCase()} context and evidence
+                          </p>
+                          <p className="text-xs text-amber-950/75 dark:text-amber-100/75">
+                            {contextCaptureGuidance}
+                          </p>
+                        </span>
+                        <Badge variant="secondary" className="shrink-0 text-[10px]">
+                          {selectedContextOption.evidenceType.replace("_", " ")}
+                        </Badge>
+                      </div>
+                    </div>
+                    <Textarea
+                      ref={quickNoteTextareaRef}
+                      value={quickNote}
+                      onChange={(e) => setQuickNote(e.target.value)}
+                      placeholder={selectedContextOption.placeholder}
+                      rows={6}
+                    />
+                    <div className="grid gap-2 sm:grid-cols-2">
+                      <Input
+                        value={captureReference}
+                        onChange={(e) => setCaptureReference(e.target.value)}
+                        placeholder="Source, speaker, meeting, or short label"
+                      />
+                      <Input
+                        value={evidenceUrl}
+                        onChange={(e) => setEvidenceUrl(e.target.value)}
+                        placeholder={selectedContextOption.value === "url" ? "URL" : "Related URL"}
+                      />
+                    </div>
+                    <div className="space-y-2 rounded-md border bg-background/70 p-3">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <span>
+                          <p className="text-sm font-medium">Supporting evidence</p>
+                          <p className="text-xs text-muted-foreground">
+                            Optional files, recordings, decks, PDFs, docs, exports, or links for this {selectedContextOption.label.toLowerCase()}.
+                          </p>
+                        </span>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => fileInputRef.current?.click()}
+                          className="shrink-0"
+                        >
+                          <Paperclip className="mr-1.5 h-3.5 w-3.5" />
+                          Attach Files
+                        </Button>
+                      </div>
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        multiple
+                        className="hidden"
+                        aria-label="Select evidence files"
+                        title="Select evidence files"
+                        onChange={(e) => void onSelectEvidenceFiles(e.target.files)}
+                      />
+                      <div className="space-y-2 text-sm">
+                        {evidenceUrl.trim() && (
+                          <div className="flex items-center gap-2 min-w-0 rounded-md bg-muted/40 px-2 py-1.5">
+                            <LinkIcon className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                            <span className="truncate">{evidenceUrl.trim()}</span>
+                          </div>
+                        )}
+                        {pendingFiles.length === 0 && !evidenceUrl.trim() && (
+                          <p className="text-xs text-muted-foreground">
+                            Attachments and links added here will save with this context item.
+                          </p>
+                        )}
+                        {pendingFiles.map((file) => (
+                          <div
+                            key={`${file.name}:${file.size}`}
+                            className="flex items-center justify-between gap-2 rounded-md bg-muted/40 px-2 py-1.5"
+                          >
+                            <span className="min-w-0">
+                              <span className="block truncate text-sm">{file.name}</span>
+                              <span className="text-[11px] text-muted-foreground">
+                                {formatFileSize(file.size)}
+                              </span>
+                            </span>
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => setPendingFiles((prev) => prev.filter((item) => !(item.name === file.name && item.size === file.size)))}
+                            >
+                              <X className="h-3.5 w-3.5" />
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
 
-              <Textarea
-                value={quickNote}
-                onChange={(e) => setQuickNote(e.target.value)}
-                placeholder={
-                  captureItemType === "note"
-                    ? "Add a capture note, quote, or finding..."
-                    : "Describe the evidence from this file or reference..."
-                }
-                rows={3}
-              />
-              <Button onClick={addQuickNote} disabled={savingNote || !quickNote.trim()}>
-                {savingNote
-                  ? "Saving..."
-                  : captureItemType === "note"
-                    ? "Add Capture Note"
-                    : "Add Evidence Item"}
-              </Button>
-              {error && <p className="text-sm text-red-500 mt-2">{error}</p>}
-              {captureEvidence.length > 0 && (
-                <div className="space-y-2 pt-2">
-                  <p className="text-xs text-muted-foreground uppercase tracking-wider">
-                    Recent capture items
-                  </p>
-                  {captureEvidence.slice(-8).reverse().map((item) => (
-                    <div key={item.id} className="rounded-md border p-2">
-                      <p className="text-sm">{item.content}</p>
-                      <p className="text-[11px] text-muted-foreground mt-1">{item.source || "Capture note"}</p>
+                  <div className="flex flex-wrap items-center gap-2 rounded-md border border-emerald-500/25 bg-emerald-500/10 p-3 shadow-sm">
+                    <Button
+                      onClick={() => void addQuickNote("save")}
+                      disabled={savingNote || !canSaveContext}
+                    >
+                      {savingNoteAction === "save" ? "Saving..." : "Save Context Item"}
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => void addQuickNote("add-another")}
+                      disabled={savingNote || !canSaveContext}
+                      className="bg-background/80"
+                    >
+                      <Plus className="mr-1.5 h-3.5 w-3.5" />
+                      {savingNoteAction === "add-another" ? "Saving..." : "Save & Add Another"}
+                    </Button>
+                    <span className="text-xs text-muted-foreground">
+                      Saved items become Capture evidence and feed downstream AI work.
+                    </span>
+                  </div>
+                  {error && <p className="text-sm text-red-500 mt-2">{error}</p>}
+                </CardContent>
+              </Card>
+            </div>
+
+            <div className="space-y-4">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-base">Design Thinking Lens</CardTitle>
+                  <CardDescription>
+                    Capture-phase methods embedded into context intake.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  {CAPTURE_METHODS.map((method) => (
+                    <div key={method.id} className="border-l-2 pl-3">
+                      <div className="flex items-center gap-2">
+                        <p className="text-sm font-medium">{method.name}</p>
+                        {method.template && (
+                          <Badge variant="outline" className="text-[9px]">
+                            template
+                          </Badge>
+                        )}
+                      </div>
+                      <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+                        {method.whenToUse}
+                      </p>
                     </div>
                   ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
+                </CardContent>
+              </Card>
 
-          <PhaseEvidencePanel discoveryId={discoveryId} phase="capture" collapsible={false} />
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-base">Saved Context</CardTitle>
+                  <CardDescription>
+                    Review, fix, or remove saved context before AI generates the next project brief version.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <div className="grid grid-cols-2 gap-2">
+                    {Object.entries(evidenceTypeCounts).length > 0 ? (
+                      Object.entries(evidenceTypeCounts).map(([type, count]) => (
+                        <div key={type} className="rounded-md border px-3 py-2">
+                          <p className="text-lg font-semibold">{count}</p>
+                          <p className="text-xs text-muted-foreground capitalize">
+                            {type.replace("_", " ")}
+                          </p>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="col-span-2 rounded-md border border-dashed px-3 py-4 text-sm text-muted-foreground">
+                        No Capture evidence saved yet.
+                      </div>
+                    )}
+                  </div>
+                  {captureEvidence.length > 0 ? (
+                    <div className="space-y-2">
+                      {captureEvidence.slice(-8).reverse().map((item) => (
+                        <div key={item.id} className="rounded-md border p-2">
+                          <div className="flex flex-wrap items-start justify-between gap-2">
+                            <div className="flex flex-wrap items-center gap-1.5">
+                              <Badge variant="secondary" className="text-[10px] capitalize">
+                                {item.evidence_type.replace("_", " ")}
+                              </Badge>
+                              {item.tags.slice(0, 3).map((tag) => (
+                                <Badge key={tag} variant="outline" className="text-[9px]">
+                                  {tag}
+                                </Badge>
+                              ))}
+                            </div>
+                            <div className="flex gap-1">
+                              <Button
+                                type="button"
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => startEditingEvidence(item)}
+                                aria-label="Edit context item"
+                              >
+                                <Pencil className="h-3.5 w-3.5" />
+                              </Button>
+                              <Button
+                                type="button"
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => void deleteEvidenceItem(item.id)}
+                                aria-label="Delete context item"
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </Button>
+                            </div>
+                          </div>
+                          {editingEvidenceId === item.id ? (
+                            <div className="mt-2 space-y-2">
+                              <Textarea
+                                value={editingEvidenceContent}
+                                onChange={(event) => setEditingEvidenceContent(event.target.value)}
+                                rows={4}
+                              />
+                              <div className="flex gap-2">
+                                <Button type="button" size="sm" onClick={() => void saveEvidenceEdit()}>
+                                  Save
+                                </Button>
+                                <Button
+                                  type="button"
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => {
+                                    setEditingEvidenceId(null);
+                                    setEditingEvidenceContent("");
+                                  }}
+                                >
+                                  Cancel
+                                </Button>
+                              </div>
+                            </div>
+                          ) : (
+                            <p className="mt-2 text-sm leading-relaxed">{previewText(item.content)}</p>
+                          )}
+                          <p className="mt-1 text-[11px] text-muted-foreground">
+                            {item.source || "Capture context"}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="rounded-md border border-dashed px-3 py-4 text-sm text-muted-foreground">
+                      Saved context items will appear here.
+                    </p>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+          </div>
         </TabsContent>
 
         <TabsContent value="technologies" className="space-y-4">
@@ -516,42 +1029,32 @@ export default function CapturePage() {
           </Card>
         </TabsContent>
 
-        <TabsContent value="methods" className="space-y-4">
-          <DtMethodsPanel phase="capture" discoveryId={discoveryId} />
-        </TabsContent>
-
         <TabsContent value="transcript" className="space-y-4">
           <Card>
             <CardHeader>
               <CardTitle className="text-base">Paste Transcript</CardTitle>
               <CardDescription>
-                Paste a meeting transcript and the AI will extract evidence, insights, and themes.
+                Paste meeting notes, interview notes, call transcripts, or workshop transcripts as raw context.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
+              <Input
+                value={transcriptSource}
+                onChange={(e) => setTranscriptSource(e.target.value)}
+                placeholder="Source, meeting, speaker, or transcript label"
+              />
               <Textarea
                 value={transcript}
                 onChange={(e) => setTranscript(e.target.value)}
                 placeholder="Paste your meeting transcript here..."
                 rows={8}
               />
-              <Button onClick={analyzeTranscript} disabled={analyzing || !transcript.trim()}>
-                {analyzing ? "Analyzing..." : "Analyze Transcript"}
+              <Button onClick={saveTranscript} disabled={savingTranscript || !transcript.trim()}>
+                {savingTranscript ? "Saving..." : "Save Transcript"}
               </Button>
               {error && <p className="text-sm text-red-500 mt-2">{error}</p>}
             </CardContent>
           </Card>
-        </TabsContent>
-
-        <TabsContent value="analysis" className="space-y-4">
-          {analysisResult && (
-            <TranscriptAnalysisResult
-              result={analysisResult}
-              extractedEvidence={extractedEvidence}
-            />
-          )}
-
-          <PreviousAnalysesList analyses={savedAnalyses} />
         </TabsContent>
       </Tabs>
     </PhaseShell>

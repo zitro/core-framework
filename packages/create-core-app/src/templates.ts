@@ -26,7 +26,9 @@ services:
       - \${PROJECTS_SOURCE:-./projects}:/data/projects:ro
       - ./config/prompts:/data/prompts:ro
       - ./extensions:/data/extensions:ro
-      - backend-storage:/data/storage
+      # Local data folder for persisted state (acts as local backup even when
+      # Azure storage is enabled).
+      - \${LOCAL_DATA_PATH:-./data}:/data/storage
     ports:
       - "8000:8000"
     healthcheck:
@@ -47,9 +49,6 @@ services:
       NEXT_PUBLIC_API_URL: http://localhost:8000
     ports:
       - "3000:3000"
-
-volumes:
-  backend-storage:
 `;
 }
 
@@ -59,6 +58,7 @@ export function envExample(o: ScaffoldOptions): string {
 LLM_PROVIDER=${o.llm}
 STORAGE_PROVIDER=${o.storage}
 AUTH_PROVIDER=${o.auth}
+SPEECH_PROVIDER=${o.speech}
 
 # ─── Azure OpenAI (LLM_PROVIDER=azure) ─────────────────────────────────
 AZURE_OPENAI_ENDPOINT=
@@ -66,9 +66,23 @@ AZURE_OPENAI_API_KEY=
 AZURE_OPENAI_DEPLOYMENT=gpt-4o
 AZURE_OPENAI_API_VERSION=2024-12-01-preview
 
-# ─── OpenAI direct (LLM_PROVIDER=openai) ───────────────────────────────
+# ─── OpenAI-compatible APIs (LLM_PROVIDER=openai) ─────────────────────
+# Works with OpenAI and compatible endpoints (for example OpenRouter, xAI, Gemini compatibility layer).
 OPENAI_API_KEY=
-OPENAI_MODEL=gpt-4o
+OPENAI_MODEL=${o.openaiModel}
+OPENAI_BASE_URL=${o.openaiBaseUrl ?? ""}
+
+# ─── OpenAI-compatible transcription (SPEECH_PROVIDER=openai) ─────────
+# Use any transcription model supported by the selected OpenAI-compatible endpoint.
+# OPENAI_TRANSCRIPTION_API_KEY falls back to OPENAI_API_KEY when blank.
+OPENAI_TRANSCRIPTION_API_KEY=
+OPENAI_TRANSCRIPTION_MODEL=${o.openaiTranscriptionModel}
+OPENAI_TRANSCRIPTION_BASE_URL=${o.openaiTranscriptionBaseUrl ?? ""}
+
+# ─── Azure Speech (SPEECH_PROVIDER=azure) ─────────────────────────────
+AZURE_SPEECH_KEY=
+AZURE_SPEECH_REGION=eastus
+AZURE_SPEECH_RESOURCE_ID=
 
 # ─── Cosmos DB (STORAGE_PROVIDER=azure) ────────────────────────────────
 COSMOS_ENDPOINT=
@@ -89,6 +103,7 @@ CORS_ORIGINS=["http://localhost:3000"]
 # ─── Project + extension mounts ────────────────────────────────────────
 PROJECTS_ROOT=/data/projects
 EXTENSIONS_DIR=/data/extensions
+LOCAL_DATA_PATH=${o.localDataPath}
 `;
 }
 

@@ -90,7 +90,7 @@ async def discovery_websocket(
     """Real-time collaboration channel for a discovery session.
 
     Message types:
-    - phase_change: {"type": "phase_change", "phase": "orient"}
+    - phase_change: {"type": "phase_change", "phase": "orchestrate"}
     - evidence_added: {"type": "evidence_added", "evidence": {...}}
     - cursor: {"type": "cursor", "user": "...", "section": "..."}
     """

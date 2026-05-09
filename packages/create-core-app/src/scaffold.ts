@@ -1,5 +1,5 @@
 import { mkdir, writeFile } from "node:fs/promises";
-import { join } from "node:path";
+import { isAbsolute, join, resolve } from "node:path";
 import {
   composeYaml,
   envExample,
@@ -16,11 +16,19 @@ export interface ScaffoldOptions {
   displayName: string;
   version: string;
   llm: "local" | "azure" | "openai";
+  openaiModel: string;
+  openaiBaseUrl?: string;
+  speech: "none" | "azure" | "openai";
+  openaiTranscriptionModel: string;
+  openaiTranscriptionBaseUrl?: string;
   storage: "local" | "azure";
   auth: "none" | "azure";
   initialProject?: string;
   contentSource: "local" | "engagement-repo" | "custom";
   projectsSource: string;
+  createProjectsSourceFolder?: boolean;
+  localDataPath: string;
+  createLocalDataFolder?: boolean;
 }
 
 /** Write the customer-repo scaffold to disk. */
@@ -36,6 +44,20 @@ export async function scaffold(o: ScaffoldOptions): Promise<void> {
 
   for (const d of dirs) {
     await mkdir(join(o.target, d), { recursive: true });
+  }
+
+  if (o.createProjectsSourceFolder) {
+    const projectsPath = isAbsolute(o.projectsSource)
+      ? o.projectsSource
+      : resolve(o.target, o.projectsSource);
+    await mkdir(projectsPath, { recursive: true });
+  }
+
+  if (o.createLocalDataFolder) {
+    const dataPath = isAbsolute(o.localDataPath)
+      ? o.localDataPath
+      : resolve(o.target, o.localDataPath);
+    await mkdir(dataPath, { recursive: true });
   }
 
   await Promise.all([

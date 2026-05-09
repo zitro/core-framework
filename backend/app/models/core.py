@@ -1,18 +1,36 @@
 from datetime import UTC, datetime
 from enum import StrEnum
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 
 def _utcnow() -> datetime:
     return datetime.now(UTC)
 
 
+def _normalize_confidence(value) -> int:
+    try:
+        confidence = float(value or 0)
+    except (TypeError, ValueError):
+        return 0
+    if 0 < confidence <= 1:
+        confidence *= 100
+    return max(0, min(100, round(confidence)))
+
+
 class CorePhase(StrEnum):
     CAPTURE = "capture"
-    ORIENT = "orient"
+    ORCHESTRATE = "orchestrate"
     REFINE = "refine"
     EXECUTE = "execute"
+
+    @classmethod
+    def _missing_(cls, value):
+        # Backward compatibility for legacy deployments that still emit/use
+        # the old phase label "orient".
+        if isinstance(value, str) and value.lower() == "orient":
+            return cls.ORCHESTRATE
+        return None
 
 
 class DiscoveryMode(StrEnum):
@@ -99,11 +117,36 @@ class ExecuteData(BaseModel):
     handoff_notes: str = ""
 
 
+class ExecuteOutputVersion(BaseModel):
+    id: str = ""
+    project_id: str = ""
+    discovery_id: str
+    output_id: str
+    title: str = ""
+    description: str = ""
+    audience: str = "executive"
+    style: str = "brief"
+    category: str = "stakeholder"
+    version: int = 1
+    headline: str = ""
+    summary: str = ""
+    sections: list[dict[str, str]] = Field(default_factory=list)
+    focus: str = ""
+    context_fingerprint: str = ""
+    context_used: str = ""
+    created_at: datetime = Field(default_factory=_utcnow)
+
+
 class Assumption(BaseModel):
     id: str = ""
     text: str
     risk: str = "medium"  # high, medium, low
     status: str = "untested"  # untested, validated, invalidated
+    certainty: str = "unknown"  # high, medium, low, unknown
+    evidence: str = ""
+    validation_method: str = ""
+    owner: str = ""
+    impact_if_wrong: str = ""
 
 
 class SolutionMatchData(BaseModel):
@@ -116,6 +159,16 @@ class SolutionMatchData(BaseModel):
 class TechnologyTarget(BaseModel):
     name: str
     focus: str = ""
+
+
+class EngagementSourceType(StrEnum):
+    LOCAL_FOLDER = "local_folder"
+    REPOSITORY = "repository"
+
+
+class EngagementSource(BaseModel):
+    type: EngagementSourceType = EngagementSourceType.LOCAL_FOLDER
+    value: str
 
 
 class DiscoveryUpdate(BaseModel):
@@ -133,6 +186,9 @@ class DiscoveryUpdate(BaseModel):
     solution_providers: list[str] | None = None
     target_technologies: list[TechnologyTarget] | None = None
     engagement_repo_path: str | None = None
+    engagement_repo_paths: list[str] | None = None
+    engagement_sources: list[EngagementSource] | None = None
+    project_id: str | None = None
 
 
 class Discovery(BaseModel):
@@ -148,9 +204,11 @@ class Discovery(BaseModel):
     assumptions: list[Assumption] = Field(default_factory=list)
     solution_matches: list[SolutionMatchData] = Field(default_factory=list)
     docs_path: str = ""
-    solution_providers: list[str] = Field(default_factory=lambda: ["Microsoft Azure"])
+    solution_providers: list[str] = Field(default_factory=list)
     target_technologies: list[TechnologyTarget] = Field(default_factory=list)
     engagement_repo_path: str = ""
+    engagement_repo_paths: list[str] = Field(default_factory=list)
+    engagement_sources: list[EngagementSource] = Field(default_factory=list)
     evidence: list[Evidence] = Field(default_factory=list)
     created_by: str = ""
     updated_by: str = ""
@@ -216,6 +274,25 @@ class ProblemStatementVersion(BaseModel):
     created_at: datetime = Field(default_factory=_utcnow)
 
 
+class ContextBriefVersion(BaseModel):
+    id: str = ""
+    project_id: str = ""
+    discovery_id: str
+    version: int = 1
+    title: str = ""
+    summary: str = ""
+    goals: list[str] = Field(default_factory=list)
+    stakeholders: list[str] = Field(default_factory=list)
+    constraints: list[str] = Field(default_factory=list)
+    risks: list[str] = Field(default_factory=list)
+    open_questions: list[str] = Field(default_factory=list)
+    evidence_summary: str = ""
+    user_instructions: str = ""
+    context_used: str = ""
+    context_fingerprint: str = ""
+    created_at: datetime = Field(default_factory=_utcnow)
+
+
 class EvidenceUpdate(BaseModel):
     """Typed update payload for evidence items."""
 
@@ -270,6 +347,118 @@ class SolutionBlueprint(BaseModel):
     target_providers: list[str] = Field(default_factory=list)
     user_instructions: str = ""
     context_used: str = ""
+    created_at: datetime = Field(default_factory=_utcnow)
+
+
+class RefineAgentDefinition(BaseModel):
+    id: str
+    title: str
+    role: str
+    mission: str
+    goal: str = ""
+    review_lens: list[str] = Field(default_factory=list)
+    expected_outputs: list[str] = Field(default_factory=list)
+    signature_questions: list[str] = Field(default_factory=list)
+    work_item_focus: list[str] = Field(default_factory=list)
+
+
+class RefineAgentArtifact(BaseModel):
+    title: str = ""
+    content: str = ""
+    bullets: list[str] = Field(default_factory=list)
+
+
+class RefineWorkItem(BaseModel):
+    title: str = ""
+    owner_role: str = ""
+    priority: str = "medium"
+    rationale: str = ""
+    next_step: str = ""
+
+
+class RefineAgentOpinion(BaseModel):
+    agent_id: str
+    role: str = ""
+    title: str = ""
+    position: str = ""
+    confidence: int = 0
+    strengths: list[str] = Field(default_factory=list)
+    concerns: list[str] = Field(default_factory=list)
+    assumptions: list[str] = Field(default_factory=list)
+    risks: list[str] = Field(default_factory=list)
+    recommendations: list[str] = Field(default_factory=list)
+    questions: list[str] = Field(default_factory=list)
+    work_items: list[RefineWorkItem] = Field(default_factory=list)
+    artifact: RefineAgentArtifact = Field(default_factory=RefineAgentArtifact)
+
+    @field_validator("confidence", mode="before")
+    @classmethod
+    def normalize_confidence(cls, value):
+        return _normalize_confidence(value)
+
+
+class RefineRoundtableTurn(BaseModel):
+    phase: str = ""
+    speaker_id: str = ""
+    speaker: str = ""
+    message: str = ""
+    responds_to: str = ""
+    decision_impact: str = ""
+
+
+class RefineSolutionOption(BaseModel):
+    title: str = ""
+    value: str = ""
+    effort: str = ""
+    risk: str = ""
+    evidence_fit: str = ""
+    tradeoffs: list[str] = Field(default_factory=list)
+
+
+class RefineSynthesis(BaseModel):
+    consensus: list[str] = Field(default_factory=list)
+    disagreements: list[str] = Field(default_factory=list)
+    recommended_direction: str = ""
+    solution_options: list[RefineSolutionOption] = Field(default_factory=list)
+    validation_plan: list[str] = Field(default_factory=list)
+    execute_readiness: str = ""
+    decision_gate: str = "needs_validation"
+    confidence: int = 0
+
+    @field_validator("confidence", mode="before")
+    @classmethod
+    def normalize_confidence(cls, value):
+        return _normalize_confidence(value)
+
+
+class RefineReview(BaseModel):
+    id: str = ""
+    project_id: str = ""
+    discovery_id: str
+    version: int = 1
+    parent_review_id: str = ""
+    trigger_source: str = "manual"
+    agent_ids: list[str] = Field(default_factory=list)
+    opinions: list[RefineAgentOpinion] = Field(default_factory=list)
+    roundtable: list[RefineRoundtableTurn] = Field(default_factory=list)
+    synthesis: RefineSynthesis = Field(default_factory=RefineSynthesis)
+    user_instructions: str = ""
+    context_used: str = ""
+    created_at: datetime = Field(default_factory=_utcnow)
+
+
+class RefineChatMessage(BaseModel):
+    id: str = ""
+    project_id: str = ""
+    discovery_id: str
+    thread_type: str = "group"  # group | agent
+    agent_id: str = ""
+    speaker_id: str = "user"
+    speaker: str = "User"
+    role: str = "user"  # user | agent | system
+    content: str
+    contribution_type: str = ""
+    review_version: int = 0
     created_at: datetime = Field(default_factory=_utcnow)
 
 

@@ -1,7 +1,7 @@
 ---
 title: "Persona: <name>"
 type: persona
-phase: orient
+phase: orchestrate
 date: <yyyy-mm-dd>
 source: CORE Discovery Framework
 ---

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Search, Compass, Lightbulb, Rocket, Plus } from "lucide-react";
+import { Search, Compass, Lightbulb, Rocket, Plus, Pencil, Trash2 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -37,7 +37,16 @@ const PHASE_COLORS = {
 } as const;
 
 export default function DashboardPage() {
-  const { discoveries, loadDiscoveries, createDiscovery, setActiveDiscovery, activeDiscovery, loading } = useDiscovery();
+  const {
+    discoveries,
+    loadDiscoveries,
+    createDiscovery,
+    setActiveDiscovery,
+    updateDiscovery,
+    deleteDiscovery,
+    activeDiscovery,
+    loading,
+  } = useDiscovery();
   const { activeProject } = useProject();
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -46,15 +55,32 @@ export default function DashboardPage() {
   const [mode, setMode] = useState<DiscoveryMode>("standard");
   const [docsPath, setDocsPath] = useState("");
   const [engagementPath, setEngagementPath] = useState("");
+  const [editOpen, setEditOpen] = useState(false);
+  const [editId, setEditId] = useState("");
+  const [editName, setEditName] = useState("");
+  const [editDescription, setEditDescription] = useState("");
+  const [savingEdit, setSavingEdit] = useState(false);
+  const [deletingId, setDeletingId] = useState("");
 
   useEffect(() => {
     if (!activeProject?.id) return;
     loadDiscoveries(activeProject.id).catch(() => {});
   }, [activeProject?.id, loadDiscoveries]);
 
-  const autoOpenFromQuery =
-    typeof window !== "undefined" &&
-    new URLSearchParams(window.location.search).get("newDiscovery") === "1";
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("newDiscovery") === "1") {
+      setOpen(true);
+    }
+
+    const onStartNewDiscovery = () => setOpen(true);
+    window.addEventListener("core:start-new-discovery", onStartNewDiscovery);
+    return () => {
+      window.removeEventListener("core:start-new-discovery", onStartNewDiscovery);
+    };
+  }, []);
 
   const handleOpenChange = (nextOpen: boolean) => {
     setOpen(nextOpen);
@@ -83,6 +109,40 @@ export default function DashboardPage() {
     setOpen(false);
   };
 
+  const handleStartEdit = (id: string, currentName: string, currentDescription: string) => {
+    setEditId(id);
+    setEditName(currentName);
+    setEditDescription(currentDescription);
+    setEditOpen(true);
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editId || !editName.trim()) return;
+    setSavingEdit(true);
+    try {
+      await updateDiscovery(editId, {
+        name: editName.trim(),
+        description: editDescription.trim(),
+      });
+      setEditOpen(false);
+    } finally {
+      setSavingEdit(false);
+    }
+  };
+
+  const handleDelete = async (id: string, discoveryName: string) => {
+    const shouldDelete = window.confirm(
+      `Delete discovery \"${discoveryName}\"? This cannot be undone.`
+    );
+    if (!shouldDelete) return;
+    setDeletingId(id);
+    try {
+      await deleteDiscovery(id);
+    } finally {
+      setDeletingId("");
+    }
+  };
+
   return (
     <div className="p-6 max-w-6xl mx-auto space-y-8">
       <div className="flex items-center justify-between">
@@ -92,7 +152,7 @@ export default function DashboardPage() {
             AI-powered product discovery coaching
           </p>
         </div>
-        <Dialog open={open || autoOpenFromQuery} onOpenChange={handleOpenChange}>
+        <Dialog open={open} onOpenChange={handleOpenChange}>
           <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-lg">
             <DialogHeader>
               <DialogTitle>Start a New Discovery</DialogTitle>
@@ -162,6 +222,42 @@ export default function DashboardPage() {
               </div>
               <Button onClick={handleCreate} disabled={!name.trim() || loading} className="w-full">
                 {loading ? "Creating..." : "Start Discovery"}
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+        <Dialog open={editOpen} onOpenChange={setEditOpen}>
+          <DialogContent className="sm:max-w-lg">
+            <DialogHeader>
+              <DialogTitle>Edit Discovery</DialogTitle>
+              <DialogDescription>
+                Update the discovery name and description.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 pt-2">
+              <div>
+                <label className="text-sm font-medium">Name</label>
+                <Input
+                  value={editName}
+                  onChange={(e) => setEditName(e.target.value)}
+                  placeholder="e.g., Trading Platform Discovery"
+                />
+              </div>
+              <div>
+                <label className="text-sm font-medium">Description</label>
+                <Textarea
+                  value={editDescription}
+                  onChange={(e) => setEditDescription(e.target.value)}
+                  placeholder="What are you trying to discover?"
+                  rows={3}
+                />
+              </div>
+              <Button
+                onClick={handleSaveEdit}
+                disabled={!editName.trim() || savingEdit}
+                className="w-full"
+              >
+                {savingEdit ? "Saving..." : "Save Changes"}
               </Button>
             </div>
           </DialogContent>
@@ -256,11 +352,40 @@ export default function DashboardPage() {
                 >
                   <CardHeader className="pb-2">
                     <div className="flex items-center justify-between">
-                      <CardTitle className="text-base">{d.name}</CardTitle>
-                      <Badge variant="outline" className="flex items-center gap-1">
-                        <PhaseIcon className="h-3 w-3" />
-                        {phaseConfig.label}
-                      </Badge>
+                      <CardTitle className="text-base pr-2">{d.name}</CardTitle>
+                      <div className="flex items-center gap-1">
+                        <Badge variant="outline" className="flex items-center gap-1">
+                          <PhaseIcon className="h-3 w-3" />
+                          {phaseConfig.label}
+                        </Badge>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleStartEdit(d.id, d.name, d.description || "");
+                          }}
+                          aria-label={`Edit ${d.name}`}
+                        >
+                          <Pencil className="h-3.5 w-3.5" />
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 text-destructive hover:text-destructive"
+                          disabled={deletingId === d.id}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            void handleDelete(d.id, d.name);
+                          }}
+                          aria-label={`Delete ${d.name}`}
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
                     </div>
                     <CardDescription className="text-xs">
                       {d.description}

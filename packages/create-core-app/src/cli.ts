@@ -2,7 +2,7 @@
 import { intro, outro, text, select, confirm, isCancel, cancel, spinner, note } from "@clack/prompts";
 import pc from "picocolors";
 import { existsSync } from "node:fs";
-import { resolve } from "node:path";
+import { resolve, isAbsolute } from "node:path";
 import { scaffold } from "./scaffold.js";
 import { LATEST_VERSION } from "./version.js";
 
@@ -28,33 +28,191 @@ async function main(): Promise<void> {
     initialValue: name.charAt(0).toUpperCase() + name.slice(1),
   }));
 
-  const llm = (await prompt(select({
-    message: "LLM provider:",
+  const setupMode = (await prompt(select({
+    message: "Initial setup mode:",
     options: [
-      { value: "local", label: "local (Ollama / dev)", hint: "no Azure required" },
-      { value: "azure", label: "azure (Azure OpenAI)" },
-      { value: "openai", label: "openai (OpenAI direct)" },
+      {
+        value: "local-only",
+        label: "Local-only (no Azure/external services)",
+        hint: "recommended for quick start",
+      },
+      {
+        value: "service-integrated",
+        label: "Service-integrated (configure AI/storage/auth providers)",
+      },
     ],
-    initialValue: "local" as "local" | "azure" | "openai",
-  }))) as "local" | "azure" | "openai";
+    initialValue: "local-only" as "local-only" | "service-integrated",
+  }))) as "local-only" | "service-integrated";
 
-  const storage = (await prompt(select({
-    message: "Storage provider:",
-    options: [
-      { value: "local", label: "local (filesystem JSON)", hint: "no Cosmos required" },
-      { value: "azure", label: "azure (Cosmos DB)" },
-    ],
-    initialValue: "local" as "local" | "azure",
-  }))) as "local" | "azure";
+  let llm: "local" | "azure" | "openai" = "local";
+  let openaiModel = "gpt-4o";
+  let openaiBaseUrl = "";
+  let speech: "none" | "azure" | "openai" = "none";
+  let openaiTranscriptionModel = "gpt-4o-transcribe";
+  let openaiTranscriptionBaseUrl = "";
+  let storage: "local" | "azure" = "local";
+  let auth: "none" | "azure" = "none";
+  let localDataPath = "./data";
+  let createLocalDataFolder = true;
 
-  const auth = (await prompt(select({
-    message: "Auth provider:",
-    options: [
-      { value: "none", label: "none (open)", hint: "local dev" },
-      { value: "azure", label: "azure (Entra ID)" },
-    ],
-    initialValue: "none" as "none" | "azure",
-  }))) as "none" | "azure";
+  if (setupMode === "local-only") {
+    note(
+      [
+        "Using local defaults:",
+        "- LLM_PROVIDER=local",
+        "- STORAGE_PROVIDER=local",
+        "- AUTH_PROVIDER=none",
+        "- SPEECH_PROVIDER=none",
+      ].join("\n"),
+      "Local-only profile",
+    );
+  } else {
+    llm = (await prompt(select({
+      message: "AI provider:",
+      options: [
+        { value: "local", label: "local (Ollama / dev)", hint: "no Azure required" },
+        { value: "azure", label: "azure (Azure OpenAI)" },
+        { value: "openai", label: "openai-compatible API", hint: "OpenAI, Claude, Gemini, Grok, or custom endpoint" },
+      ],
+      initialValue: "azure" as "local" | "azure" | "openai",
+    }))) as "local" | "azure" | "openai";
+
+    if (llm === "openai") {
+      const llmPreset = (await prompt(select({
+        message: "Select model family:",
+        options: [
+          { value: "openai", label: "OpenAI", hint: "api.openai.com" },
+          { value: "claude", label: "Claude", hint: "via OpenRouter-compatible endpoint" },
+          { value: "gemini", label: "Gemini", hint: "via Gemini OpenAI compatibility endpoint" },
+          { value: "grok", label: "Grok", hint: "xAI endpoint" },
+          { value: "custom", label: "Custom", hint: "any OpenAI-compatible provider" },
+        ],
+        initialValue: "openai" as "openai" | "claude" | "gemini" | "grok" | "custom",
+      }))) as "openai" | "claude" | "gemini" | "grok" | "custom";
+
+      if (llmPreset === "openai") {
+        openaiModel = "gpt-4o";
+        openaiBaseUrl = "";
+      } else if (llmPreset === "claude") {
+        openaiModel = "anthropic/claude-3.5-sonnet";
+        openaiBaseUrl = "https://openrouter.ai/api/v1";
+      } else if (llmPreset === "gemini") {
+        openaiModel = "gemini-1.5-pro";
+        openaiBaseUrl = "https://generativelanguage.googleapis.com/v1beta/openai";
+      } else if (llmPreset === "grok") {
+        openaiModel = "grok-2-latest";
+        openaiBaseUrl = "https://api.x.ai/v1";
+      }
+
+      openaiModel = (await prompt(text({
+        message: "Model ID:",
+        placeholder: openaiModel,
+        initialValue: openaiModel,
+        validate: (v) => (!v ? "Model ID required" : undefined),
+      }))) as string;
+
+      openaiBaseUrl = (await prompt(text({
+        message: "Base URL (blank for OpenAI default):",
+        placeholder: "https://api.openai.com/v1",
+        initialValue: openaiBaseUrl,
+      }))) as string;
+    }
+
+    speech = (await prompt(select({
+      message: "Speech transcription provider:",
+      options: [
+        { value: "none", label: "none", hint: "recordings save as media evidence without transcription" },
+        { value: "azure", label: "azure (Azure Speech)", hint: "recommended for Azure-integrated deployments" },
+        { value: "openai", label: "openai-compatible", hint: "choose any transcription model/endpoint" },
+      ],
+      initialValue: "none" as "none" | "azure" | "openai",
+    }))) as "none" | "azure" | "openai";
+
+    if (speech === "openai") {
+      openaiTranscriptionModel = (await prompt(text({
+        message: "Transcription model ID:",
+        placeholder: openaiTranscriptionModel,
+        initialValue: openaiTranscriptionModel,
+        validate: (v) => (!v ? "Transcription model ID required" : undefined),
+      }))) as string;
+
+      openaiTranscriptionBaseUrl = (await prompt(text({
+        message: "Transcription base URL (blank for OpenAI default):",
+        placeholder: "https://api.openai.com/v1",
+        initialValue: openaiTranscriptionBaseUrl,
+      }))) as string;
+    }
+
+    storage = (await prompt(select({
+      message: "Storage provider:",
+      options: [
+        { value: "local", label: "local (filesystem JSON)", hint: "no Cosmos required" },
+        { value: "azure", label: "azure (Cosmos DB)" },
+      ],
+      initialValue: "azure" as "local" | "azure",
+    }))) as "local" | "azure";
+
+    auth = (await prompt(select({
+      message: "Auth provider:",
+      options: [
+        { value: "none", label: "none (open)", hint: "local dev" },
+        { value: "azure", label: "azure (Entra ID)" },
+      ],
+      initialValue: "none" as "none" | "azure",
+    }))) as "none" | "azure";
+
+    const setupBackupFolder = await prompt(confirm({
+      message: "Set up a local backup storage folder (recommended)?",
+      initialValue: true,
+    }));
+
+    if (setupBackupFolder) {
+      localDataPath = await prompt(text({
+        message: "Local backup storage folder path:",
+        placeholder: "./data",
+        initialValue: "./data",
+        validate: (v) => (!v ? "Path required" : undefined),
+      }));
+
+      const resolvedLocalDataPath = isAbsolute(localDataPath)
+        ? localDataPath
+        : resolve(target, localDataPath);
+      const confirmBackupFolderPath = await prompt(confirm({
+        message: `Use local backup storage folder ${pc.bold(resolvedLocalDataPath)}?`,
+        initialValue: true,
+      }));
+      if (!confirmBackupFolderPath) {
+        cancel("Aborted.");
+        process.exit(0);
+      }
+
+      createLocalDataFolder = true;
+    } else {
+      createLocalDataFolder = false;
+    }
+  }
+
+  if (setupMode === "local-only") {
+    localDataPath = await prompt(text({
+      message: "Local storage folder path:",
+      placeholder: "./data",
+      initialValue: "./data",
+      validate: (v) => (!v ? "Path required" : undefined),
+    }));
+
+    const resolvedLocalDataPath = isAbsolute(localDataPath)
+      ? localDataPath
+      : resolve(target, localDataPath);
+    const confirmLocalDataPath = await prompt(confirm({
+      message: `Use local storage folder ${pc.bold(resolvedLocalDataPath)}?`,
+      initialValue: true,
+    }));
+    if (!confirmLocalDataPath) {
+      cancel("Aborted.");
+      process.exit(0);
+    }
+    createLocalDataFolder = true;
+  }
 
   const version = await prompt(text({
     message: "Pin to framework version:",
@@ -68,25 +226,62 @@ async function main(): Promise<void> {
     initialValue: "",
   }));
 
-  const contentSource = (await prompt(select({
-    message: "Where will this customer's content live?",
-    options: [
-      { value: "local", label: "local folder in this repo (./projects)", hint: "default — drop markdown right here" },
-      { value: "engagement-repo", label: "engagement-repo repo (sibling clone of org/<customer>)", hint: "git-backed shared notes" },
-      { value: "custom", label: "custom host path (any folder of markdown)" },
-    ],
-    initialValue: "local" as "local" | "engagement-repo" | "custom",
-  }))) as "local" | "engagement-repo" | "custom";
-
+  let contentSource: "local" | "engagement-repo" | "custom" = "local";
   let projectsSource = "./projects";
-  if (contentSource === "engagement-repo") {
-    projectsSource = `../${name}/${name}`;
-  } else if (contentSource === "custom") {
-    projectsSource = (await prompt(text({
-      message: "Host path to mount as /data/projects (absolute or relative to this repo):",
-      placeholder: "../my-customer-content",
-      validate: (v) => (!v ? "Path required" : undefined),
-    }))) as string;
+  let createProjectsSourceFolder = false;
+
+  if (setupMode === "local-only") {
+    const createFolder = await prompt(confirm({
+      message: "Create a local content folder now for this instance?",
+      initialValue: true,
+    }));
+
+    if (createFolder) {
+      projectsSource = await prompt(text({
+        message: "Local content folder path (mounted as /data/projects):",
+        placeholder: "./projects",
+        initialValue: "./projects",
+        validate: (v) => (!v ? "Path required" : undefined),
+      }));
+
+      const resolvedProjectsSource = isAbsolute(projectsSource)
+        ? projectsSource
+        : resolve(target, projectsSource);
+      const confirmFolderPath = await prompt(confirm({
+        message: `Create local content folder at ${pc.bold(resolvedProjectsSource)}?`,
+        initialValue: true,
+      }));
+      if (!confirmFolderPath) {
+        cancel("Aborted.");
+        process.exit(0);
+      }
+
+      createProjectsSourceFolder = true;
+      contentSource = projectsSource === "./projects" ? "local" : "custom";
+    } else {
+      contentSource = "local";
+      projectsSource = "./projects";
+    }
+  } else {
+    contentSource = (await prompt(select({
+      message: "Where will this customer's content live?",
+      options: [
+        { value: "local", label: "local folder in this repo (./projects)", hint: "default — drop markdown right here" },
+        { value: "engagement-repo", label: "engagement-repo repo (sibling clone of org/<customer>)", hint: "git-backed shared notes" },
+        { value: "custom", label: "custom host path (any folder of markdown)" },
+      ],
+      initialValue: "local" as "local" | "engagement-repo" | "custom",
+    }))) as "local" | "engagement-repo" | "custom";
+
+    if (contentSource === "engagement-repo") {
+      projectsSource = `../${name}/${name}`;
+    } else if (contentSource === "custom") {
+      projectsSource = (await prompt(text({
+        message: "Host path to mount as /data/projects (absolute or relative to this repo):",
+        placeholder: "../my-customer-content",
+        validate: (v) => (!v ? "Path required" : undefined),
+      }))) as string;
+    }
   }
 
   const proceed = await prompt(confirm({
@@ -107,9 +302,17 @@ async function main(): Promise<void> {
       displayName: displayName as string,
       version: version as string,
       llm, storage, auth,
+      openaiModel,
+      openaiBaseUrl,
+      speech,
+      openaiTranscriptionModel,
+      openaiTranscriptionBaseUrl,
       initialProject: (initialProject as string).trim() || undefined,
       contentSource,
       projectsSource,
+      createProjectsSourceFolder,
+      localDataPath,
+      createLocalDataFolder,
     });
     s.stop("Scaffolded ✔");
   } catch (err) {

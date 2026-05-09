@@ -28,7 +28,4 @@ services:
       - AZURE_OPENAI_DEPLOYMENT=${AZURE_OPENAI_DEPLOYMENT:-gpt-4o}
       - CORS_ORIGINS=["http://localhost:3000"]
     volumes:
-      - backend-data:/app/data
-
-volumes:
-  backend-data:
+      - ${BACKEND_DATA_PATH:-./backend/data}:/app/data

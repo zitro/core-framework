@@ -45,6 +45,7 @@ export function SolutionArchitect({ discoveryId, providers }: SolutionArchitectP
   };
 
   const latest = versions.length > 0 ? versions[versions.length - 1] : null;
+  const providerLabel = providers.length > 0 ? providers.join(", ") : "the configured project providers";
 
   return (
     <div className="space-y-4">
@@ -55,9 +56,8 @@ export function SolutionArchitect({ discoveryId, providers }: SolutionArchitectP
             Solution Architect
           </CardTitle>
           <CardDescription>
-            AI proposes a technical solution using{" "}
-            <span className="font-medium">{providers.join(", ")}</span> services,
-            including architecture, quick wins, and follow-up questions.
+            Generate a candidate blueprint from the refined recommendation using{" "}
+            <span className="font-medium">{providerLabel}</span>. Execute turns the final direction into docs, decks, and updates.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">

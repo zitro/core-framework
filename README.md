@@ -431,7 +431,7 @@ core-framework/
 │   ├── app/                      # App router pages
 │   │   ├── page.tsx              # Dashboard: create and select discoveries
 │   │   ├── capture/page.tsx      # Question generation + transcript analysis
-│   │   ├── orient/page.tsx       # Sensemaking + problem statement builder
+│   │   ├── orchestrate/page.tsx  # Orchestrate + problem statement builder
 │   │   ├── refine/page.tsx       # Assumption tracker + solution matcher
 │   │   ├── execute/page.tsx      # Quick wins, blockers, handoff
 │   │   ├── discoveries/page.tsx  # Browse all past discoveries
@@ -439,7 +439,7 @@ core-framework/
 │   ├── components/               # Shared and feature components
 │   │   ├── layout/               # Sidebar, header, theme toggle, phase shell
 │   │   ├── capture/              # TranscriptResults
-│   │   ├── orient/               # ProblemStatementBuilder, UseCaseBuilder
+│   │   ├── orchestrate/          # ProblemStatementBuilder, UseCaseBuilder
 │   │   ├── refine/               # AssumptionTracker, SolutionArchitect, SolutionMatcher
 │   │   ├── execute/              # QuickWinTracker, BlockerList, HandoffPanel
 │   │   ├── settings/             # DocsPathConfig, EngagementConfig

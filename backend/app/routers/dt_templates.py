@@ -33,17 +33,17 @@ _CATALOG: dict[str, dict[str, str]] = {
     },
     "persona": {
         "title": "Persona",
-        "phase": "orient",
+        "phase": "orchestrate",
         "filename": "persona.md",
     },
     "journey-map": {
         "title": "Journey Map",
-        "phase": "orient",
+        "phase": "orchestrate",
         "filename": "journey-map.md",
     },
     "hmw-board": {
         "title": "How Might We Board",
-        "phase": "orient",
+        "phase": "orchestrate",
         "filename": "hmw-board.md",
     },
     "assumption-matrix": {

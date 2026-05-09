@@ -23,7 +23,7 @@ router = APIRouter(dependencies=[Depends(get_current_user)])
 TRANSCRIPT_SYSTEM_PROMPT = """You are an expert product discovery analyst using the CORE framework.
 Analyze this meeting transcript and extract:
 1. Key insights (with confidence levels: validated, assumed, unknown, conflicting)
-2. Evidence items that map to CORE phases (capture, orient, refine, execute)
+2. Evidence items that map to CORE phases (capture, orchestrate, refine, execute)
 3. Sentiment indicators for stakeholder engagement
 4. Key themes and patterns
 
@@ -31,7 +31,7 @@ Return JSON with format:
 {
   "insights": [
     {"text": "...", "confidence": "validated|assumed|unknown|conflicting",
-     "phase": "capture|orient|refine|execute"}
+         "phase": "capture|orchestrate|refine|execute"}
   ],
   "evidence": [
     {"content": "...", "source": "transcript",

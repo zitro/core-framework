@@ -33,7 +33,7 @@ def test_websocket_connect_and_message():
             assert msg1["active_users"] == 2
 
             # ws1 sends a message, ws2 should receive it
-            ws1.send_json({"type": "phase_change", "phase": "orient"})
+            ws1.send_json({"type": "phase_change", "phase": "orchestrate"})
             msg2 = ws2.receive_json()
             assert msg2["type"] == "phase_change"
-            assert msg2["phase"] == "orient"
+            assert msg2["phase"] == "orchestrate"

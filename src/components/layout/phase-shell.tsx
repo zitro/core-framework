@@ -26,33 +26,33 @@ const PHASE_GUIDANCE: Record<CorePhase, { heading: string; steps: string[] }> = 
   capture: {
     heading: "Gather raw evidence before forming opinions",
     steps: [
-      "Paste a meeting transcript — AI extracts evidence, themes, and insights",
-      "Generate discovery questions tailored to your engagement context",
+      "Paste transcripts and notes as raw context before interpretation",
+      "Attach source material, links, files, recordings, and context fragments",
       "Add evidence manually as you go — it carries forward to Orchestrate",
     ],
   },
   orchestrate: {
-    heading: "Synthesize evidence and frame the real problem",
+    heading: "Turn Capture intake into working understanding",
     steps: [
-      "Review synthesis questions to expose patterns and unknowns from Capture",
-      "Draft a shared problem frame with constraints, approvals, and environment realities",
-      "Convert synthesis into a clear problem statement and actionable use case",
+      "Start with the AI project brief to distill what is known so far",
+      "Resolve synthesis questions to expose patterns, unknowns, and decisions needed",
+      "Draft the problem frame and use case that should move forward into Refine",
     ],
   },
   refine: {
-    heading: "Test assumptions and match solutions to evidence",
+    heading: "Strengthen the recommendation with expert review",
     steps: [
-      "List your assumptions — rate risk and track validation status",
-      "Run the Solution Matcher: AI maps your problem to known capabilities",
-      "Generate refine questions to guide assumption testing sessions",
+      "Start from the Orchestrate handoff — problem, use case, evidence, and open questions",
+      "Run one advisor or the full expert board to pressure-test the direction",
+      "Move surfaced assumptions into validation before preparing Execute outputs",
     ],
   },
   execute: {
-    heading: "Deliver a quick win and prepare the handoff",
+    heading: "Package validated work into final artifacts",
     steps: [
-      "Define quick wins — small, high-impact deliverables",
-      "Track blockers and their resolutions",
-      "Write handoff notes for the implementation team",
+      "Generate final reports, decks, summaries, update emails, and handoff packages",
+      "Turn the Refine recommendation into stakeholder-ready communication",
+      "Track actions, blockers, owners, and follow-up commitments",
     ],
   },
 };

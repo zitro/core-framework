@@ -66,6 +66,7 @@ def create_app() -> FastAPI:
         agents,
         audit,
         blueprints,
+        context_briefs,
         discovery,
         docs,
         dt_templates,
@@ -73,14 +74,17 @@ def create_app() -> FastAPI:
         engagement,
         engagements,
         evidence,
+        execute_outputs,
         export,
         graph,
+        github_auth,
         grounding,
         me,
         narrative,
         problem_statements,
         projects,
         questions,
+        refine,
         realtime,
         reviews,
         search,
@@ -141,8 +145,14 @@ def create_app() -> FastAPI:
 
     app.include_router(discovery.router, prefix="/api/discovery", tags=["discovery"])
     app.include_router(questions.router, prefix="/api/questions", tags=["questions"])
+    app.include_router(refine.router, prefix="/api/refine", tags=["refine"])
     app.include_router(transcripts.router, prefix="/api/transcripts", tags=["transcripts"])
     app.include_router(evidence.router, prefix="/api/evidence", tags=["evidence"])
+    app.include_router(
+        context_briefs.router,
+        prefix="/api/context-briefs",
+        tags=["context-briefs"],
+    )
     app.include_router(
         problem_statements.router,
         prefix="/api/problem-statements",
@@ -164,6 +174,7 @@ def create_app() -> FastAPI:
     app.include_router(engagement.router, prefix="/api/engagement", tags=["engagement"])
     app.include_router(search.router, prefix="/api", tags=["search"])
     app.include_router(narrative.router, prefix="/api/narrative", tags=["narrative"])
+    app.include_router(execute_outputs.router, prefix="/api/execute-outputs", tags=["execute-outputs"])
     app.include_router(agents.router, prefix="/api/agents", tags=["agents"])
     app.include_router(dt_templates.router, prefix="/api/dt-templates", tags=["dt-templates"])
     app.include_router(me.router, prefix="/api/me", tags=["me"])
@@ -174,6 +185,7 @@ def create_app() -> FastAPI:
     app.include_router(dynamics.router, prefix="/api/dynamics", tags=["dynamics"])
     app.include_router(grounding.router, prefix="/api/grounding", tags=["grounding"])
     app.include_router(audit.router, prefix="/api/audit", tags=["audit"])
+    app.include_router(github_auth.router, prefix="/api/github", tags=["github"])
 
     from app.utils.telemetry import configure_telemetry
 

@@ -52,7 +52,7 @@ class ProblemAnalyst(BaseAgent):
             "affected, what they need, root cause, and measurable impact."
         ),
         icon="Target",
-        phase="orient",
+        phase="orchestrate",
         expertise=[
             "problem framing",
             "root cause analysis",

@@ -3,6 +3,13 @@ import { toast } from "sonner";
 export const API_URL =
   process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
+// Parse timeout from environment, ensure it's at least 5 seconds (5000ms)
+const parsedTimeout = Number(process.env.NEXT_PUBLIC_API_TIMEOUT_MS || "30000");
+const API_TIMEOUT_MS = Math.max(
+  Number.isFinite(parsedTimeout) ? parsedTimeout : 30000,
+  5000
+);
+
 type TokenGetter = (opts?: { forceRefresh?: boolean }) => Promise<string | null>;
 
 let activeProjectId: string | null = null;
@@ -14,6 +21,35 @@ export function setActiveProjectId(id: string | null): void {
 
 export function getActiveProjectId(): string | null {
   return activeProjectId;
+}
+
+function normalizeErrorDetail(detail: unknown): string {
+  if (typeof detail === "string" && detail.trim()) return detail;
+  if (Array.isArray(detail)) {
+    const parts = detail
+      .map((item) => {
+        if (typeof item === "string") return item;
+        if (item && typeof item === "object" && "msg" in item) {
+          const msg = (item as { msg?: unknown }).msg;
+          return typeof msg === "string" ? msg : "";
+        }
+        return "";
+      })
+      .filter((value) => value.length > 0);
+    if (parts.length > 0) return parts.join("; ");
+  }
+  if (detail && typeof detail === "object") {
+    if ("msg" in detail) {
+      const msg = (detail as { msg?: unknown }).msg;
+      if (typeof msg === "string" && msg.trim()) return msg;
+    }
+    try {
+      return JSON.stringify(detail);
+    } catch {
+      return "API request failed";
+    }
+  }
+  return "API request failed";
 }
 
 function projectHeader(): Record<string, string> {
@@ -55,16 +91,29 @@ async function fetchWithAuth(
   options: RequestInit | undefined,
   forceRefresh: boolean,
 ): Promise<Response> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), API_TIMEOUT_MS);
   const auth = await authHeader({ forceRefresh });
-  return fetch(`${API_URL}${path}`, {
-    headers: {
-      "Content-Type": "application/json",
-      ...auth,
-      ...projectHeader(),
-      ...options?.headers,
-    },
-    ...options,
-  });
+  try {
+    return await fetch(`${API_URL}${path}`, {
+      credentials: "include",
+      headers: {
+        "Content-Type": "application/json",
+        ...auth,
+        ...projectHeader(),
+        ...options?.headers,
+      },
+      signal: controller.signal,
+      ...options,
+    });
+  } catch (error) {
+    if (error instanceof DOMException && error.name === "AbortError") {
+      throw new Error(`Request timed out after ${API_TIMEOUT_MS}ms`);
+    }
+    throw error;
+  } finally {
+    clearTimeout(timeout);
+  }
 }
 
 export async function request<T>(
@@ -81,7 +130,7 @@ export async function request<T>(
   }
   if (!res.ok) {
     const error = await res.json().catch(() => ({ detail: res.statusText }));
-    const message = error.detail || "API request failed";
+    const message = normalizeErrorDetail(error.detail);
     if (res.status !== 401) toast.error(message);
     throw new Error(message);
   }

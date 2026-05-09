@@ -15,16 +15,21 @@ class AzureOpenAIProvider(LLMProvider):
                 api_version=settings.azure_openai_api_version,
             )
         else:
-            from azure.identity import DefaultAzureCredential, get_bearer_token_provider
+            from azure.identity.aio import DefaultAzureCredential
 
             credential = DefaultAzureCredential()
-            token_provider = get_bearer_token_provider(
-                credential, "https://cognitiveservices.azure.com/.default"
-            )
+
+            async def token_provider() -> str:
+                token = await credential.get_token(
+                    "https://cognitiveservices.azure.com/.default"
+                )
+                return token.token
+
             self.client = AsyncAzureOpenAI(
                 azure_endpoint=settings.azure_openai_endpoint,
                 azure_ad_token_provider=token_provider,
                 api_version=settings.azure_openai_api_version,
+                _enforce_credentials=False,
             )
         self.deployment = settings.azure_openai_deployment
 

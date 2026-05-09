@@ -33,6 +33,11 @@ SUPPORTED_EXTENSIONS = {
     ".md",
     ".markdown",
     ".txt",
+    ".csv",
+    ".json",
+    ".log",
+    ".yaml",
+    ".yml",
 }
 
 
@@ -165,6 +170,11 @@ _EXTRACTORS = {
     ".md": _extract_text,
     ".markdown": _extract_text,
     ".txt": _extract_text,
+    ".csv": _extract_text,
+    ".json": _extract_text,
+    ".log": _extract_text,
+    ".yaml": _extract_text,
+    ".yml": _extract_text,
 }
 
 

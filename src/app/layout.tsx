@@ -9,6 +9,7 @@ import { AuthProvider } from "@/stores/auth-context";
 import { ThemeProvider } from "@/components/layout/theme-provider";
 import { AppSidebar } from "@/components/layout/app-sidebar";
 import { AppHeader } from "@/components/layout/app-header";
+import { ProjectBootstrap } from "@/components/layout/project-bootstrap";
 import "./globals.css";
 import "highlight.js/styles/github-dark.min.css";
 
@@ -24,7 +25,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "CORE Discovery",
-  description: "AI-powered product discovery coaching — Capture, Orient, Refine, Execute",
+  description: "AI-powered product discovery coaching — Capture, Orchestrate, Refine, Execute",
 };
 
 export default function RootLayout({
@@ -41,8 +42,9 @@ export default function RootLayout({
       <body className="min-h-full flex flex-col">
         <ThemeProvider>
           <AuthProvider>
-            <DiscoveryProvider>
-              <ProjectProvider>
+            <ProjectProvider>
+              <DiscoveryProvider>
+                <ProjectBootstrap />
                 <TooltipProvider>
                   <SidebarProvider>
                     <AppSidebar />
@@ -55,8 +57,8 @@ export default function RootLayout({
                   </SidebarProvider>
                 </TooltipProvider>
                 <Toaster richColors position="bottom-right" />
-              </ProjectProvider>
-            </DiscoveryProvider>
+              </DiscoveryProvider>
+            </ProjectProvider>
           </AuthProvider>
         </ThemeProvider>
       </body>

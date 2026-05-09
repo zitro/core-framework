@@ -1,71 +1,72 @@
 "use client";
 
 import { useState } from "react";
-import { CheckCircle2, XCircle } from "lucide-react";
+import { CheckCircle2, ClipboardCheck, XCircle } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
-import { Separator } from "@/components/ui/separator";
 import type { Assumption } from "@/types/core";
 
 const riskColor = { high: "text-red-500", medium: "text-amber-500", low: "text-emerald-500" };
 const riskBg = { high: "bg-red-500/10", medium: "bg-amber-500/10", low: "bg-emerald-500/10" };
+type CertaintyLevel = NonNullable<Assumption["certainty"]>;
 
 interface AssumptionTrackerProps {
   assumptions: Assumption[];
   onAssumptionsChange: (assumptions: Assumption[]) => void;
-  context: string;
-  onContextChange: (value: string) => void;
-  generating: boolean;
-  onGenerate: () => void;
-  error: string | null;
-  questions: { text: string; purpose: string; follow_ups: string[] }[];
 }
 
 export function AssumptionTracker({
   assumptions,
   onAssumptionsChange,
-  context,
-  onContextChange,
-  generating,
-  onGenerate,
-  error,
-  questions,
 }: AssumptionTrackerProps) {
   const [newAssumption, setNewAssumption] = useState("");
   const [newRisk, setNewRisk] = useState<"high" | "medium" | "low">("medium");
+  const [newCertainty, setNewCertainty] = useState<CertaintyLevel>("unknown");
 
   const addAssumption = () => {
     if (!newAssumption.trim()) return;
     const updated = [
       ...assumptions,
-      { id: crypto.randomUUID(), text: newAssumption, risk: newRisk, status: "untested" as const },
+      {
+        id: crypto.randomUUID(),
+        text: newAssumption,
+        risk: newRisk,
+        status: "untested" as const,
+        certainty: newCertainty,
+        evidence: "",
+        validation_method: "",
+        owner: "",
+        impact_if_wrong: "",
+      },
     ];
     onAssumptionsChange(updated);
     setNewAssumption("");
   };
 
-  const updateAssumption = (id: string, status: Assumption["status"]) => {
-    const updated = assumptions.map((a) => (a.id === id ? { ...a, status } : a));
+  const updateAssumption = (id: string, patch: Partial<Assumption>) => {
+    const updated = assumptions.map((a) => (a.id === id ? { ...a, ...patch } : a));
     onAssumptionsChange(updated);
   };
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-base">Assumption Tracker</CardTitle>
+        <CardTitle className="text-base flex items-center gap-2">
+          <ClipboardCheck className="h-4 w-4 text-emerald-500" />
+          Assumption Validation Tracker
+        </CardTitle>
         <CardDescription>
-          List your assumptions, rank by risk, and track validation status.
+          Track what the expert panel says must be proven before Execute turns the recommendation into final artifacts.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="flex gap-2">
+        <div className="grid gap-2 md:grid-cols-[1fr_120px_140px_auto]">
           <Input
             value={newAssumption}
             onChange={(e) => setNewAssumption(e.target.value)}
-            placeholder="e.g., Traders will adopt a unified portfolio dashboard"
+            placeholder="e.g., Users will trust an AI-generated recommendation if the evidence trail is visible"
             className="flex-1"
             onKeyDown={(e) => e.key === "Enter" && addAssumption()}
           />
@@ -79,6 +80,17 @@ export function AssumptionTracker({
             <option value="medium">Medium</option>
             <option value="low">Low</option>
           </select>
+          <select
+            value={newCertainty}
+            onChange={(e) => setNewCertainty(e.target.value as CertaintyLevel)}
+            className="rounded-md border px-3 text-sm"
+            title="Certainty level"
+          >
+            <option value="unknown">Unknown certainty</option>
+            <option value="low">Low certainty</option>
+            <option value="medium">Medium certainty</option>
+            <option value="high">High certainty</option>
+          </select>
           <Button onClick={addAssumption} size="sm">Add</Button>
         </div>
 
@@ -87,70 +99,59 @@ export function AssumptionTracker({
             {[...assumptions]
               .sort((a, b) => ({ high: 0, medium: 1, low: 2 }[a.risk] - { high: 0, medium: 1, low: 2 }[b.risk]))
               .map((a) => (
-                <div key={a.id} className="flex items-center gap-3 p-3 rounded-lg border">
-                  <Badge variant="outline" className={`${riskBg[a.risk]} ${riskColor[a.risk]} border-0`}>
-                    {a.risk}
-                  </Badge>
-                  <span className="text-sm flex-1">{a.text}</span>
-                  <div className="flex gap-1">
-                    <Button
-                      size="icon"
-                      variant={a.status === "validated" ? "default" : "ghost"}
-                      className="h-7 w-7"
-                      onClick={() => updateAssumption(a.id, "validated")}
-                      title="Validated"
-                    >
-                      <CheckCircle2 className="h-3.5 w-3.5" />
-                    </Button>
-                    <Button
-                      size="icon"
-                      variant={a.status === "invalidated" ? "destructive" : "ghost"}
-                      className="h-7 w-7"
-                      onClick={() => updateAssumption(a.id, "invalidated")}
-                      title="Invalidated"
-                    >
-                      <XCircle className="h-3.5 w-3.5" />
-                    </Button>
+                <div key={a.id} className="rounded-lg border p-3 space-y-3">
+                  <div className="flex items-start gap-3">
+                    <Badge variant="outline" className={`${riskBg[a.risk]} ${riskColor[a.risk]} border-0 shrink-0`}>
+                      {a.risk} risk
+                    </Badge>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium">{a.text}</p>
+                      <div className="flex flex-wrap gap-1.5 mt-2">
+                        <Badge variant="secondary" className="text-[10px]">{a.status}</Badge>
+                        <Badge variant="outline" className="text-[10px]">{a.certainty || "unknown"} certainty</Badge>
+                      </div>
+                    </div>
+                    <div className="flex gap-1 shrink-0">
+                      <Button
+                        size="icon"
+                        variant={a.status === "validated" ? "default" : "ghost"}
+                        className="h-7 w-7"
+                        onClick={() => updateAssumption(a.id, { status: "validated" })}
+                        title="Validated"
+                      >
+                        <CheckCircle2 className="h-3.5 w-3.5" />
+                      </Button>
+                      <Button
+                        size="icon"
+                        variant={a.status === "invalidated" ? "destructive" : "ghost"}
+                        className="h-7 w-7"
+                        onClick={() => updateAssumption(a.id, { status: "invalidated" })}
+                        title="Invalidated"
+                      >
+                        <XCircle className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                  </div>
+                  <div className="grid gap-2 md:grid-cols-2">
+                    <InlineField label="Evidence" value={a.evidence || ""} onChange={(value) => updateAssumption(a.id, { evidence: value })} />
+                    <InlineField label="Validation method" value={a.validation_method || ""} onChange={(value) => updateAssumption(a.id, { validation_method: value })} />
+                    <InlineField label="Owner" value={a.owner || ""} onChange={(value) => updateAssumption(a.id, { owner: value })} />
+                    <InlineField label="Impact if wrong" value={a.impact_if_wrong || ""} onChange={(value) => updateAssumption(a.id, { impact_if_wrong: value })} />
                   </div>
                 </div>
               ))}
           </div>
         )}
-
-        <Separator />
-
-        <div>
-          <p className="text-sm font-medium mb-2">Generate Refine Questions</p>
-          <Textarea
-            value={context}
-            onChange={(e) => onContextChange(e.target.value)}
-            placeholder="Describe your current solution direction and key assumptions..."
-            rows={3}
-          />
-          <Button onClick={onGenerate} disabled={generating} className="mt-2">
-            {generating ? "Generating..." : "Generate Questions"}
-          </Button>
-          {error && <p className="text-sm text-red-500 mt-2">{error}</p>}
-        </div>
-
-        {questions.length > 0 && (
-          <div className="space-y-2 mt-4">
-            {questions.map((q, i) => (
-              <div key={i} className="flex items-start gap-3 p-3 rounded-lg border hover:bg-muted/50 transition-colors cursor-pointer"
-                onClick={() => navigator.clipboard.writeText(q.text)}
-              >
-                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-600 text-xs font-medium">
-                  {i + 1}
-                </span>
-                <div>
-                  <p className="text-sm font-medium">{q.text}</p>
-                  <p className="text-xs text-muted-foreground mt-1">Purpose: {q.purpose}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
       </CardContent>
     </Card>
+  );
+}
+
+function InlineField({ label, value, onChange }: { label: string; value: string; onChange: (value: string) => void }) {
+  return (
+    <div className="space-y-1">
+      <label className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">{label}</label>
+      <Input value={value} onChange={(e) => onChange(e.target.value)} placeholder={label} />
+    </div>
   );
 }

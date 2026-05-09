@@ -1,5 +1,6 @@
 import type {
   Discovery,
+  ContextBriefVersion,
   Evidence,
   ProblemStatementVersion,
   QuestionSet,
@@ -8,6 +9,10 @@ import type {
   SolutionMatchResult,
   UseCaseVersion,
   SolutionBlueprint,
+  ExecuteOutputVersion,
+  RefineAgentDefinition,
+  RefineChatMessage,
+  RefineReview,
   EngagementScanResult,
   EngagementExportResult,
   EngagementContentResult,
@@ -17,7 +22,12 @@ import type {
   EngagementPublishResult,
 } from "@/types/core";
 import { toast } from "sonner";
-import { API_URL, authHeader, request } from "@/lib/http";
+import { API_URL, authHeader, getActiveProjectId, request } from "@/lib/http";
+
+function toBackendPhase(phase?: CorePhase): string | undefined {
+  if (!phase) return undefined;
+  return phase === "orchestrate" ? "orient" : phase;
+}
 
 export const api = {
   // Health
@@ -66,7 +76,7 @@ export const api = {
   questions: {
     list: (discoveryId: string, phase?: CorePhase) =>
       request<QuestionSet[]>(
-        `/api/questions/${discoveryId}${phase ? `?phase=${phase}` : ""}`
+        `/api/questions/${discoveryId}${phase ? `?phase=${toBackendPhase(phase)}` : ""}`
       ),
     generate: (data: {
       discovery_id: string;
@@ -76,7 +86,10 @@ export const api = {
     }) =>
       request<QuestionSet>("/api/questions/generate", {
         method: "POST",
-        body: JSON.stringify(data),
+        body: JSON.stringify({
+          ...data,
+          phase: toBackendPhase(data.phase),
+        }),
       }),
     solutionMatch: (data: {
       discovery_id: string;
@@ -100,17 +113,68 @@ export const api = {
       }),
   },
 
+  // Context Briefs
+  contextBriefs: {
+    list: (discoveryId: string) =>
+      request<ContextBriefVersion[]>(`/api/context-briefs/${discoveryId}`),
+    generate: (data: { discovery_id: string; user_instructions?: string; working_context?: string; force?: boolean }) =>
+      request<ContextBriefVersion>("/api/context-briefs/generate", {
+        method: "POST",
+        body: JSON.stringify(data),
+      }),
+  },
+
   // Evidence
   evidence: {
     list: (discoveryId: string, phase?: CorePhase) =>
       request<Evidence[]>(
-        `/api/evidence/${discoveryId}${phase ? `?phase=${phase}` : ""}`
+        `/api/evidence/${discoveryId}${phase ? `?phase=${toBackendPhase(phase)}` : ""}`
       ),
     create: (data: Partial<Evidence>) =>
       request<Evidence>("/api/evidence/", {
         method: "POST",
-        body: JSON.stringify(data),
+        body: JSON.stringify({
+          ...data,
+          phase: toBackendPhase(data.phase),
+        }),
       }),
+    upload: async (data: {
+      discovery_id: string;
+      phase: CorePhase;
+      evidence_type?: Evidence["evidence_type"];
+      source?: string;
+      note?: string;
+      tags?: string[];
+      file: File;
+    }) => {
+      const form = new FormData();
+      form.append("discovery_id", data.discovery_id);
+      form.append("phase", toBackendPhase(data.phase) ?? data.phase);
+      form.append("evidence_type", data.evidence_type ?? "general");
+      form.append("source", data.source ?? data.file.name);
+      form.append("note", data.note ?? "");
+      form.append("tags", (data.tags ?? []).join(","));
+      form.append("file", data.file);
+      const auth = await authHeader();
+      const activeProjectId = getActiveProjectId();
+      const res = await fetch(`${API_URL}/api/evidence/upload`, {
+        method: "POST",
+        credentials: "include",
+        body: form,
+        headers: {
+          ...auth,
+          ...(activeProjectId ? { "X-Project-Id": activeProjectId } : {}),
+        },
+      });
+      if (!res.ok) {
+        const error = await res.json().catch(() => ({ detail: res.statusText }));
+        const detail = error.detail;
+        const message = typeof detail === "string" ? detail : "Upload failed";
+        toast.error(message);
+        throw new Error(message);
+      }
+      return res.json() as Promise<Evidence>;
+    },
     update: (id: string, data: Partial<Evidence>) =>
       request<Evidence>(`/api/evidence/${id}`, {
         method: "PATCH",
@@ -165,6 +229,47 @@ export const api = {
       request<SolutionBlueprint[]>(`/api/blueprints/${discoveryId}`),
     generate: (data: { discovery_id: string; user_instructions?: string }) =>
       request<SolutionBlueprint>("/api/blueprints/generate", {
+        method: "POST",
+        body: JSON.stringify(data),
+      }),
+  },
+
+  // Execute Outputs
+  executeOutputs: {
+    list: (discoveryId: string) =>
+      request<ExecuteOutputVersion[]>(`/api/execute-outputs/${discoveryId}`),
+    ensure: (data: { discovery_id: string; output_ids?: string[]; force?: boolean }) =>
+      request<ExecuteOutputVersion[]>("/api/execute-outputs/ensure", {
+        method: "POST",
+        body: JSON.stringify(data),
+      }),
+    generate: (data: { discovery_id: string; output_id: string; force?: boolean }) =>
+      request<ExecuteOutputVersion>("/api/execute-outputs/generate", {
+        method: "POST",
+        body: JSON.stringify(data),
+      }),
+  },
+
+  // Refine Expert Reviews
+  refine: {
+    agents: () => request<RefineAgentDefinition[]>("/api/refine/agents"),
+    reviews: (discoveryId: string) =>
+      request<RefineReview[]>(`/api/refine/reviews/${discoveryId}`),
+    ensureFullReview: (discoveryId: string) =>
+      request<RefineReview>(`/api/refine/reviews/auto/${discoveryId}`, {
+        method: "POST",
+      }),
+    generateReview: (data: { discovery_id: string; agent_ids: string[]; user_instructions?: string }) =>
+      request<RefineReview>("/api/refine/reviews/generate", {
+        method: "POST",
+        body: JSON.stringify(data),
+      }),
+    chatMessages: (discoveryId: string, data: { thread_type: "group" | "agent"; agent_id?: string }) =>
+      request<RefineChatMessage[]>(
+        `/api/refine/chat/${discoveryId}?thread_type=${data.thread_type}${data.agent_id ? `&agent_id=${encodeURIComponent(data.agent_id)}` : ""}`,
+      ),
+    sendChat: (data: { discovery_id: string; thread_type: "group" | "agent"; message: string; agent_id?: string }) =>
+      request<RefineChatMessage[]>("/api/refine/chat", {
         method: "POST",
         body: JSON.stringify(data),
       }),

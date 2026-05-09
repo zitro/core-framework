@@ -32,7 +32,4 @@ services:
       - DEBUG=true
     volumes:
       - ./backend/app:/app/app
-      - backend-data:/app/data
-
-volumes:
-  backend-data:
+      - ${BACKEND_DATA_PATH:-./backend/data}:/app/data

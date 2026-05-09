@@ -71,6 +71,27 @@ async def gather_context(discovery_id: str) -> str:
     except Exception:
         logger.debug("Could not load question sets for %s", discovery_id)
 
+    # Refine expert reviews
+    try:
+        reviews = await storage.list("refine_reviews", {"discoveryId": discovery_id})
+        if not reviews:
+            reviews = await storage.list("refine_reviews", {"discovery_id": discovery_id})
+        for review in reviews[-2:]:
+            synthesis = review.get("synthesis", {})
+            direction = synthesis.get("recommended_direction", "")
+            gate = synthesis.get("decision_gate", "")
+            assumptions = []
+            for opinion in review.get("opinions", []):
+                assumptions.extend(opinion.get("assumptions", [])[:3])
+            if direction or assumptions:
+                parts.append(
+                    "Refine expert review — "
+                    f"decision gate: {gate}; recommended direction: {direction}; "
+                    f"assumptions to validate: {'; '.join(assumptions[:8])}"
+                )
+    except Exception:
+        logger.debug("Could not load refine reviews for %s", discovery_id)
+
     # Local project documents
     try:
         if not disc:
@@ -87,8 +108,20 @@ async def gather_context(discovery_id: str) -> str:
     try:
         if not disc:
             disc = await storage.get("discoveries", discovery_id)
-        engagement_path = (disc or {}).get("engagement_repo_path", "")
-        if engagement_path:
+        repo_paths: list[str] = []
+        for source in (disc or {}).get("engagement_sources", []) or []:
+            value = str((source or {}).get("value", "")).strip()
+            if value and value not in repo_paths:
+                repo_paths.append(value)
+        for candidate in (disc or {}).get("engagement_repo_paths", []) or []:
+            value = str(candidate).strip()
+            if value and value not in repo_paths:
+                repo_paths.append(value)
+        legacy_path = str((disc or {}).get("engagement_repo_path", "")).strip()
+        if legacy_path and legacy_path not in repo_paths:
+            repo_paths.append(legacy_path)
+
+        for engagement_path in repo_paths:
             engagement_ctx = read_engagement_context(engagement_path)
             if engagement_ctx:
                 parts.append(engagement_ctx)
@@ -108,4 +141,4 @@ async def get_solution_providers(discovery_id: str) -> list[str]:
             return providers
     except Exception:
         pass
-    return ["Microsoft Azure"]
+    return []

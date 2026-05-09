@@ -27,7 +27,7 @@ SYSTEM = (
     "insights, evidence items, sentiment, and key themes.\n\n"
     "For each insight you assess confidence: validated, assumed, unknown, "
     "or conflicting.\n"
-    "For each evidence item you map it to a CORE phase (capture, orient, "
+    "For each evidence item you map it to a CORE phase (capture, orchestrate, "
     "refine, execute) AND a design-thinking evidence type: observation, "
     "quote, pain_point, jtbd, assumption, hypothesis, insight, or general.\n"
     "Prefer verbatim quotes for the 'quote' type. Tag pain points distinctly "
@@ -36,7 +36,7 @@ SYSTEM = (
     "{\n"
     '  "insights": [\n'
     '    {"text": "...", "confidence": "validated|assumed|unknown|conflicting",\n'
-    '     "phase": "capture|orient|refine|execute"}\n'
+    '     "phase": "capture|orchestrate|refine|execute"}'
     "  ],\n"
     '  "evidence": [\n'
     '    {"content": "...", "source": "transcript",\n'

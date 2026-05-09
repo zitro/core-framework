@@ -106,7 +106,7 @@ export function AppSidebar() {
           <SidebarGroupContent>
             <SidebarMenu>
               <SidebarMenuItem>
-                <SidebarMenuButton render={<Link href="/" />} isActive={pathname === "/"}>
+                <SidebarMenuButton render={<Link href="/" aria-label="Dashboard" title="Dashboard" />} isActive={pathname === "/"}>
                   <Home className="h-4 w-4" />
                   <span>Dashboard</span>
                 </SidebarMenuButton>
@@ -122,7 +122,7 @@ export function AppSidebar() {
               {PHASE_NAV.map((item) => (
                 <SidebarMenuItem key={item.phase}>
                   <SidebarMenuButton
-                    render={<Link href={item.href} />}
+                    render={<Link href={item.href} aria-label={item.label} title={item.label} />}
                     isActive={pathname.startsWith(item.href)}
                   >
                     <span className={`flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-bold ${
@@ -145,31 +145,31 @@ export function AppSidebar() {
           <SidebarGroupContent>
             <SidebarMenu>
               <SidebarMenuItem>
-                <SidebarMenuButton render={<Link href="/evidence" />} isActive={pathname === "/evidence"}>
+                <SidebarMenuButton render={<Link href="/evidence" aria-label="All Evidence" title="All Evidence" />} isActive={pathname === "/evidence"}>
                   <BookOpen className="h-4 w-4 text-orange-500" />
                   <span>All Evidence</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
               <SidebarMenuItem>
-                <SidebarMenuButton render={<Link href="/context" />} isActive={pathname === "/context"}>
+                <SidebarMenuButton render={<Link href="/context" aria-label="Engagement Context" title="Engagement Context" />} isActive={pathname === "/context"}>
                   <FolderGit2 className="h-4 w-4 text-teal-500" />
                   <span>Engagement Context</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
               <SidebarMenuItem>
-                <SidebarMenuButton render={<Link href="/narrative" />} isActive={pathname === "/narrative"}>
+                <SidebarMenuButton render={<Link href="/narrative" aria-label="Narrative" title="Narrative" />} isActive={pathname === "/narrative"}>
                   <Sparkles className="h-4 w-4 text-fuchsia-500" />
                   <span>Narrative</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
               <SidebarMenuItem>
-                <SidebarMenuButton render={<Link href="/search" />} isActive={pathname === "/search"}>
+                <SidebarMenuButton render={<Link href="/search" aria-label="Web Search" title="Web Search" />} isActive={pathname === "/search"}>
                   <Globe className="h-4 w-4 text-cyan-500" />
                   <span>Web Search</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
               <SidebarMenuItem>
-                <SidebarMenuButton render={<Link href="/methodology" />} isActive={pathname === "/methodology"}>
+                <SidebarMenuButton render={<Link href="/methodology" aria-label="Methodology" title="Methodology" />} isActive={pathname === "/methodology"}>
                   <BookMarked className="h-4 w-4 text-amber-500" />
                   <span>Methodology</span>
                 </SidebarMenuButton>
@@ -183,19 +183,19 @@ export function AppSidebar() {
           <SidebarGroupContent>
             <SidebarMenu>
               <SidebarMenuItem>
-                <SidebarMenuButton render={<Link href="/engagements" />} isActive={pathname === "/engagements"}>
+                <SidebarMenuButton render={<Link href="/engagements" aria-label="Engagements" title="Engagements" />} isActive={pathname === "/engagements"}>
                   <Briefcase className="h-4 w-4 text-sky-500" />
                   <span>Engagements</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
               <SidebarMenuItem>
-                <SidebarMenuButton render={<Link href="/company" />} isActive={pathname === "/company"}>
+                <SidebarMenuButton render={<Link href="/company" aria-label="Company Research" title="Company Research" />} isActive={pathname === "/company"}>
                   <Building2 className="h-4 w-4 text-emerald-500" />
                   <span>Company Research</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
               <SidebarMenuItem>
-                <SidebarMenuButton render={<Link href="/reviews" />} isActive={pathname === "/reviews"}>
+                <SidebarMenuButton render={<Link href="/reviews" aria-label="Reviews" title="Reviews" />} isActive={pathname === "/reviews"}>
                   <ShieldCheck className="h-4 w-4 text-rose-500" />
                   <span>Reviews</span>
                 </SidebarMenuButton>
@@ -209,13 +209,13 @@ export function AppSidebar() {
           <SidebarGroupContent>
             <SidebarMenu>
               <SidebarMenuItem>
-                <SidebarMenuButton render={<Link href="/m365" />} isActive={pathname === "/m365"}>
+                <SidebarMenuButton render={<Link href="/m365" aria-label="Microsoft 365" title="Microsoft 365" />} isActive={pathname === "/m365"}>
                   <Cloud className="h-4 w-4 text-blue-500" />
                   <span>Microsoft 365</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
               <SidebarMenuItem>
-                <SidebarMenuButton render={<Link href="/grounding" />} isActive={pathname === "/grounding"}>
+                <SidebarMenuButton render={<Link href="/grounding" aria-label="Grounded Answers" title="Grounded Answers" />} isActive={pathname === "/grounding"}>
                   <Wand2 className="h-4 w-4 text-violet-500" />
                   <span>Grounded Answers</span>
                 </SidebarMenuButton>

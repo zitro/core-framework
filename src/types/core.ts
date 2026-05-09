@@ -62,6 +62,25 @@ export interface ExecuteData {
   handoff_notes: string;
 }
 
+export interface ExecuteOutputVersion {
+  id: string;
+  discovery_id: string;
+  output_id: string;
+  title: string;
+  description: string;
+  audience: "executive" | "technical" | "customer" | "internal" | string;
+  style: "narrative" | "brief" | "outline" | string;
+  category: "stakeholder" | "delivery" | "technical" | string;
+  version: number;
+  headline: string;
+  summary: string;
+  sections: Array<{ title: string; body: string }>;
+  focus: string;
+  context_fingerprint: string;
+  context_used: string;
+  created_at: string;
+}
+
 export interface Evidence {
   id: string;
   discovery_id: string;
@@ -79,6 +98,11 @@ export interface Assumption {
   text: string;
   risk: "high" | "medium" | "low";
   status: "untested" | "validated" | "invalidated";
+  certainty?: "high" | "medium" | "low" | "unknown";
+  evidence?: string;
+  validation_method?: string;
+  owner?: string;
+  impact_if_wrong?: string;
 }
 
 export interface TechnologyTarget {
@@ -176,6 +200,24 @@ export interface TranscriptAnalysis {
   created_at: string;
 }
 
+export interface ContextBriefVersion {
+  id: string;
+  discovery_id: string;
+  version: number;
+  title: string;
+  summary: string;
+  goals: string[];
+  stakeholders: string[];
+  constraints: string[];
+  risks: string[];
+  open_questions: string[];
+  evidence_summary: string;
+  user_instructions: string;
+  context_used: string;
+  context_fingerprint: string;
+  created_at: string;
+}
+
 export interface SolutionMatch {
   problem: string;
   capabilities: string[];
@@ -240,6 +282,106 @@ export interface SolutionBlueprint {
   target_providers: string[];
   user_instructions: string;
   context_used: string;
+  created_at: string;
+}
+
+export interface RefineAgentDefinition {
+  id: string;
+  title: string;
+  role: string;
+  mission: string;
+  goal: string;
+  review_lens: string[];
+  expected_outputs: string[];
+  signature_questions: string[];
+  work_item_focus: string[];
+}
+
+export interface RefineAgentArtifact {
+  title: string;
+  content: string;
+  bullets: string[];
+}
+
+export interface RefineWorkItem {
+  title: string;
+  owner_role: string;
+  priority: string;
+  rationale: string;
+  next_step: string;
+}
+
+export interface RefineAgentOpinion {
+  agent_id: string;
+  role: string;
+  title: string;
+  position: string;
+  confidence: number;
+  strengths: string[];
+  concerns: string[];
+  assumptions: string[];
+  risks: string[];
+  recommendations: string[];
+  questions: string[];
+  work_items: RefineWorkItem[];
+  artifact: RefineAgentArtifact;
+}
+
+export interface RefineRoundtableTurn {
+  phase: string;
+  speaker_id: string;
+  speaker: string;
+  message: string;
+  responds_to: string;
+  decision_impact: string;
+}
+
+export interface RefineSolutionOption {
+  title: string;
+  value: string;
+  effort: string;
+  risk: string;
+  evidence_fit: string;
+  tradeoffs: string[];
+}
+
+export interface RefineSynthesis {
+  consensus: string[];
+  disagreements: string[];
+  recommended_direction: string;
+  solution_options: RefineSolutionOption[];
+  validation_plan: string[];
+  execute_readiness: string;
+  decision_gate: "ready_for_execute" | "needs_validation" | "pivot" | "return_to_orchestrate" | string;
+  confidence: number;
+}
+
+export interface RefineReview {
+  id: string;
+  discovery_id: string;
+  version: number;
+  parent_review_id: string;
+  trigger_source: string;
+  agent_ids: string[];
+  opinions: RefineAgentOpinion[];
+  roundtable: RefineRoundtableTurn[];
+  synthesis: RefineSynthesis;
+  user_instructions: string;
+  context_used: string;
+  created_at: string;
+}
+
+export interface RefineChatMessage {
+  id: string;
+  discovery_id: string;
+  thread_type: "group" | "agent" | string;
+  agent_id: string;
+  speaker_id: string;
+  speaker: string;
+  role: "user" | "agent" | "system" | string;
+  content: string;
+  contribution_type: string;
+  review_version: number;
   created_at: string;
 }
 
@@ -341,13 +483,13 @@ export const PHASE_CONFIG: Record<
   },
   refine: {
     label: "Refine",
-    description: "Imagine solutions, simulate and test assumptions",
+    description: "Expert review, validation, and recommendation shaping",
     icon: "Lightbulb",
     color: "emerald",
   },
   execute: {
     label: "Execute",
-    description: "Deliver quick win, mobilize for bigger build",
+    description: "Generate final artifacts, updates, and handoff packages",
     icon: "Rocket",
     color: "violet",
   },

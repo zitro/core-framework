@@ -17,14 +17,17 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(dependencies=[Depends(get_current_user)])
 
-BLUEPRINT_SYSTEM = """You are a senior solutions architect.
-Given a customer's discovery context, propose a concrete solution
-approach using the specified technology providers.
+BLUEPRINT_SYSTEM = """You are a senior solutions architect working in the Refine phase.
+Given a discovery context and any expert review outputs, propose a candidate
+solution blueprint that can be validated before Execute generates final artifacts.
 
 Think about:
-- What services/products solve each part of the problem
+- How the architecture follows from the problem, use case, evidence, and assumptions
+- What services/products solve each part of the problem when providers are configured
+- A provider-neutral pattern when no target providers are configured
 - A high-level architecture overview
 - A quick-win the customer can see working in 1-2 weeks
+- The riskiest assumption and how to test it cheaply
 - Open questions that still need answers
 - Follow-up questions to ask the customer for clarity
 
@@ -76,7 +79,7 @@ async def generate_blueprint(request: BlueprintRequest):
         )
 
     providers = await get_solution_providers(request.discovery_id)
-    provider_str = ", ".join(providers)
+    provider_str = ", ".join(providers) if providers else "No provider configured; stay provider-neutral."
 
     existing = await storage.list("solution_blueprints", {"discoveryId": request.discovery_id})
     if not existing:
@@ -93,7 +96,8 @@ async def generate_blueprint(request: BlueprintRequest):
     user_prompt = (
         f"Discovery context:\n\n{context}{user_block}\n\n"
         f"Target technology providers: {provider_str}\n"
-        f"Propose services and architecture ONLY from these providers.\n\n"
+        f"If providers are configured, propose services and architecture only from those providers. "
+        f"If none are configured, use provider-neutral architecture patterns.\n\n"
         f"Generate solution blueprint version {next_version}."
     )
 

@@ -26,7 +26,7 @@ class AgentMeta(BaseModel):
     role: str
     description: str
     icon: str  # lucide icon name for frontend rendering
-    phase: str  # primary CORE phase: capture | orient | refine | execute
+    phase: str  # primary CORE phase: capture | orchestrate | refine | execute
     expertise: list[str] = Field(default_factory=list)
 
 

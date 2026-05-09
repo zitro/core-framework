@@ -1,4 +1,5 @@
 from pydantic_settings import BaseSettings
+import secrets
 
 
 class Settings(BaseSettings):
@@ -26,6 +27,10 @@ class Settings(BaseSettings):
     # OpenAI (direct)
     openai_api_key: str = ""
     openai_model: str = "gpt-4o"
+    openai_base_url: str = ""
+    openai_transcription_model: str = "gpt-4o-transcribe"
+    openai_transcription_base_url: str = ""
+    openai_transcription_api_key: str = ""
 
     # Local LLM (Ollama)
     ollama_base_url: str = "http://localhost:11434"
@@ -92,6 +97,18 @@ class Settings(BaseSettings):
     # CORS
     cors_origins: list[str] = ["http://localhost:3000"]
 
+    # GitHub OAuth (optional)
+    github_oauth_client_id: str = ""
+    github_oauth_client_secret: str = ""
+    github_oauth_scope: str = "read:user repo"
+    github_oauth_redirect_uri: str = "http://localhost:8000/api/github/oauth/callback"
+    github_oauth_cookie_name: str = "core_github_sid"
+    github_oauth_session_ttl_seconds: int = 8 * 60 * 60
+
+    # Used for OAuth state signing fallback and local-only runtime secrets.
+    # Keep this out of source control.
+    secret_key: str = ""
+
     model_config = {"env_file": ".env", "env_file_encoding": "utf-8"}
 
     def validate_providers(self) -> list[str]:
@@ -111,6 +128,13 @@ class Settings(BaseSettings):
         if self.speech_provider == "azure":
             if not self.azure_speech_region:
                 warnings.append("AZURE_SPEECH_REGION required when SPEECH_PROVIDER=azure")
+        if self.speech_provider == "openai":
+            if not (self.openai_transcription_api_key or self.openai_api_key):
+                warnings.append(
+                    "OPENAI_TRANSCRIPTION_API_KEY or OPENAI_API_KEY required when SPEECH_PROVIDER=openai"
+                )
+            if not self.openai_transcription_model:
+                warnings.append("OPENAI_TRANSCRIPTION_MODEL required when SPEECH_PROVIDER=openai")
         if self.search_provider == "bing" and not self.bing_search_api_key:
             warnings.append("BING_SEARCH_API_KEY required when SEARCH_PROVIDER=bing")
         if self.graph_provider in ("msgraph", "azure"):
@@ -122,7 +146,22 @@ class Settings(BaseSettings):
         if self.dynamics_provider in ("dataverse", "dynamics"):
             if not self.dynamics_url:
                 warnings.append("DYNAMICS_URL required when DYNAMICS_PROVIDER=dataverse")
+        if self.github_oauth_client_id and not self.github_oauth_client_secret:
+            warnings.append(
+                "GITHUB_OAUTH_CLIENT_SECRET is missing while GITHUB_OAUTH_CLIENT_ID is set; "
+                "GitHub OAuth callback exchange will fail"
+            )
         return warnings
+
+    @property
+    def effective_secret_key(self) -> str:
+        """Return configured secret key or generate a runtime-only fallback.
+
+        The fallback is never persisted and is suitable only for local/dev usage.
+        """
+        if self.secret_key.strip():
+            return self.secret_key.strip()
+        return f"dev-{secrets.token_urlsafe(32)}"
 
 
 settings = Settings()

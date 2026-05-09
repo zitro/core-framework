@@ -10,7 +10,8 @@ class OpenAIProvider(LLMProvider):
     """Direct OpenAI API provider."""
 
     def __init__(self):
-        self.client = AsyncOpenAI(api_key=settings.openai_api_key)
+        base_url = settings.openai_base_url.strip() or None
+        self.client = AsyncOpenAI(api_key=settings.openai_api_key, base_url=base_url)
         self.model = settings.openai_model
 
     async def complete(self, system_prompt: str, user_prompt: str, **kwargs) -> str:
