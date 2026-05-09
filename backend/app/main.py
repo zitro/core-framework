@@ -93,7 +93,7 @@ def create_app() -> FastAPI:
 
     app = FastAPI(
         title=settings.app_name,
-        version="1.2.1",
+        version="1.3.1",
         description="CORE Discovery Framework API",
         lifespan=_lifespan,
     )
