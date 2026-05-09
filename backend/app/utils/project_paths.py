@@ -34,6 +34,15 @@ _FOLDER_PICKER_SKIP_DIRS = {
 }
 
 
+def _is_windows_absolute_path(value: str) -> bool:
+    return bool(re.match(r"^[A-Za-z]:[\\/]", value))
+
+
+def _is_container_projects_root(root: Path) -> bool:
+    normalized = root.as_posix().rstrip("/")
+    return normalized == "/data/projects" or normalized.startswith("/data/projects/")
+
+
 def _resolve_unique_dir_by_name(root: Path, name: str) -> Path | None:
     """Return a unique directory match for ``name`` under ``root``.
 
@@ -101,8 +110,8 @@ def resolve_project_repo_path(repo_path: str) -> Path:
     # If a Windows absolute path is provided to a Linux container
     # (for example: "C:\\Users\\me\\repo"), try to map its trailing segments
     # under PROJECTS_ROOT and return the first existing match.
-    should_remap_windows_path = root.as_posix().startswith("/")
-    if should_remap_windows_path and re.match(r"^[A-Za-z]:[\\/]", value):
+    should_remap_windows_path = _is_container_projects_root(root)
+    if should_remap_windows_path and _is_windows_absolute_path(value):
         tail = re.sub(r"^[A-Za-z]:[\\/]?", "", value).replace("\\", "/")
         parts = [part for part in tail.split("/") if part and part != "."]
         if not parts:
@@ -112,6 +121,9 @@ def resolve_project_repo_path(repo_path: str) -> Path:
             if candidate.is_dir():
                 return candidate
         return root.joinpath(*parts)
+
+    if _is_windows_absolute_path(value):
+        return Path(normalized)
 
     p = Path(normalized).expanduser()
     if p.is_absolute():
