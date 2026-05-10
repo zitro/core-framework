@@ -274,7 +274,13 @@ async function main(): Promise<void> {
     }))) as "local" | "engagement-repo" | "custom";
 
     if (contentSource === "engagement-repo") {
-      projectsSource = `../${name}/${name}`;
+      const engagementRepoDefault = `../${name}-content`;
+      projectsSource = (await prompt(text({
+        message: "Host path to engagement-repo clone (mounted as /data/projects):",
+        placeholder: engagementRepoDefault,
+        initialValue: engagementRepoDefault,
+        validate: (v) => (!v ? "Path required" : undefined),
+      }))) as string;
     } else if (contentSource === "custom") {
       projectsSource = (await prompt(text({
         message: "Host path to mount as /data/projects (absolute or relative to this repo):",
@@ -325,17 +331,19 @@ async function main(): Promise<void> {
     `${pc.bold("cd")} ${name}`,
   ];
   if (contentSource === "engagement-repo") {
+    // The PROJECTS_SOURCE path was just captured into .env. The
+    // engagement-repo clone has to live there relative to the
+    // scaffolded customer directory for the compose mount to resolve.
+    const cloneTarget = projectsSource;
     nextSteps.push(
-      pc.dim(`# clone the engagement-repo repo as a sibling so PROJECTS_SOURCE resolves:`),
-      `${pc.bold("cd ..")}`,
-      `${pc.bold(`git clone https://github.com/org/${name}.git`)}`,
-      `${pc.bold("cd")} ${name}-discovery  ${pc.dim("# back to the app dir")}`,
+      pc.dim(`# clone the engagement-repo at the path PROJECTS_SOURCE points to:`),
+      `${pc.bold(`git clone https://github.com/<org>/${name}.git ${cloneTarget}`)}`,
     );
   }
   nextSteps.push(
     `${pc.bold("docker compose pull")}`,
     `${pc.bold("docker compose up -d")}`,
-    `${pc.bold("start")} http://localhost:3000`,
+    `${pc.bold("open")} http://localhost:3000  ${pc.dim("# or: start http://localhost:3000 on Windows")}`,
   );
   note(nextSteps.join("\n"), "Next steps");
   outro(pc.green("Done."));

@@ -104,6 +104,7 @@ CORS_ORIGINS=["http://localhost:3000"]
 PROJECTS_ROOT=/data/projects
 EXTENSIONS_DIR=/data/extensions
 LOCAL_DATA_PATH=${o.localDataPath}
+PROJECTS_SOURCE=${o.projectsSource}
 `;
 }
 
