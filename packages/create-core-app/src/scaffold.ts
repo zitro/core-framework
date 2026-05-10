@@ -1,5 +1,8 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import { isAbsolute, join, resolve } from "node:path";
+
+import { atomicWrite } from "./atomic.js";
+import { writeMarker, type CoreDiscoveryMarker } from "./marker.js";
 import {
   composeYaml,
   envExample,
@@ -9,6 +12,7 @@ import {
   infraReadme,
   extensionsReadme,
 } from "./templates.js";
+import { CLI_VERSION } from "./version.js";
 
 export interface ScaffoldOptions {
   target: string;
@@ -60,15 +64,28 @@ export async function scaffold(o: ScaffoldOptions): Promise<void> {
     await mkdir(dataPath, { recursive: true });
   }
 
+  // Files the CLI is responsible for. Order matters only for the
+  // marker — that's written LAST via writeMarker so a crash mid-
+  // scaffold leaves the dir markerless (and therefore unupgradeable
+  // until rescaffolded), rather than half-upgradeable.
+  const managed: Array<{ rel: string; content: string }> = [
+    { rel: "compose.yaml", content: composeYaml(o) },
+    { rel: ".env.example", content: envExample(o) },
+    { rel: ".env", content: envExample(o) },
+    { rel: ".gitignore", content: gitignore() },
+    { rel: "README.md", content: readme(o) },
+    { rel: "renovate.json", content: renovateJson() },
+    { rel: "infra/README.md", content: infraReadme(o) },
+    { rel: "extensions/README.md", content: extensionsReadme() },
+  ];
+
+  for (const { rel, content } of managed) {
+    await atomicWrite(join(o.target, rel), content);
+  }
+
+  // .gitkeeps + initial project README aren't tracked in files_managed
+  // (the upgrade flow shouldn't try to manage them).
   await Promise.all([
-    write(o, "compose.yaml", composeYaml(o)),
-    write(o, ".env.example", envExample(o)),
-    write(o, ".env", envExample(o)),
-    write(o, ".gitignore", gitignore()),
-    write(o, "README.md", readme(o)),
-    write(o, "renovate.json", renovateJson()),
-    write(o, "infra/README.md", infraReadme(o)),
-    write(o, "extensions/README.md", extensionsReadme()),
     write(o, "extensions/.gitkeep", ""),
     write(o, "projects/.gitkeep", ""),
     write(o, "config/prompts/.gitkeep", ""),
@@ -76,6 +93,21 @@ export async function scaffold(o: ScaffoldOptions): Promise<void> {
       ? write(o, `projects/${o.initialProject}/README.md`, projectReadme(o.initialProject))
       : Promise.resolve(),
   ]);
+
+  // Marker LAST so a crash anywhere above leaves no marker — next CLI
+  // run will refuse to upgrade and the user can rescaffold cleanly.
+  const marker: CoreDiscoveryMarker = {
+    schema_version: "1.0.0",
+    customer_slug: o.name,
+    display_name: o.displayName,
+    cli_version_created: CLI_VERSION,
+    cli_version_last_upgrade: null,
+    framework_version_pinned: o.version,
+    created_at: new Date().toISOString(),
+    last_upgrade_at: null,
+    files_managed: managed.map((f) => f.rel),
+  };
+  await writeMarker(o.target, marker);
 }
 
 async function write(o: ScaffoldOptions, rel: string, content: string): Promise<void> {
