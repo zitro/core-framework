@@ -63,20 +63,21 @@ jobs:
           npx vitest run
           pnpm build
 
+  # Per-(component × arch) matrix on native runners. No QEMU. Each cell
+  # pushes by digest, smoke-tests the image on its native arch, and
+  # exports its digest. The manifest job assembles the multi-arch tag
+  # and handles signing / attestation / scanning at the manifest level.
   build-and-push:
-    name: Build and push ${{ matrix.component }} image
+    name: Build ${{ matrix.component }} (${{ matrix.arch }})
     needs: test
-    runs-on: ubuntu-latest
     permissions:
       contents: read
       packages: write
-      id-token: write   # required for cosign keyless signing + provenance
-      attestations: write
-      security-events: write   # required for upload-sarif
-
     strategy:
       fail-fast: false
       matrix:
+        component: [frontend, backend]
+        arch: [amd64, arm64]
         include:
           - component: frontend
             image: core-framework-frontend
@@ -86,7 +87,85 @@ jobs:
             image: core-framework-backend
             context: ./backend
             dockerfile: ./backend/Dockerfile
+          - arch: amd64
+            runs-on: ubuntu-24.04
+          - arch: arm64
+            runs-on: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runs-on }}
+    outputs:
+      frontend-amd64-digest: ${{ steps.export.outputs.frontend-amd64-digest }}
+      frontend-arm64-digest: ${{ steps.export.outputs.frontend-arm64-digest }}
+      backend-amd64-digest: ${{ steps.export.outputs.backend-amd64-digest }}
+      backend-arm64-digest: ${{ steps.export.outputs.backend-arm64-digest }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@c47758b77c9736f4b2ef4073d4d51994fabfe349 # v3.7.1
+
+      - name: Log in to GHCR
+        uses: docker/login-action@9780b0c442fbb1117ed29e0efdff1e18412f7567 # v3.3.0
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push by digest
+        id: build
+        uses: docker/build-push-action@48aba3b46d1b1fec4febb7c5d0c644b249a11355 # v6.10.0
+        with:
+          context: ${{ matrix.context }}
+          file: ${{ matrix.dockerfile }}
+          platforms: linux/${{ matrix.arch }}
+          push: true
+          cache-from: type=gha,scope=${{ matrix.component }}-${{ matrix.arch }}
+          cache-to: type=gha,scope=${{ matrix.component }}-${{ matrix.arch }},mode=max
+          outputs: type=image,name=${{ env.REGISTRY }}/${{ env.IMAGE_OWNER }}/${{ matrix.image }},push-by-digest=true,name-canonical=true
+          provenance: false
+
+      - name: Smoke-test backend image (native ${{ matrix.arch }})
+        if: matrix.component == 'backend'
+        run: |
+          set -euo pipefail
+          docker run --rm \
+            ${{ env.REGISTRY }}/${{ env.IMAGE_OWNER }}/${{ matrix.image }}@${{ steps.build.outputs.digest }} \
+            python -c "import pydantic_core, cryptography, pymupdf, aiohttp; print('backend smoke ok')"
+
+      - name: Smoke-test frontend image (native ${{ matrix.arch }})
+        if: matrix.component == 'frontend'
+        run: |
+          set -euo pipefail
+          docker run --rm \
+            ${{ env.REGISTRY }}/${{ env.IMAGE_OWNER }}/${{ matrix.image }}@${{ steps.build.outputs.digest }} \
+            node -e "require('next'); console.log('frontend smoke ok')"
+
+      - name: Export digest
+        id: export
+        run: |
+          set -euo pipefail
+          echo "${{ matrix.component }}-${{ matrix.arch }}-digest=${{ steps.build.outputs.digest }}" >> "$GITHUB_OUTPUT"
+
+  # Assemble the multi-arch tag, sign + attest + scan at the manifest
+  # level. Consumers verify via tag, which resolves to the index digest.
+  manifest:
+    name: Assemble + sign ${{ matrix.image }} multi-arch manifest
+    needs: build-and-push
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+      attestations: write
+      security-events: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - component: frontend
+            image: core-framework-frontend
+          - component: backend
+            image: core-framework-backend
     steps:
       - name: Checkout
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
@@ -100,7 +179,6 @@ jobs:
             TAG="${GITHUB_REF#refs/tags/}"
           fi
           VERSION="${TAG#v}"
-          # Detect prerelease (anything after a hyphen, e.g. 0.1.0-rc1)
           if [[ "$VERSION" == *-* ]]; then
             IS_PRERELEASE=true
           else
@@ -127,7 +205,6 @@ jobs:
           DOCKER_METADATA_ANNOTATIONS_LEVELS: manifest,index
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_OWNER }}/${{ matrix.image }}
-          # semver flavor only tags `latest` for non-prereleases.
           flavor: |
             latest=${{ steps.version.outputs.is_prerelease == 'false' }}
           tags: |
@@ -144,51 +221,74 @@ jobs:
             org.opencontainers.image.licenses=MIT
             org.opencontainers.image.vendor=CORE Discovery contributors
 
-      - name: Build and push
-        id: build
-        uses: docker/build-push-action@48aba3b46d1b1fec4febb7c5d0c644b249a11355 # v6.10.0
-        with:
-          context: ${{ matrix.context }}
-          file: ${{ matrix.dockerfile }}
-          push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          annotations: ${{ steps.meta.outputs.annotations }}
-          cache-from: type=gha,scope=${{ matrix.component }}
-          cache-to: type=gha,scope=${{ matrix.component }},mode=max
-          platforms: linux/amd64
-          provenance: true
-          sbom: true
+      - name: Create and push multi-arch manifest
+        id: manifest
+        run: |
+          set -euo pipefail
+          # Resolve per-arch digests from the build-and-push outputs.
+          # Explicit per-component dispatch is unambiguous and survives
+          # matrix/output renames without silent fallback.
+          if [ "${{ matrix.component }}" = "frontend" ]; then
+            AMD64_DIGEST="${{ needs.build-and-push.outputs.frontend-amd64-digest }}"
+            ARM64_DIGEST="${{ needs.build-and-push.outputs.frontend-arm64-digest }}"
+          else
+            AMD64_DIGEST="${{ needs.build-and-push.outputs.backend-amd64-digest }}"
+            ARM64_DIGEST="${{ needs.build-and-push.outputs.backend-arm64-digest }}"
+          fi
+          if [ -z "$AMD64_DIGEST" ] || [ -z "$ARM64_DIGEST" ]; then
+            echo "Missing per-arch digest for ${{ matrix.component }} (amd64=$AMD64_DIGEST arm64=$ARM64_DIGEST)" >&2
+            exit 1
+          fi
+          IMAGE="${{ env.REGISTRY }}/${{ env.IMAGE_OWNER }}/${{ matrix.image }}"
+          TAG_ARGS=""
+          while IFS= read -r tag; do
+            [ -z "$tag" ] && continue
+            TAG_ARGS="$TAG_ARGS -t $tag"
+          done <<EOF
+          ${{ steps.meta.outputs.tags }}
+          EOF
+          docker buildx imagetools create $TAG_ARGS \
+            "${IMAGE}@${AMD64_DIGEST}" \
+            "${IMAGE}@${ARM64_DIGEST}"
+          # The manifest digest is the SHA-256 of the serialized index
+          # JSON bytes the registry returns. Compute it directly from
+          # --raw so we never depend on buildx's --format template
+          # selecting the index vs a per-arch entry.
+          PRIMARY_TAG=$(echo "${{ steps.meta.outputs.tags }}" | head -n1)
+          MANIFEST_DIGEST="sha256:$(docker buildx imagetools inspect --raw "$PRIMARY_TAG" | sha256sum | cut -d' ' -f1)"
+          echo "manifest-digest=${MANIFEST_DIGEST}" >> "$GITHUB_OUTPUT"
+          echo "primary-tag=${PRIMARY_TAG}" >> "$GITHUB_OUTPUT"
 
       - name: Install Cosign
         uses: sigstore/cosign-installer@1aa8e0f2454b781fbf0fbf306a4c9533a0c57409 # v3.7.0
 
-      - name: Sign image (keyless, OIDC)
+      - name: Sign manifest (keyless, OIDC)
         env:
           TAGS: ${{ steps.meta.outputs.tags }}
-          DIGEST: ${{ steps.build.outputs.digest }}
+          DIGEST: ${{ steps.manifest.outputs.manifest-digest }}
         run: |
           set -euo pipefail
-          for tag in $TAGS; do
+          while IFS= read -r tag; do
+            [ -z "$tag" ] && continue
             cosign sign --yes "${tag}@${DIGEST}"
-          done
+          done <<< "$TAGS"
 
       - name: Generate build provenance attestation
         uses: actions/attest-build-provenance@ef244123eb79f2f7a7e75d99086184180e6d0018 # v1.4.4
         with:
           subject-name: ${{ env.REGISTRY }}/${{ env.IMAGE_OWNER }}/${{ matrix.image }}
-          subject-digest: ${{ steps.build.outputs.digest }}
+          subject-digest: ${{ steps.manifest.outputs.manifest-digest }}
           push-to-registry: true
 
       - name: Vulnerability scan (Trivy)
         id: trivy
-        continue-on-error: true   # report-only; never block release on scanner failure
+        continue-on-error: true
         env:
           TRIVY_DB_REPOSITORY: ghcr.io/aquasecurity/trivy-db,public.ecr.aws/aquasecurity/trivy-db
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         uses: aquasecurity/trivy-action@dc5a429b52fcf669ce959baa2c2dd26090d2a6c4 # v0.32.0
         with:
-          image-ref: ${{ env.REGISTRY }}/${{ env.IMAGE_OWNER }}/${{ matrix.image }}@${{ steps.build.outputs.digest }}
+          image-ref: ${{ env.REGISTRY }}/${{ env.IMAGE_OWNER }}/${{ matrix.image }}@${{ steps.manifest.outputs.manifest-digest }}
           format: sarif
           output: trivy-${{ matrix.component }}.sarif
           severity: CRITICAL,HIGH
@@ -205,7 +305,7 @@ jobs:
   create-release:
     name: Create GitHub release
     runs-on: ubuntu-latest
-    needs: build-and-push
+    needs: manifest
     if: startsWith(github.ref, 'refs/tags/')
     permissions:
       contents: write
@@ -238,7 +338,13 @@ jobs:
             docker pull ghcr.io/${{ github.repository_owner }}/core-framework-backend:${{ github.ref_name }}
             ```
 
-            Verify signature (Cosign keyless):
+            Inspect the multi-arch manifest:
+
+            ```bash
+            docker buildx imagetools inspect ghcr.io/${{ github.repository_owner }}/core-framework-backend:${{ github.ref_name }}
+            ```
+
+            Verify signature (Cosign keyless, manifest-level):
 
             ```bash
             cosign verify \

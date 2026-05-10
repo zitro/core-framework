@@ -25,6 +25,32 @@ class RepoSourceError(RuntimeError):
 _GITHUB_WEB_HOSTS = {"github.com", "www.github.com"}
 
 
+def _safe_extractall(zf: ZipFile, extract_dir: Path) -> None:
+    """Extract every zip member, refusing any whose resolved path would
+    escape ``extract_dir``. Closes the zip-slip vulnerability that
+    ``ZipFile.extractall`` exposes when archives come from external
+    sources (here: GitHub repository archives, which a malicious or
+    compromised repo can poison).
+    """
+    base = extract_dir.resolve()
+    for member in zf.infolist():
+        member_path = (base / member.filename).resolve()
+        try:
+            member_path.relative_to(base)
+        except ValueError as exc:
+            raise RepoSourceError(
+                f"Refused to extract zip entry outside target directory: {member.filename!r}"
+            ) from exc
+        # Refuse symlinks too — extractall doesn't honor them by default,
+        # but if the member type advertises one we don't want to follow.
+        # 0xA000 is the symlink flag in zip external_attr.
+        if (member.external_attr >> 16) & 0xF000 == 0xA000:
+            raise RepoSourceError(
+                f"Refused to extract symlink zip entry: {member.filename!r}"
+            )
+    zf.extractall(base)
+
+
 def normalize_github_repo_source(value: str) -> str:
     """Normalize common GitHub input formats to https://github.com/owner/repo.
 
@@ -143,7 +169,7 @@ def ensure_github_repo_source(
         extract_dir.mkdir(parents=True, exist_ok=True)
         try:
             with ZipFile(archive_path) as zf:
-                zf.extractall(extract_dir)
+                _safe_extractall(zf, extract_dir)
         except BadZipFile as exc:  # pragma: no cover - network edge path
             raise RepoSourceError(
                 f"Could not download GitHub repository '{owner}/{repo}'."

@@ -7,6 +7,8 @@ from collections import defaultdict
 from fastapi import APIRouter, Query, WebSocket, WebSocketDisconnect, status
 
 from app.providers.auth import get_auth_provider
+from app.providers.storage import get_storage_provider
+from app.utils.authorization import assert_project_access
 
 logger = logging.getLogger(__name__)
 
@@ -18,6 +20,39 @@ MAX_WS_MESSAGE_BYTES = 64 * 1024
 # Cap concurrent connections per discovery room. Real workshops are small;
 # anything bigger is almost certainly a runaway client or abuse.
 MAX_CONNECTIONS_PER_ROOM = 50
+
+# Whitelist of message types clients are allowed to broadcast. Anything
+# outside this set is dropped server-side rather than relayed — a
+# defense against malicious clients spoofing system-shaped events
+# (e.g. fake `evidence_added` payloads other peers might render as if
+# trusted).
+ALLOWED_INBOUND_MESSAGE_TYPES = frozenset({"phase_change", "evidence_added", "cursor"})
+
+
+async def _assert_discovery_access(claims: dict, discovery_id: str) -> bool:
+    """True if the authenticated user can access ``discovery_id``.
+
+    Resolves the Discovery's parent project_id and runs the standard
+    project-access check. Returns False (rather than raising) so the
+    WS handler can close with a policy-violation frame instead of
+    surfacing an HTTPException.
+    """
+    if not discovery_id:
+        return False
+    storage = get_storage_provider()
+    discovery = await storage.get("discoveries", discovery_id)
+    if discovery is None:
+        return False
+    project_id = discovery.get("project_id") or ""
+    if not project_id:
+        # Discovery exists but is not tied to an engagement (legacy
+        # local-dev data). Allow so existing flows don't break.
+        return True
+    try:
+        await assert_project_access(claims, project_id)
+    except Exception:
+        return False
+    return True
 
 
 async def _validate_ws_token(token: str | None) -> dict | None:
@@ -98,6 +133,11 @@ async def discovery_websocket(
     if claims is None:
         await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
         return
+    # Per-discovery authorization: the authenticated user must own the
+    # parent engagement. Refuses cross-tenant room hopping.
+    if not await _assert_discovery_access(claims, discovery_id):
+        await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
+        return
     if len(manager.rooms.get(discovery_id, [])) >= MAX_CONNECTIONS_PER_ROOM:
         await websocket.close(code=status.WS_1013_TRY_AGAIN_LATER)
         return
@@ -113,12 +153,31 @@ async def discovery_websocket(
             except json.JSONDecodeError:
                 await websocket.send_json({"type": "error", "detail": "Invalid JSON"})
                 continue
+            if not isinstance(data, dict):
+                await websocket.send_json({"type": "error", "detail": "Message must be a JSON object"})
+                continue
 
-            msg_type = data.get("type", "unknown")
+            msg_type = data.get("type")
+            if msg_type not in ALLOWED_INBOUND_MESSAGE_TYPES:
+                # Drop silently — a non-whitelisted type would mean a
+                # malicious or out-of-date client; don't echo it back.
+                logger.debug(
+                    "WS rejected message: discovery=%s type=%r",
+                    discovery_id,
+                    msg_type,
+                )
+                continue
             logger.debug("WS message: discovery=%s type=%s", discovery_id, msg_type)
 
-            # Relay to all other clients in the same room
-            await manager.broadcast(discovery_id, data, exclude=websocket)
+            # Relay to all other clients in the same room. Strip any
+            # fields that aren't on the allow-list so a poisoned
+            # payload can't smuggle extras through the relay.
+            sanitized = {
+                k: v
+                for k, v in data.items()
+                if k in {"type", "phase", "evidence", "user", "section"}
+            }
+            await manager.broadcast(discovery_id, sanitized, exclude=websocket)
     except WebSocketDisconnect:
         manager.disconnect(discovery_id, websocket)
         # Notify remaining users of updated presence
