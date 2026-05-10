@@ -154,7 +154,9 @@ async def discovery_websocket(
                 await websocket.send_json({"type": "error", "detail": "Invalid JSON"})
                 continue
             if not isinstance(data, dict):
-                await websocket.send_json({"type": "error", "detail": "Message must be a JSON object"})
+                await websocket.send_json(
+                    {"type": "error", "detail": "Message must be a JSON object"}
+                )
                 continue
 
             msg_type = data.get("type")

@@ -219,9 +219,7 @@ def write_classified_content(
 
     safe_dir = _sanitize_segment(directory, label="directory")
     safe_name = _sanitize_segment(filename, label="filename") if filename else ""
-    safe_append = (
-        _sanitize_segment(append_target, label="append_target") if append_target else ""
-    )
+    safe_append = _sanitize_segment(append_target, label="append_target") if append_target else ""
 
     target_dir = (base / safe_dir).resolve() if safe_dir else base
     # Defense-in-depth: even after sanitizing each segment, verify the
