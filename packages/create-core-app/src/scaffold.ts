@@ -77,7 +77,6 @@ export async function scaffold(o: ScaffoldOptions): Promise<void> {
   // half-upgradeable.
   const managed: Array<{ rel: string; content: string }> = [
     { rel: "compose.yaml", content: composeYaml(o) },
-    { rel: ".env.example", content: envExample(o) },
     { rel: ".gitignore", content: gitignore() },
     { rel: "README.md", content: readme(o) },
     { rel: "renovate.json", content: renovateJson() },
@@ -89,9 +88,18 @@ export async function scaffold(o: ScaffoldOptions): Promise<void> {
     await atomicWrite(join(o.target, rel), content);
   }
 
-  // Write .env separately so it's seeded from the same template as
-  // .env.example but stays untracked by files_managed.
+  // .env and .env.example are seeded from the same template but
+  // INTENTIONALLY NOT tracked in files_managed:
+  //   - .env: holds the user's secrets; must never be overwritten
+  //     by upgrade.
+  //   - .env.example: depends on every provider knob (llm, storage,
+  //     auth, speech, openai*, localDataPath, projectsSource) which
+  //     the marker doesn't store. Re-rendering against marker-only
+  //     context would produce false-positive diffs for any customer
+  //     who customized providers. Users compare their .env against
+  //     a fresh scaffold by hand when new fields ship.
   await atomicWrite(join(o.target, ".env"), envExample(o));
+  await atomicWrite(join(o.target, ".env.example"), envExample(o));
 
   // .gitkeeps + initial project README aren't tracked in files_managed
   // (the upgrade flow shouldn't try to manage them).

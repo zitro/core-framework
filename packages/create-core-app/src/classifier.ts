@@ -13,7 +13,6 @@ import { join } from "node:path";
 import type { ScaffoldOptions } from "./scaffold.js";
 import {
   composeYaml,
-  envExample,
   extensionsReadme,
   gitignore,
   infraReadme,
@@ -35,12 +34,13 @@ export interface ClassifyArgs {
 type Renderer = (o: ScaffoldOptions) => string;
 
 // Maps the marker's relativePath to the template function that
-// produces its expected content. Anything not in this map is not a
-// CLI-managed framework template and gets skipped (e.g. .env, which
-// holds secrets and must never be overwritten).
+// produces its expected content. Files NOT in this map are skipped
+// during upgrade:
+//   - .env / .env.example: see scaffold.ts; secrets + provider
+//     knobs not reconstructable from the marker.
+//   - .gitkeep stubs + initial project README: not managed.
 const RENDERERS: Record<string, Renderer> = {
   "compose.yaml": composeYaml,
-  ".env.example": envExample,
   ".gitignore": () => gitignore(),
   "README.md": readme,
   "renovate.json": () => renovateJson(),

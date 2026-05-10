@@ -3,7 +3,10 @@ import { intro, outro, text, select, confirm, isCancel, cancel, spinner, note } 
 import pc from "picocolors";
 import { existsSync } from "node:fs";
 import { resolve, isAbsolute } from "node:path";
+
+import { readMarker } from "./marker.js";
 import { scaffold } from "./scaffold.js";
+import { runUpgradeMode, type UpgradeResult } from "./upgrade.js";
 import { LATEST_VERSION } from "./version.js";
 
 // Slug rules mirror the backend's customer_slug pattern. Lowercase
@@ -52,8 +55,85 @@ async function main(): Promise<void> {
 
   const target = resolve(process.cwd(), name);
   if (existsSync(target)) {
-    cancel(`Directory ${pc.bold(name)} already exists. Aborting.`);
-    process.exit(1);
+    // Existing directory: look for the marker. If present, dispatch
+    // to upgrade mode. If absent, refuse — we don't know what this
+    // directory is and we won't overwrite it.
+    const marker = await readMarker(target);
+    if (marker === null) {
+      cancel(
+        `Directory ${pc.bold(name)} exists but is not a CORE Discovery customer repo (no core-discovery.json marker found).`,
+      );
+      process.exit(1);
+    }
+
+    const proceed = await prompt(confirm({
+      message: `Upgrade existing repo at ${pc.bold("./" + name)} (last touched by CLI ${marker.cli_version_last_upgrade ?? marker.cli_version_created})?`,
+      initialValue: true,
+    }));
+    if (!proceed) {
+      cancel("Aborted.");
+      process.exit(0);
+    }
+
+    const upgradeSpinner = spinner();
+    let spinnerActive = true;
+    upgradeSpinner.start("Planning upgrade…");
+    let result!: UpgradeResult;
+    try {
+      result = await runUpgradeMode({
+        repoPath: target,
+        confirm: async (preview) => {
+          upgradeSpinner.stop("Plan ready.");
+          spinnerActive = false;
+          note(preview, "Pending changes");
+          return await prompt(confirm({
+            message: "Apply these changes?",
+            initialValue: true,
+          }));
+        },
+        onBeforeCommit: () => {
+          upgradeSpinner.start("Applying changes…");
+          spinnerActive = true;
+        },
+      });
+    } catch (err) {
+      if (spinnerActive) {
+        upgradeSpinner.stop("Failed");
+        spinnerActive = false;
+      }
+      cancel(err instanceof Error ? err.message : String(err));
+      process.exit(1);
+    }
+
+    if (spinnerActive) {
+      // Either the no-op-plan path (confirm never fired) or the
+      // commit-completed path (onBeforeCommit restarted the
+      // spinner). Stop with a message that matches the outcome.
+      const stopMessage =
+        result.applied.length === 0
+          ? "No changes needed."
+          : `Applied ${result.applied.length} file(s).`;
+      upgradeSpinner.stop(stopMessage);
+      spinnerActive = false;
+    }
+
+    if (result.warnings.length > 0) {
+      note(result.warnings.join("\n"), "Warnings");
+    }
+    if (result.aborted) {
+      cancel("Upgrade aborted.");
+      process.exit(0);
+    }
+    if (result.applied.length === 0) {
+      outro(pc.green("Already up to date."));
+      process.exit(0);
+    }
+    note(
+      result.applied.map((p) => `- ${p}`).join("\n"),
+      `Updated ${result.applied.length} file(s)`,
+    );
+    outro(pc.green("Upgrade complete."));
+    process.exit(0);
   }
 
   const displayName = await prompt(text({
