@@ -6,14 +6,48 @@ import { resolve, isAbsolute } from "node:path";
 import { scaffold } from "./scaffold.js";
 import { LATEST_VERSION } from "./version.js";
 
+// Slug rules mirror the backend's customer_slug pattern. Lowercase
+// alphanumerics with optional hyphens — anything else corrupts the
+// scaffolded compose container name and breaks Pydantic validation.
+const SLUG_RE = /^[a-z0-9][a-z0-9-]*$/;
+
+// Concrete SemVer only — reject `latest`, `main`, `master`, and any
+// leading-v form. Mirrors the runtime guard added in the engagement.
+const SEMVER_RE = /^(\d+)\.(\d+)\.(\d+)(?:-[\w.-]+)?(?:\+[\w.-]+)?$/;
+const FLOATING_TAGS = new Set(["latest", "main", "master", "edge"]);
+
+function validateSlug(value: string): string | undefined {
+  if (!value) return "Name required";
+  if (!SLUG_RE.test(value)) return "Lowercase alnum + hyphens only";
+  return undefined;
+}
+
+function validateFrameworkVersion(value: string): string | undefined {
+  if (!value) return "Version required";
+  if (FLOATING_TAGS.has(value.toLowerCase())) {
+    return `Floating tag '${value}' rejected — pin to a concrete SemVer (e.g. 1.3.1)`;
+  }
+  if (!SEMVER_RE.test(value)) {
+    return `Must match SemVer X.Y.Z (no leading 'v', no '${value}')`;
+  }
+  return undefined;
+}
+
 async function main(): Promise<void> {
   intro(pc.cyan("◆ create-core-discovery-app"));
 
   const argName = process.argv[2]?.trim();
+  if (argName !== undefined) {
+    const err = validateSlug(argName);
+    if (err) {
+      cancel(`Invalid customer name '${argName}': ${err}`);
+      process.exit(1);
+    }
+  }
   const name = argName ?? (await prompt(text({
     message: "Customer name (also the directory name):",
     placeholder: "acme",
-    validate: (v) => (!v ? "Name required" : !/^[a-z0-9][a-z0-9-]*$/.test(v) ? "Lowercase alnum + hyphens only" : undefined),
+    validate: validateSlug,
   })));
 
   const target = resolve(process.cwd(), name);
@@ -218,6 +252,7 @@ async function main(): Promise<void> {
     message: "Pin to framework version:",
     placeholder: LATEST_VERSION,
     initialValue: LATEST_VERSION,
+    validate: validateFrameworkVersion,
   }));
 
   const initialProject = await prompt(text({
