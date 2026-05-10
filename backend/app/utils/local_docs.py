@@ -31,6 +31,7 @@ def _is_under(child: Path, parent: Path) -> bool:
     except ValueError:
         return False
 
+
 # Text formats — read directly as UTF-8
 TEXT_EXTENSIONS = {
     ".md",

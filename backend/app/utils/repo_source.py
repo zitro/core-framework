@@ -45,9 +45,7 @@ def _safe_extractall(zf: ZipFile, extract_dir: Path) -> None:
         # but if the member type advertises one we don't want to follow.
         # 0xA000 is the symlink flag in zip external_attr.
         if (member.external_attr >> 16) & 0xF000 == 0xA000:
-            raise RepoSourceError(
-                f"Refused to extract symlink zip entry: {member.filename!r}"
-            )
+            raise RepoSourceError(f"Refused to extract symlink zip entry: {member.filename!r}")
     zf.extractall(base)
 
 

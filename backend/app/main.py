@@ -79,6 +79,7 @@ def create_app() -> FastAPI:
         github_auth,
         graph,
         grounding,
+        health_schema,
         me,
         narrative,
         problem_statements,
@@ -188,6 +189,7 @@ def create_app() -> FastAPI:
     app.include_router(grounding.router, prefix="/api/grounding", tags=["grounding"])
     app.include_router(audit.router, prefix="/api/audit", tags=["audit"])
     app.include_router(github_auth.router, prefix="/api/github", tags=["github"])
+    app.include_router(health_schema.router, prefix="/api/health", tags=["health"])
 
     from app.utils.telemetry import configure_telemetry
 

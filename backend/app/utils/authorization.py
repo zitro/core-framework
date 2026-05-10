@@ -34,12 +34,7 @@ def extract_user_id(claims: dict[str, Any]) -> str:
     (standard JWT subject), then ``email``. Returns "" if none are
     present — callers should treat that as unauthenticated.
     """
-    return (
-        claims.get("oid")
-        or claims.get("sub")
-        or claims.get("email")
-        or ""
-    )
+    return claims.get("oid") or claims.get("sub") or claims.get("email") or ""
 
 
 async def assert_project_access(claims: dict[str, Any], project_id: str | None) -> None:

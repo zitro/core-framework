@@ -1,0 +1,77 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": "1.0.0",
+      "default": "1.0.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "customer_slug": {
+      "pattern": "^[a-z0-9]([a-z0-9-]*[a-z0-9])?$",
+      "title": "Customer Slug",
+      "type": "string"
+    },
+    "display_name": {
+      "minLength": 1,
+      "title": "Display Name",
+      "type": "string"
+    },
+    "cli_version_created": {
+      "minLength": 1,
+      "title": "Cli Version Created",
+      "type": "string"
+    },
+    "cli_version_last_upgrade": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Cli Version Last Upgrade"
+    },
+    "framework_version_pinned": {
+      "minLength": 1,
+      "title": "Framework Version Pinned",
+      "type": "string"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    },
+    "last_upgrade_at": {
+      "anyOf": [
+        {
+          "format": "date-time",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Last Upgrade At"
+    },
+    "files_managed": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Files Managed",
+      "type": "array"
+    }
+  },
+  "required": [
+    "customer_slug",
+    "display_name",
+    "cli_version_created",
+    "framework_version_pinned",
+    "created_at"
+  ],
+  "title": "CoreDiscoveryMarker",
+  "type": "object"
+}

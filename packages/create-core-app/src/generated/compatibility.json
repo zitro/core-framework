@@ -1,0 +1,9 @@
+{
+  "kinds": {
+    "core_discovery_marker": {
+      "supported_versions": [
+        "1.0.0"
+      ]
+    }
+  }
+}

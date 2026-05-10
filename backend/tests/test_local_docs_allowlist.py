@@ -12,9 +12,7 @@ def test_validate_docs_path_refuses_outside_allowed_roots(tmp_path, monkeypatch)
     # Configure the allowed roots to a known sandbox directory.
     sandbox = tmp_path / "sandbox"
     sandbox.mkdir()
-    monkeypatch.setattr(
-        local_docs, "_allowed_roots", lambda: [sandbox.resolve()]
-    )
+    monkeypatch.setattr(local_docs, "_allowed_roots", lambda: [sandbox.resolve()])
     # An attacker-controlled directory that exists but isn't under
     # any allowed root.
     rogue = tmp_path / "rogue"
@@ -28,16 +26,12 @@ def test_validate_docs_path_accepts_path_under_allowed_root(tmp_path, monkeypatc
     sandbox.mkdir()
     nested = sandbox / "nested"
     nested.mkdir()
-    monkeypatch.setattr(
-        local_docs, "_allowed_roots", lambda: [sandbox.resolve()]
-    )
+    monkeypatch.setattr(local_docs, "_allowed_roots", lambda: [sandbox.resolve()])
     assert local_docs.validate_docs_path(str(nested)) == nested.resolve()
 
 
 def test_validate_docs_path_accepts_the_root_itself(tmp_path, monkeypatch):
     sandbox = tmp_path / "sandbox"
     sandbox.mkdir()
-    monkeypatch.setattr(
-        local_docs, "_allowed_roots", lambda: [sandbox.resolve()]
-    )
+    monkeypatch.setattr(local_docs, "_allowed_roots", lambda: [sandbox.resolve()])
     assert local_docs.validate_docs_path(str(sandbox)) == sandbox.resolve()
