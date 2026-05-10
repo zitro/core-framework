@@ -67,6 +67,10 @@ jobs:
         if: matrix.suite == 'frontend'
         run: pnpm check:schemas
 
+      - name: CLI tests (frontend suite only)
+        if: matrix.suite == 'frontend'
+        run: pnpm --filter create-core-discovery-app test
+
   # Per-(component × arch) matrix on native runners. No QEMU. Each cell
   # pushes by digest, smoke-tests the image on its native arch, and
   # exports its digest. The manifest job assembles the multi-arch tag
