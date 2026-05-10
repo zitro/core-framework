@@ -20,11 +20,30 @@ async def test_no_header_returns_all_data(client: AsyncClient) -> None:
 
 
 @pytest.mark.asyncio
-async def test_engagements_listing_ignores_project_header(
+async def test_engagements_listing_not_project_partitioned(
     client: AsyncClient,
 ) -> None:
-    """Engagements collection is not project-partitioned; header is ignored."""
+    """Engagements collection isn't project-partitioned. Without an
+    X-Project-Id header, listing returns all engagements for the
+    authenticated user."""
     eng = (await client.post("/api/engagements/", json={"name": "Anywhere"})).json()
-    res = await client.get("/api/engagements/", headers={"X-Project-Id": "some-other-project"})
+    res = await client.get("/api/engagements/")
     assert res.status_code == 200
     assert any(e["id"] == eng["id"] for e in res.json())
+
+
+@pytest.mark.asyncio
+async def test_unknown_project_id_header_is_rejected(
+    client: AsyncClient,
+) -> None:
+    """X-Project-Id pointing at a nonexistent engagement is refused.
+
+    Project access is enforced in get_current_user; an unknown id
+    is treated the same as a forbidden one to avoid leaking which
+    engagement ids exist across tenants.
+    """
+    res = await client.get(
+        "/api/engagements/",
+        headers={"X-Project-Id": "does-not-exist"},
+    )
+    assert res.status_code == 403

@@ -7,6 +7,7 @@ from app.models.core import Engagement, EngagementUpdate
 from app.providers.storage import get_storage_provider
 from app.utils.audit import stamp_create, stamp_update
 from app.utils.audit_log import audit
+from app.utils.authorization import extract_user_id
 from app.utils.slug import slugify
 
 router = APIRouter(dependencies=[Depends(get_current_user)])
@@ -31,11 +32,21 @@ async def _ensure_unique_slug(base: str, exclude_id: str = "") -> str:
 
 
 @router.post("/", response_model=Engagement, status_code=201)
-async def create_engagement(engagement: Engagement) -> Engagement:
+async def create_engagement(
+    engagement: Engagement,
+    claims: dict = Depends(get_current_user),
+) -> Engagement:
     storage = get_storage_provider()
     payload = engagement.model_dump(mode="json")
     raw_slug = payload.get("slug") or payload.get("name", "")
     payload["slug"] = await _ensure_unique_slug(slugify(raw_slug))
+    # Seed owners with the creator so the engagement is reachable under
+    # project-access enforcement. Skip if the caller already supplied
+    # owners (admin / migration paths).
+    if not payload.get("owners"):
+        creator_id = extract_user_id(claims)
+        if creator_id:
+            payload["owners"] = [creator_id]
     item = await storage.create(COLLECTION, stamp_create(payload))
     await audit(
         "create",
