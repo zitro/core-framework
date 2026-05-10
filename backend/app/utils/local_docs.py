@@ -3,7 +3,33 @@
 import logging
 from pathlib import Path
 
+from app.config import settings
+
 logger = logging.getLogger(__name__)
+
+
+def _allowed_roots() -> list[Path]:
+    """Filesystem roots the scanner is permitted to read.
+
+    Anything outside these directories is refused even if the
+    authenticated user supplies an absolute path. Keeps an
+    arbitrary-FS-read out of the public surface: an authenticated
+    caller can otherwise hit /api/docs/scan with any directory the
+    backend process can read.
+    """
+    return [
+        Path(settings.projects_root).expanduser().resolve(),
+        Path(settings.local_storage_path).expanduser().resolve(),
+        Path(settings.extensions_dir).expanduser().resolve(),
+    ]
+
+
+def _is_under(child: Path, parent: Path) -> bool:
+    try:
+        child.relative_to(parent)
+        return True
+    except ValueError:
+        return False
 
 # Text formats — read directly as UTF-8
 TEXT_EXTENSIONS = {
@@ -98,7 +124,9 @@ BINARY_READERS = {
 def validate_docs_path(path_str: str) -> Path:
     """Resolve and validate a docs directory path.
 
-    Returns the resolved Path. Raises ValueError if invalid.
+    Returns the resolved Path. Raises ValueError if invalid or if the
+    path resolves outside the allowed roots (projects_root,
+    local_storage_path, extensions_dir).
     """
     if not path_str or not path_str.strip():
         raise ValueError("Empty docs path")
@@ -107,6 +135,8 @@ def validate_docs_path(path_str: str) -> Path:
         raise ValueError(f"Path does not exist: {resolved}")
     if not resolved.is_dir():
         raise ValueError(f"Path is not a directory: {resolved}")
+    if not any(_is_under(resolved, root) or resolved == root for root in _allowed_roots()):
+        raise ValueError(f"Path outside allowed roots: {resolved}")
     return resolved
 
 
