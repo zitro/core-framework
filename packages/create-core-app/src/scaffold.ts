@@ -64,14 +64,20 @@ export async function scaffold(o: ScaffoldOptions): Promise<void> {
     await mkdir(dataPath, { recursive: true });
   }
 
-  // Files the CLI is responsible for. Order matters only for the
-  // marker — that's written LAST via writeMarker so a crash mid-
-  // scaffold leaves the dir markerless (and therefore unupgradeable
-  // until rescaffolded), rather than half-upgradeable.
+  // Files the CLI is responsible for under upgrade mode. .env is
+  // INTENTIONALLY EXCLUDED — it holds the user's secrets and must
+  // never be overwritten by a framework upgrade. .env.example is
+  // included because it's framework-template and safe to refresh;
+  // the user manually diffs it against their .env when new fields
+  // appear.
+  //
+  // Order matters only for the marker — that's written LAST via
+  // writeMarker so a crash mid-scaffold leaves the dir markerless
+  // (and therefore unupgradeable until rescaffolded), rather than
+  // half-upgradeable.
   const managed: Array<{ rel: string; content: string }> = [
     { rel: "compose.yaml", content: composeYaml(o) },
     { rel: ".env.example", content: envExample(o) },
-    { rel: ".env", content: envExample(o) },
     { rel: ".gitignore", content: gitignore() },
     { rel: "README.md", content: readme(o) },
     { rel: "renovate.json", content: renovateJson() },
@@ -82,6 +88,10 @@ export async function scaffold(o: ScaffoldOptions): Promise<void> {
   for (const { rel, content } of managed) {
     await atomicWrite(join(o.target, rel), content);
   }
+
+  // Write .env separately so it's seeded from the same template as
+  // .env.example but stays untracked by files_managed.
+  await atomicWrite(join(o.target, ".env"), envExample(o));
 
   // .gitkeeps + initial project README aren't tracked in files_managed
   // (the upgrade flow shouldn't try to manage them).
