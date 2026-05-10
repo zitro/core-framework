@@ -178,6 +178,25 @@ async def classify_and_place(repo_path: str, raw_content: str) -> dict[str, Any]
     return result
 
 
+def _sanitize_segment(segment: str, *, label: str) -> str:
+    """Reject inputs that would let a caller escape the content_dir.
+
+    Refuses absolute paths and any segment containing path-traversal
+    parts. Empty strings are allowed — callers handle them by treating
+    the target as ``content_dir`` itself.
+    """
+    if not segment:
+        return ""
+    if segment != segment.strip():
+        raise ValueError(f"{label} cannot have leading or trailing whitespace")
+    candidate = Path(segment)
+    if candidate.is_absolute() or segment.startswith(("/", "\\")):
+        raise ValueError(f"{label} must be a relative path under content_dir")
+    if any(part in ("..", "") for part in candidate.parts):
+        raise ValueError(f"{label} must not contain path-traversal segments")
+    return segment
+
+
 def write_classified_content(
     content_dir: str,
     directory: str,
@@ -188,28 +207,47 @@ def write_classified_content(
 ) -> dict[str, Any]:
     """Write AI-classified content to the repo filesystem.
 
-    Returns the path of the written file.
+    Returns the path of the written file. Inputs are sanitized so the
+    resolved write path always stays under ``content_dir`` — refuses
+    absolute paths, traversal (`..`), and the previously-trusted
+    user-controlled ``directory`` / ``filename`` / ``append_target``
+    inputs from /api/engagement/ingest/write.
     """
-    base = Path(content_dir)
+    base = Path(content_dir).resolve()
     if not base.is_dir():
         return {"error": "Content directory not found"}
 
-    target_dir = base / directory if directory else base
+    safe_dir = _sanitize_segment(directory, label="directory")
+    safe_name = _sanitize_segment(filename, label="filename") if filename else ""
+    safe_append = (
+        _sanitize_segment(append_target, label="append_target") if append_target else ""
+    )
+
+    target_dir = (base / safe_dir).resolve() if safe_dir else base
+    # Defense-in-depth: even after sanitizing each segment, verify the
+    # resolved directory is still under base. A symlink inside base
+    # pointing outside is the residual risk.
+    if not (target_dir == base or target_dir.is_relative_to(base)):
+        return {"error": "Resolved target escapes content_dir"}
     target_dir.mkdir(parents=True, exist_ok=True)
 
-    if action == "append" and append_target:
-        target_file = target_dir / append_target
+    if action == "append" and safe_append:
+        target_file = (target_dir / safe_append).resolve()
+        if not target_file.is_relative_to(base):
+            return {"error": "Resolved append target escapes content_dir"}
         if target_file.exists():
             existing = target_file.read_text(encoding="utf-8")
-            # Append with a separator
             combined = existing.rstrip() + "\n\n---\n\n" + content
             target_file.write_text(combined, encoding="utf-8")
         else:
-            # Fall back to create if target doesn't exist
-            target_file = target_dir / filename
+            target_file = (target_dir / safe_name).resolve()
+            if not target_file.is_relative_to(base):
+                return {"error": "Resolved target escapes content_dir"}
             target_file.write_text(content, encoding="utf-8")
     else:
-        target_file = target_dir / filename
+        target_file = (target_dir / safe_name).resolve()
+        if not target_file.is_relative_to(base):
+            return {"error": "Resolved target escapes content_dir"}
         # Don't overwrite existing files — add a suffix
         if target_file.exists():
             stem = target_file.stem
