@@ -10,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { engagementsApi } from "@/lib/api-fde";
 import { EngagementDiscoveriesPanel } from "@/components/engagements/engagement-discoveries-panel";
+import { PageHeader } from "@/components/layout/page-header";
 import {
   ENGAGEMENT_STATUS_LABELS,
   type Engagement,
@@ -71,17 +72,13 @@ export default function EngagementsPage() {
 
   return (
     <div className="p-6 max-w-5xl mx-auto space-y-6">
-      <div className="flex items-center gap-3">
-        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-sky-500/10">
-          <Briefcase className="h-5 w-5 text-sky-500" />
-        </div>
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Engagements</h1>
-          <p className="text-muted-foreground text-sm">
-            Group discoveries under a customer engagement.
-          </p>
-        </div>
-      </div>
+      <PageHeader
+        title="Engagements"
+        description="Group discoveries under a customer engagement."
+        icon={Briefcase}
+        accent="brand"
+      />
+
 
       <Card>
         <CardHeader>

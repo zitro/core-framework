@@ -6,6 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { PageHeader } from "@/components/layout/page-header";
 import { useRouter } from "next/navigation";
 import { useDiscovery } from "@/stores/discovery-store";
 import { PHASE_CONFIG, type Discovery } from "@/types/core";
@@ -46,15 +47,13 @@ export default function DiscoveriesPage() {
 
   return (
     <div className="p-6 max-w-6xl mx-auto space-y-6">
-      <div className="flex items-center gap-3">
-        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-indigo-500/10">
-          <FolderOpen className="h-5 w-5 text-indigo-500" />
-        </div>
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">All Discoveries</h1>
-          <p className="text-muted-foreground text-sm">Browse and resume past discovery sessions.</p>
-        </div>
-      </div>
+      <PageHeader
+        title="All Discoveries"
+        description="Browse and resume past discovery sessions."
+        icon={FolderOpen}
+        accent="brand"
+      />
+
 
       <div className="relative">
         <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
