@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import { engagementsApi } from "@/lib/api-fde";
 import { EngagementDiscoveriesPanel } from "@/components/engagements/engagement-discoveries-panel";
 import { PageHeader } from "@/components/layout/page-header";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import {
   ENGAGEMENT_STATUS_LABELS,
   type Engagement,
@@ -64,9 +65,16 @@ export default function EngagementsPage() {
     await reload();
   };
 
-  const remove = async (id: string) => {
-    if (!confirm("Delete this engagement?")) return;
-    await engagementsApi.delete(id);
+  const [removeTarget, setRemoveTarget] = useState<string | null>(null);
+
+  const remove = (id: string) => {
+    setRemoveTarget(id);
+  };
+
+  const confirmRemove = async () => {
+    if (!removeTarget) return;
+    await engagementsApi.delete(removeTarget);
+    setRemoveTarget(null);
     await reload();
   };
 
@@ -168,6 +176,17 @@ export default function EngagementsPage() {
           ))
         )}
       </div>
+      <ConfirmDialog
+        open={removeTarget !== null}
+        onOpenChange={(open) => {
+          if (!open) setRemoveTarget(null);
+        }}
+        title="Delete engagement?"
+        description="This permanently removes the engagement and unlinks its discoveries. The discoveries themselves are kept."
+        confirmLabel="Delete"
+        destructive
+        onConfirm={confirmRemove}
+      />
     </div>
   );
 }
