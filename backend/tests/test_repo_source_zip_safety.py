@@ -6,7 +6,6 @@ write outside extract_dir."""
 
 import io
 import zipfile
-from pathlib import Path
 
 import pytest
 
