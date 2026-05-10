@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Search, Compass, Lightbulb, Rocket, ChevronRight } from "lucide-react";
-import type { CorePhase } from "@/types/core";
+import type { CorePhase, Discovery } from "@/types/core";
+import { useDiscovery } from "@/stores/discovery-store";
 
 const STEPS: { phase: CorePhase; label: string; icon: typeof Search; href: string; color: string; bg: string }[] = [
   { phase: "capture", label: "Capture", icon: Search, href: "/capture", color: "text-blue-600", bg: "bg-blue-500" },
@@ -18,15 +19,45 @@ function phaseIndex(phase: CorePhase) {
   return PHASE_ORDER.indexOf(phase);
 }
 
+/**
+ * Did the user actually do something in this phase, or are we just
+ * past it positionally? Audit flagged the old URL-only `isDone` as
+ * misleading: clicking Refine from the dashboard checked off
+ * Capture + Orchestrate even when empty. Data-driven check below.
+ */
+function phaseHasData(phase: CorePhase, discovery: Discovery | null): boolean {
+  if (!discovery) return false;
+  switch (phase) {
+    case "capture":
+      return (discovery.evidence?.length ?? 0) > 0;
+    case "orchestrate":
+      return Boolean(discovery.problem_statement);
+    case "refine":
+      return (
+        (discovery.assumptions?.length ?? 0) > 0 ||
+        (discovery.solution_matches?.length ?? 0) > 0
+      );
+    case "execute":
+      return Boolean(discovery.execute_data);
+  }
+}
+
 export function PhaseProgress({ currentPhase }: { currentPhase: CorePhase }) {
   const pathname = usePathname();
+  const { activeDiscovery } = useDiscovery();
   const activeIdx = phaseIndex(currentPhase);
 
   return (
     <nav className="flex items-center gap-1 w-full overflow-x-auto py-1">
       {STEPS.map((step, idx) => {
         const isActive = pathname.startsWith(step.href);
-        const isDone = idx < activeIdx;
+        // isDone is now real progress: the phase has captured data.
+        // Falls back to positional ordering only when there's no
+        // active discovery yet (cold-start states still show a sane
+        // progression bar).
+        const isDone = activeDiscovery
+          ? phaseHasData(step.phase, activeDiscovery)
+          : idx < activeIdx;
         const isCurrent = idx === activeIdx;
         const Icon = step.icon;
 
