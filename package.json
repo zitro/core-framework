@@ -11,6 +11,7 @@
     "test:watch": "vitest",
     "gen:api": "node scripts/gen-api-types.mjs",
     "gen:schemas": "node scripts/gen-schemas.mjs",
+    "check:schemas": "node scripts/check-schemas-drift.mjs",
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build"
   },
