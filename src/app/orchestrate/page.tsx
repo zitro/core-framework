@@ -634,7 +634,10 @@ export default function OrchestratePage() {
     >
       <div className="space-y-4">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-          <TabsList className="h-auto w-full justify-start gap-1 overflow-x-auto overflow-y-hidden whitespace-nowrap [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          <TabsList
+            variant="line"
+            className="h-auto w-full justify-start gap-3 overflow-x-auto overflow-y-hidden whitespace-nowrap border-b [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          >
             <TabsTrigger value="overview" className="gap-1.5">
               <Network className="h-3.5 w-3.5" />
               Overview

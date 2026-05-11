@@ -591,7 +591,10 @@ export default function CapturePage() {
       showDtMethodsPanel={false}
     >
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-        <TabsList className="h-auto w-full justify-start gap-1 overflow-x-auto overflow-y-hidden whitespace-nowrap [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        <TabsList
+          variant="line"
+          className="h-auto w-full justify-start gap-3 overflow-x-auto overflow-y-hidden whitespace-nowrap border-b [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        >
           <TabsTrigger value="sources">Sources</TabsTrigger>
           <TabsTrigger value="context">Context</TabsTrigger>
           <TabsTrigger value="discover">Discover</TabsTrigger>
@@ -637,64 +640,63 @@ export default function CapturePage() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <div className="space-y-3 rounded-md border border-blue-500/25 bg-blue-500/5 p-3 shadow-sm">
-                    <div className="rounded-md bg-blue-500/10 px-3 py-2">
-                      <p className="text-sm font-medium text-blue-900 dark:text-blue-100">Step 1: Choose what you are adding</p>
-                      <p className="text-xs text-blue-950/70 dark:text-blue-100/75">
+                  <div className="space-y-3">
+                    <div className="space-y-0.5">
+                      <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+                        Step 1
+                      </p>
+                      <p className="text-sm font-medium">Choose what you are adding</p>
+                      <p className="text-xs text-muted-foreground">
                         Pick the closest type. It controls tagging only; you can still attach files, links, or notes.
                       </p>
                     </div>
-                    <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-3">
+                    <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
                       {CONTEXT_OPTIONS.map((option) => {
                         const Icon = option.icon;
                         const active = captureItemType === option.value;
-                        const optionMethods = CAPTURE_METHODS.filter((method) =>
-                          option.methodIds.includes(method.id),
-                        );
                         return (
                           <button
                             key={option.value}
                             type="button"
                             onClick={() => setCaptureItemType(option.value)}
-                            className={`rounded-md border p-3 text-left transition-colors ${
+                            aria-pressed={active}
+                            className={`group flex items-center gap-2 rounded-md border px-2.5 py-2 text-left text-sm transition-colors cursor-pointer ${
                               active
-                                ? "min-h-[156px] border-primary bg-primary/5 text-foreground shadow-sm"
-                                : "bg-background hover:bg-muted/40"
+                                ? "border-brand bg-brand/5 text-brand"
+                                : "border-border bg-background text-foreground/80 hover:border-brand/40 hover:text-foreground"
                             }`}
                           >
-                            <span className="flex items-start justify-between gap-2">
-                              <span className="flex min-w-0 items-center gap-2 text-sm font-medium">
-                                <Icon className="h-4 w-4 shrink-0" />
-                                <span className="truncate">{option.label}</span>
-                              </span>
-                              {active && (
-                                <Badge variant="secondary" className="shrink-0 text-[10px]">
-                                  {option.evidenceType.replace("_", " ")}
-                                </Badge>
-                              )}
-                            </span>
-                            <span className="mt-1 block text-xs leading-relaxed text-muted-foreground">
-                              {option.description}
-                            </span>
-                            {active && (
-                              <span className="mt-3 block space-y-2 rounded-md border bg-background/70 p-2">
-                                {optionMethods.length > 0 && (
-                                  <span className="flex flex-wrap gap-1.5">
-                                    {optionMethods.map((method) => (
-                                      <Badge key={method.id} variant="outline" className="text-[10px]">
-                                        {method.name}
-                                      </Badge>
-                                    ))}
-                                  </span>
-                                )}
-                                <span className="block text-xs leading-relaxed text-muted-foreground">
-                                  {optionMethods[0]?.oneLiner ?? option.description}
-                                </span>
-                              </span>
-                            )}
+                            <Icon className={`h-4 w-4 shrink-0 ${active ? "text-brand" : "text-muted-foreground group-hover:text-foreground"}`} />
+                            <span className="truncate font-medium">{option.label}</span>
                           </button>
                         );
                       })}
+                    </div>
+                    <div className="rounded-md border bg-muted/30 px-3 py-2.5">
+                      <div className="flex flex-wrap items-start gap-2">
+                        <Badge variant="secondary" className="text-[10px]">
+                          {selectedContextOption.evidenceType.replace("_", " ")}
+                        </Badge>
+                        <p className="flex-1 text-xs leading-relaxed text-muted-foreground">
+                          {selectedContextOption.description}
+                        </p>
+                      </div>
+                      {(() => {
+                        const optionMethods = CAPTURE_METHODS.filter((method) =>
+                          selectedContextOption.methodIds.includes(method.id),
+                        );
+                        if (optionMethods.length === 0) return null;
+                        return (
+                          <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                            <span className="text-[10px] uppercase tracking-wider text-muted-foreground">Methods</span>
+                            {optionMethods.map((method) => (
+                              <Badge key={method.id} variant="outline" className="text-[10px]">
+                                {method.name}
+                              </Badge>
+                            ))}
+                          </div>
+                        );
+                      })()}
                     </div>
                   </div>
 
