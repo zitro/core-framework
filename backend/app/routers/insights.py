@@ -387,3 +387,92 @@ async def activity(
 
     events.sort(key=lambda e: e.created_at, reverse=True)
     return ActivityResponse(events=events[:limit])
+
+
+# ── stakeholders ───────────────────────────────────────────────────────
+
+
+class Stakeholder(BaseModel):
+    name: str
+    role: str = ""
+    org: str = ""
+    influence: str = ""
+    source: str  # "discovery" | "engagement_context"
+
+
+class StakeholdersResponse(BaseModel):
+    by_org: dict[str, list[Stakeholder]]
+    total: int
+
+
+@router.get("/stakeholders", response_model=StakeholdersResponse)
+async def stakeholders(discovery_id: str = Query(...)) -> StakeholdersResponse:
+    """Roll-up of every stakeholder mentioned for the discovery's project.
+
+    Pulls from two sources, de-duplicated by name+role:
+      - Discovery.stakeholders (Capture-era list on the discovery itself)
+      - EngagementContext.stakeholders (the engagement-context record,
+        keyed by project_id from discovery.engagement_id)
+
+    Grouped by org so the UI can render a card per org with the people in it.
+    """
+    storage = get_storage_provider()
+    disc = await storage.get("discoveries", discovery_id)
+    if not disc:
+        raise HTTPException(status_code=404, detail="Discovery not found")
+
+    seen: set[tuple[str, str]] = set()
+    rolled: list[Stakeholder] = []
+
+    for s in disc.get("stakeholders") or []:
+        name = str(s.get("name") or "").strip()
+        role = str(s.get("role") or "").strip()
+        if not name:
+            continue
+        key = (name.lower(), role.lower())
+        if key in seen:
+            continue
+        seen.add(key)
+        rolled.append(
+            Stakeholder(
+                name=name,
+                role=role,
+                org=str(s.get("org") or ""),
+                influence=str(s.get("influence") or ""),
+                source="discovery",
+            )
+        )
+
+    project_id = str(disc.get("engagement_id") or disc.get("project_id") or "")
+    if project_id:
+        try:
+            ctxs = await storage.list("engagement_contexts", {"project_id": project_id})
+        except Exception:
+            ctxs = []
+        if ctxs:
+            ec = ctxs[0]
+            for s in ec.get("stakeholders") or []:
+                name = str(s.get("name") or "").strip()
+                role = str(s.get("role") or "").strip()
+                if not name:
+                    continue
+                key = (name.lower(), role.lower())
+                if key in seen:
+                    continue
+                seen.add(key)
+                rolled.append(
+                    Stakeholder(
+                        name=name,
+                        role=role,
+                        org=str(s.get("org") or ""),
+                        influence=str(s.get("influence") or ""),
+                        source="engagement_context",
+                    )
+                )
+
+    by_org: dict[str, list[Stakeholder]] = {}
+    for s in rolled:
+        bucket = s.org or "Unspecified"
+        by_org.setdefault(bucket, []).append(s)
+
+    return StakeholdersResponse(by_org=by_org, total=len(rolled))
