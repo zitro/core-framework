@@ -234,8 +234,8 @@ export interface ArtifactChatTurnResponse {
 
 export interface ArtifactPushResult {
   target: string;
-  ok: boolean;
-  commit?: string;
-  files?: string[];
-  message?: string;
+  enabled: boolean;
+  written: string[];
+  skipped: string[];
+  errors: string[];
 }

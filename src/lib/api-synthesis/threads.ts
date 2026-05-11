@@ -48,7 +48,7 @@ export const threadsApi = {
       { method: "POST", body: JSON.stringify(data) },
     ),
 
-  /** NOT YET SHIPPED on main (Phase 6J). Currently returns 404. */
+  /** Push a single artifact to the connected engagement-repo. */
   push: (projectId: string, artifactId: string) =>
     request<ArtifactPushResult>(
       `/api/synthesis/${pid(projectId)}/artifacts/${pid(artifactId)}/push`,

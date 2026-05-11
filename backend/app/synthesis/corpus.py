@@ -17,6 +17,7 @@ from app.synthesis.sources.http_json import HttpJsonSourceAdapter
 from app.synthesis.sources.local_dir import LocalDirSourceAdapter
 from app.synthesis.sources.msgraph import MsGraphSourceAdapter
 from app.synthesis.sources.user_notes import UserNotesSourceAdapter
+from app.synthesis.sources.vertex import VertexSourceAdapter
 from app.synthesis.sources.web import WebSourceAdapter
 from app.utils.audit import stamp_create
 
@@ -28,11 +29,11 @@ INDEX_COLLECTION = "source_indexes"
 def get_adapters() -> list[SourceAdapter]:
     """Return the active set of source adapters in priority order.
 
-    Adapter execution order is preserved across runs so source IDs
-    that downstream artifacts cite remain stable. Vertex (engagement-
-    repo write-back) lands in Phase 7.
+    Adapter execution order is preserved across runs so source IDs that
+    downstream artifacts cite remain stable.
     """
     return [
+        VertexSourceAdapter(),
         LocalDirSourceAdapter(),
         MsGraphSourceAdapter(),
         GitHubSourceAdapter(),

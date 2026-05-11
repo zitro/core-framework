@@ -11,9 +11,9 @@
  * The thread loads once when the modal opens; subsequent panels mutate
  * the same comments array so add / delete / chat stay in sync.
  *
- * The "Push to engagement-repo" action is gated behind a feature flag —
- * the backend endpoint ships in Phase 6J; until then the button stays
- * disabled with a tooltip so the layout is final but the action inert.
+ * "Push to engagement-repo" calls POST /artifacts/{id}/push — the writer
+ * is a no-op until ``project.metadata.engagement-repo.write_enabled`` is
+ * flipped on via the VertexWriteBackToggle.
  */
 
 import { useEffect, useState } from "react";
@@ -42,9 +42,6 @@ import { ArtifactDetailView } from "@/components/synthesis/artifact-detail-view"
 import { ExportButtons } from "@/components/synthesis/export-buttons";
 import { ThreadPanel } from "@/components/synthesis/thread-panel";
 
-/** Set true once the Phase 6J push-to-engagement-repo backend lands. */
-const PUSH_ENABLED = false;
-
 interface Props {
   projectId: string;
   artifact: SynthesisArtifact | null;
@@ -65,6 +62,7 @@ export function ArtifactDetailModal({
   const [comments, setComments] = useState<ArtifactCommentRecord[]>([]);
   const [loading, setLoading] = useState(false);
   const [regenerating, setRegenerating] = useState(false);
+  const [pushing, setPushing] = useState(false);
   const [tab, setTab] = useState<"detail" | "thread" | "chat">("detail");
 
   useEffect(() => {
@@ -94,6 +92,31 @@ export function ArtifactDetailModal({
   const updateComments = (next: ArtifactCommentRecord[]) => {
     setComments(next);
     if (artifact) onCommentCountChange?.(artifact.id, next.length);
+  };
+
+  const pushToVertex = async () => {
+    if (!artifact) return;
+    setPushing(true);
+    try {
+      const res = await synthesisApi.threads.push(projectId, artifact.id);
+      if (!res.enabled) {
+        toast.info(
+          "Engagement-repo write-back is disabled — flip it on in the Sources tab.",
+        );
+      } else if (res.errors.length > 0) {
+        toast.error(`Push failed: ${res.errors[0]}`);
+      } else {
+        toast.success(
+          res.written.length > 0
+            ? `Pushed ${res.written.length} file(s) to engagement-repo.`
+            : "Push completed.",
+        );
+      }
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Push failed");
+    } finally {
+      setPushing(false);
+    }
   };
 
   const regenerateWithThread = async () => {
@@ -141,14 +164,15 @@ export function ArtifactDetailModal({
                 variant="outline"
                 size="sm"
                 className="h-7 text-xs"
-                disabled={!PUSH_ENABLED}
-                title={
-                  PUSH_ENABLED
-                    ? "Push this artifact to the engagement-repo"
-                    : "Push-to-engagement-repo ships in Phase 6K"
-                }
+                disabled={pushing}
+                onClick={() => void pushToVertex()}
+                title="Push this artifact to the engagement-repo (requires write-back enabled)"
               >
-                <UploadCloud className="mr-1.5 h-3 w-3" />
+                {pushing ? (
+                  <Loader2 className="mr-1.5 h-3 w-3 animate-spin" />
+                ) : (
+                  <UploadCloud className="mr-1.5 h-3 w-3" />
+                )}
                 Push to engagement-repo
               </Button>
             </div>
