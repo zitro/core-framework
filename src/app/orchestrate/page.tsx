@@ -32,6 +32,7 @@ import { api } from "@/lib/api";
 import { useDiscovery } from "@/stores/discovery-store";
 import { PhaseShell } from "@/components/layout/phase-shell";
 import { DiscoveryRequired } from "@/components/layout/discovery-required";
+import { AiFeedback } from "@/components/orchestrate/ai-feedback";
 import { GroundedPanel } from "@/components/orchestrate/grounded-panel";
 import { NarrativePanel } from "@/components/orchestrate/narrative-panel";
 import { useTabParam } from "@/lib/use-tab-param";
@@ -1031,11 +1032,13 @@ export default function OrchestratePage() {
                   Use Case
                 </TabsTrigger>
               </TabsList>
-              <TabsContent value="problem">
+              <TabsContent value="problem" className="space-y-4">
                 <ProblemStatementBuilder discoveryId={discoveryId} activeDiscovery={activeDiscovery} />
+                <AiFeedback discoveryId={discoveryId} surface="problem" />
               </TabsContent>
-              <TabsContent value="usecase">
+              <TabsContent value="usecase" className="space-y-4">
                 <UseCaseBuilder discoveryId={discoveryId} />
+                <AiFeedback discoveryId={discoveryId} surface="usecase" />
               </TabsContent>
             </Tabs>
           </TabsContent>
@@ -1046,6 +1049,7 @@ export default function OrchestratePage() {
               regenerate any time the underlying evidence changes.
             </p>
             <NarrativePanel discovery={activeDiscovery} />
+            <AiFeedback discoveryId={discoveryId} surface="narrative" />
           </TabsContent>
 
           <TabsContent value="grounded" className="space-y-4">
@@ -1053,6 +1057,7 @@ export default function OrchestratePage() {
               Ask a question and get a grounded answer with inline citations, pulled from M365 search.
             </p>
             <GroundedPanel />
+            <AiFeedback discoveryId={discoveryId} surface="grounded" />
           </TabsContent>
         </Tabs>
       </div>

@@ -64,6 +64,7 @@ def create_app() -> FastAPI:
     from app.routers import (
         advisor,
         agents,
+        ai_feedback,
         artifact_threads,
         audit,
         blueprints,
@@ -201,6 +202,7 @@ def create_app() -> FastAPI:
         tags=["synthesis", "threads"],
     )
     app.include_router(v2.router, prefix="/api/v2", tags=["v2"])
+    app.include_router(ai_feedback.router, prefix="/api/ai-feedback", tags=["ai-feedback"])
     app.include_router(
         engagement_context.router,
         prefix="/api/engagement-context",

@@ -23,6 +23,7 @@ KNOWN_COLLECTIONS: list[str] = [
     "company_profiles",
     "reviews",
     "audit",
+    "ai_feedback",
 ]
 
 # Collections partitioned by ``project_id`` when
@@ -52,6 +53,7 @@ PARTITIONED_COLLECTIONS: frozenset[str] = frozenset(
         "assumption_maps",
         "company_profiles",
         "reviews",
+        "ai_feedback",
     }
 )
 
