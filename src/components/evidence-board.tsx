@@ -1,7 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import Link from "next/link";
 import { BookOpen, Plus, Trash2 } from "lucide-react";
+import { EmptyState } from "@/components/layout/empty-state";
 import {
   Card,
   CardContent,
@@ -224,13 +226,22 @@ export function EvidenceBoard() {
       {loading ? (
         <p className="text-sm text-muted-foreground">Loading evidence...</p>
       ) : filtered.length === 0 ? (
-        <Card className="border-dashed">
-          <CardContent className="py-8 text-center">
-            <p className="text-muted-foreground text-sm">
-              No evidence captured yet. Add observations from your discovery sessions.
-            </p>
-          </CardContent>
-        </Card>
+        <EmptyState
+          icon={BookOpen}
+          title="No evidence captured yet"
+          description="Drop observations, quotes, pain points, and source material into Capture. Everything lands here."
+          actions={
+            <Button
+              render={<Link href="/capture" aria-label="Open Capture" />}
+              variant="outline"
+              size="sm"
+              nativeButton={false}
+            >
+              <Plus className="mr-1 h-3.5 w-3.5" aria-hidden />
+              Open Capture
+            </Button>
+          }
+        />
       ) : (
         <ScrollArea className="h-[500px]">
           <div className="space-y-2">

@@ -1,12 +1,12 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Rocket } from "lucide-react";
 import type { QuickWin, Blocker, ExecuteData } from "@/types/core";
 import { useDiscovery } from "@/stores/discovery-store";
 import { api } from "@/lib/api";
 import { OutputCommandCenter } from "@/components/execute/output-command-center";
 import { PhaseShell } from "@/components/layout/phase-shell";
+import { DiscoveryRequired } from "@/components/layout/discovery-required";
 
 export default function ExecutePage() {
   const { activeDiscovery } = useDiscovery();
@@ -72,12 +72,7 @@ export default function ExecutePage() {
   };
 
   if (!activeDiscovery) {
-    return (
-      <div className="p-6 max-w-6xl mx-auto flex flex-col items-center justify-center py-20 text-center">
-        <Rocket className="h-8 w-8 text-muted-foreground mb-2" />
-        <p className="text-muted-foreground text-sm">Select or create a discovery from the Dashboard to start executing.</p>
-      </div>
-    );
+    return <DiscoveryRequired phase="execute" />;
   }
 
   return (

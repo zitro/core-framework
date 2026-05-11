@@ -31,6 +31,7 @@ import type {
 import { api } from "@/lib/api";
 import { useDiscovery } from "@/stores/discovery-store";
 import { PhaseShell } from "@/components/layout/phase-shell";
+import { DiscoveryRequired } from "@/components/layout/discovery-required";
 import { EngagementConfig } from "@/components/settings/engagement-config";
 import { methodsForPhase } from "@/lib/dt-methods";
 
@@ -593,14 +594,7 @@ export default function CapturePage() {
   };
 
   if (!activeDiscovery) {
-    return (
-      <div className="p-6 max-w-6xl mx-auto flex flex-col items-center justify-center py-20 text-center">
-        <Search className="h-8 w-8 text-muted-foreground mb-2" />
-        <p className="text-muted-foreground text-sm">
-          Select or create a discovery from the Dashboard to start capturing.
-        </p>
-      </div>
-    );
+    return <DiscoveryRequired phase="capture" />;
   }
 
   return (
