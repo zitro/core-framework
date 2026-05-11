@@ -5,12 +5,11 @@ from __future__ import annotations
 from fastapi import HTTPException
 
 from app.providers.storage import get_storage_provider
+from app.routers.synthesis._router import PROJECTS_COLLECTION
 from app.synthesis.critic import CRITIQUES_COLLECTION
 from app.synthesis.generator import ARTIFACTS_COLLECTION
 from app.synthesis.models import Artifact, Critique, Question
 from app.synthesis.question_agent import QUESTIONS_COLLECTION
-
-from app.routers.synthesis._router import PROJECTS_COLLECTION
 
 
 async def load_project(project_id: str) -> dict:

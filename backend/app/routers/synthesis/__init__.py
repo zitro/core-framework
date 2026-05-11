@@ -27,15 +27,18 @@ Deferred to later sub-phases:
 
 from __future__ import annotations
 
-from app.routers.synthesis._router import router
-
 # Importing each submodule registers its @router.<method> decorators on
 # the shared router instance. Order doesn't matter — every submodule
 # imports `router` from _router.py.
-from app.routers.synthesis import _catalog  # noqa: F401, E402
-from app.routers.synthesis import _artifacts  # noqa: F401, E402
-from app.routers.synthesis import _critic  # noqa: F401, E402
-from app.routers.synthesis import _chat  # noqa: F401, E402
-from app.routers.synthesis import _questions  # noqa: F401, E402
+from app.routers.synthesis import (
+    _artifacts,  # noqa: F401, E402
+    _catalog,  # noqa: F401, E402
+    _chat,  # noqa: F401, E402
+    _connectors,  # noqa: F401, E402
+    _critic,  # noqa: F401, E402
+    _notes,  # noqa: F401, E402
+    _questions,  # noqa: F401, E402
+)
+from app.routers.synthesis._router import router
 
 __all__ = ["router"]

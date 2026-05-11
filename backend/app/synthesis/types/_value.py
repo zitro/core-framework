@@ -9,7 +9,6 @@ from __future__ import annotations
 from app.synthesis.categories import Category
 from app.synthesis.types._base import ArtifactType
 
-
 VALUE_TYPES: list[ArtifactType] = [
     ArtifactType(
         id="value-hypothesis",

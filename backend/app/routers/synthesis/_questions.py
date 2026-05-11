@@ -1,13 +1,10 @@
 """Customer-question endpoints (the QuestionAgent surface).
 
-  POST /{project_id}/questions/refresh
-  GET  /{project_id}/questions
+POST /{project_id}/questions/refresh
+GET  /{project_id}/questions
 """
 
 from __future__ import annotations
-
-from app.synthesis.corpus import build_corpus
-from app.synthesis.question_agent import QuestionAgent
 
 from app.routers.synthesis._helpers import (
     load_project,
@@ -15,6 +12,8 @@ from app.routers.synthesis._helpers import (
     project_questions,
 )
 from app.routers.synthesis._router import router
+from app.synthesis.corpus import build_corpus
+from app.synthesis.question_agent import QuestionAgent
 
 
 @router.post("/{project_id}/questions/refresh")

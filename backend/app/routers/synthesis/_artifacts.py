@@ -1,8 +1,8 @@
 """Endpoints for listing, synthesizing, and regenerating artifacts.
 
-  GET  /{project_id}/artifacts
-  POST /{project_id}/synthesize
-  POST /{project_id}/artifacts/{type_id}/regenerate
+GET  /{project_id}/artifacts
+POST /{project_id}/synthesize
+POST /{project_id}/artifacts/{type_id}/regenerate
 """
 
 from __future__ import annotations
@@ -12,13 +12,12 @@ import logging
 from fastapi import HTTPException
 from pydantic import BaseModel, Field
 
+from app.routers.synthesis._helpers import load_project, project_artifacts
+from app.routers.synthesis._router import router
 from app.synthesis.corpus import build_corpus
 from app.synthesis.generator import GeneratorEngine
 from app.synthesis.models import Artifact, ArtifactCreate
 from app.synthesis.types import ARTIFACT_TYPES
-
-from app.routers.synthesis._helpers import load_project, project_artifacts
-from app.routers.synthesis._router import router
 
 logger = logging.getLogger(__name__)
 

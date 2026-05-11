@@ -14,23 +14,16 @@ from __future__ import annotations
 
 from app.synthesis.categories import Category
 from app.synthesis.types._base import ArtifactType
-from app.synthesis.types._why import WHY_TYPES
+from app.synthesis.types._how import HOW_TYPES
+from app.synthesis.types._operational import OPERATIONAL_TYPES
+from app.synthesis.types._scope import SCOPE_TYPES
+from app.synthesis.types._story import STORY_TYPES
 from app.synthesis.types._value import VALUE_TYPES
 from app.synthesis.types._what import WHAT_TYPES
-from app.synthesis.types._scope import SCOPE_TYPES
-from app.synthesis.types._how import HOW_TYPES
-from app.synthesis.types._story import STORY_TYPES
-from app.synthesis.types._operational import OPERATIONAL_TYPES
-
+from app.synthesis.types._why import WHY_TYPES
 
 ARTIFACT_TYPES: list[ArtifactType] = (
-    WHY_TYPES
-    +    VALUE_TYPES
-    +    WHAT_TYPES
-    +    SCOPE_TYPES
-    +    HOW_TYPES
-    +    STORY_TYPES
-    +    OPERATIONAL_TYPES
+    WHY_TYPES + VALUE_TYPES + WHAT_TYPES + SCOPE_TYPES + HOW_TYPES + STORY_TYPES + OPERATIONAL_TYPES
 )
 
 
