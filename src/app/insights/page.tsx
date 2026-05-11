@@ -20,6 +20,7 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ActivityFeed } from "@/components/insights/activity-feed";
 import { CoverageMap } from "@/components/insights/coverage-map";
+import { DecisionsLog } from "@/components/insights/decisions-log";
 import { Inbox } from "@/components/insights/inbox";
 import { StakeholderMap } from "@/components/insights/stakeholder-map";
 import { DiscoveryRequired } from "@/components/layout/discovery-required";
@@ -53,9 +54,7 @@ export default function InsightsPage() {
           </TabsTrigger>
           <TabsTrigger value="activity">Activity</TabsTrigger>
           <TabsTrigger value="inbox">Inbox</TabsTrigger>
-          <TabsTrigger value="decisions" disabled>
-            Decisions
-          </TabsTrigger>
+          <TabsTrigger value="decisions">Decisions</TabsTrigger>
           <TabsTrigger value="stakeholders">Stakeholders</TabsTrigger>
         </TabsList>
 
@@ -69,6 +68,10 @@ export default function InsightsPage() {
 
         <TabsContent value="inbox">
           <Inbox discoveryId={activeDiscovery.id} />
+        </TabsContent>
+
+        <TabsContent value="decisions">
+          <DecisionsLog discoveryId={activeDiscovery.id} />
         </TabsContent>
 
         <TabsContent value="stakeholders">

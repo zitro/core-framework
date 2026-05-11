@@ -476,3 +476,64 @@ async def stakeholders(discovery_id: str = Query(...)) -> StakeholdersResponse:
         by_org.setdefault(bucket, []).append(s)
 
     return StakeholdersResponse(by_org=by_org, total=len(rolled))
+
+
+# ── decisions log ──────────────────────────────────────────────────────
+
+
+class Decision(BaseModel):
+    id: str
+    text: str
+    source: str = ""
+    phase: str
+    rationale: str = ""
+    tags: list[str]
+    created_at: str
+
+
+class DecisionsResponse(BaseModel):
+    decisions: list[Decision]
+    total: int
+
+
+@router.get("/decisions", response_model=DecisionsResponse)
+async def decisions(discovery_id: str = Query(...)) -> DecisionsResponse:
+    """Return decisions captured for a discovery, newest-first.
+
+    Decisions live as evidence items tagged ``"decision"`` (per the
+    Capture tab's Decision capture type config). This endpoint pulls
+    every evidence row across phases that carries that tag.
+    """
+    storage = get_storage_provider()
+    disc = await storage.get("discoveries", discovery_id)
+    if not disc:
+        raise HTTPException(status_code=404, detail="Discovery not found")
+
+    rows: list[dict] = []
+    for key in ("discovery_id", "discoveryId"):
+        try:
+            rows = await storage.list("evidence", {key: discovery_id})
+        except Exception:
+            rows = []
+        if rows:
+            break
+
+    out: list[Decision] = []
+    for r in rows:
+        tags = [str(t).lower() for t in (r.get("tags") or [])]
+        if "decision" not in tags:
+            continue
+        out.append(
+            Decision(
+                id=str(r.get("id") or ""),
+                text=str(r.get("content") or ""),
+                source=str(r.get("source") or ""),
+                phase=str(r.get("phase") or ""),
+                rationale="",
+                tags=tags,
+                created_at=str(r.get("created_at") or ""),
+            )
+        )
+
+    out.sort(key=lambda d: d.created_at, reverse=True)
+    return DecisionsResponse(decisions=out, total=len(out))
