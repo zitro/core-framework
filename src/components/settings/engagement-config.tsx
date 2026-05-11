@@ -12,13 +12,6 @@ import {
   Folder,
   Link,
 } from "lucide-react";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
@@ -734,18 +727,17 @@ export function EngagementConfig({ discovery, onUpdate }: EngagementConfigProps)
   }, [refreshGithubStatus, sourceEditor]);
 
   return (
-    <Card>
-      <CardHeader className="pb-3">
-        <CardTitle className="flex items-center gap-2 text-base">
-          <GitBranch className="h-4 w-4" />
-          Engagement Source
-        </CardTitle>
-        <CardDescription>
-          Link a structured markdown repo to feed notes into AI
-          context and export CORE outputs back.
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-4">
+    <section className="space-y-4">
+      <header className="space-y-1">
+        <div className="flex items-center gap-1.5 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+          <GitBranch className="h-3 w-3" />
+          <span>Engagement Source</span>
+        </div>
+        <p className="text-xs text-muted-foreground">
+          Link a structured markdown repo to feed notes into AI context and export CORE outputs back.
+        </p>
+      </header>
+      <div className="space-y-4">
         {/* Source actions */}
         <div className="rounded-lg border border-dashed p-3 space-y-3">
           {githubConnected && (
@@ -1052,7 +1044,7 @@ export function EngagementConfig({ discovery, onUpdate }: EngagementConfigProps)
         {scan?.error && (
           <p className="text-sm text-destructive">{scan.error}</p>
         )}
-      </CardContent>
-    </Card>
+      </div>
+    </section>
   );
 }
