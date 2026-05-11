@@ -29,8 +29,7 @@ const PHASE_NAV = [
     label: "Capture",
     icon: Search,
     href: "/capture",
-    color: "text-blue-500",
-    bgColor: "bg-blue-500/10",
+    activeClass: "bg-phase-capture/15 text-phase-capture",
   },
   {
     phase: "orchestrate",
@@ -38,8 +37,7 @@ const PHASE_NAV = [
     label: "Orchestrate",
     icon: Compass,
     href: "/orchestrate",
-    color: "text-amber-500",
-    bgColor: "bg-amber-500/10",
+    activeClass: "bg-phase-orchestrate/15 text-phase-orchestrate",
   },
   {
     phase: "refine",
@@ -47,8 +45,7 @@ const PHASE_NAV = [
     label: "Refine",
     icon: Lightbulb,
     href: "/refine",
-    color: "text-emerald-500",
-    bgColor: "bg-emerald-500/10",
+    activeClass: "bg-phase-refine/15 text-phase-refine",
   },
   {
     phase: "execute",
@@ -56,8 +53,7 @@ const PHASE_NAV = [
     label: "Execute",
     icon: Rocket,
     href: "/execute",
-    color: "text-violet-500",
-    bgColor: "bg-violet-500/10",
+    activeClass: "bg-phase-execute/15 text-phase-execute",
   },
 ];
 
@@ -127,7 +123,7 @@ export function AppSidebar() {
                   >
                     <span className={`flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-bold ${
                       pathname.startsWith(item.href)
-                        ? `${item.bgColor} ${item.color}`
+                        ? item.activeClass
                         : "bg-muted text-muted-foreground"
                     }`}>
                       {item.step}
@@ -146,31 +142,31 @@ export function AppSidebar() {
             <SidebarMenu>
               <SidebarMenuItem>
                 <SidebarMenuButton render={<Link href="/evidence" aria-label="All Evidence" title="All Evidence" />} isActive={pathname === "/evidence"}>
-                  <BookOpen className="h-4 w-4 text-orange-500" />
+                  <BookOpen className="h-4 w-4 text-muted-foreground" />
                   <span>All Evidence</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
               <SidebarMenuItem>
                 <SidebarMenuButton render={<Link href="/context" aria-label="Engagement Context" title="Engagement Context" />} isActive={pathname === "/context"}>
-                  <FolderGit2 className="h-4 w-4 text-teal-500" />
+                  <FolderGit2 className="h-4 w-4 text-muted-foreground" />
                   <span>Engagement Context</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
               <SidebarMenuItem>
                 <SidebarMenuButton render={<Link href="/narrative" aria-label="Narrative" title="Narrative" />} isActive={pathname === "/narrative"}>
-                  <Sparkles className="h-4 w-4 text-fuchsia-500" />
+                  <Sparkles className="h-4 w-4 text-muted-foreground" />
                   <span>Narrative</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
               <SidebarMenuItem>
                 <SidebarMenuButton render={<Link href="/search" aria-label="Web Search" title="Web Search" />} isActive={pathname === "/search"}>
-                  <Globe className="h-4 w-4 text-cyan-500" />
+                  <Globe className="h-4 w-4 text-muted-foreground" />
                   <span>Web Search</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
               <SidebarMenuItem>
                 <SidebarMenuButton render={<Link href="/methodology" aria-label="Methodology" title="Methodology" />} isActive={pathname === "/methodology"}>
-                  <BookMarked className="h-4 w-4 text-amber-500" />
+                  <BookMarked className="h-4 w-4 text-muted-foreground" />
                   <span>Methodology</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
@@ -190,19 +186,19 @@ export function AppSidebar() {
             <SidebarMenu>
               <SidebarMenuItem>
                 <SidebarMenuButton render={<Link href="/engagements" aria-label="Engagements" title="Engagements" />} isActive={pathname === "/engagements"}>
-                  <Briefcase className="h-4 w-4 text-sky-500" />
+                  <Briefcase className="h-4 w-4 text-muted-foreground" />
                   <span>Engagements</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
               <SidebarMenuItem>
                 <SidebarMenuButton render={<Link href="/company" aria-label="Company Research" title="Company Research" />} isActive={pathname === "/company"}>
-                  <Building2 className="h-4 w-4 text-emerald-500" />
+                  <Building2 className="h-4 w-4 text-muted-foreground" />
                   <span>Company Research</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
               <SidebarMenuItem>
                 <SidebarMenuButton render={<Link href="/reviews" aria-label="Reviews" title="Reviews" />} isActive={pathname === "/reviews"}>
-                  <ShieldCheck className="h-4 w-4 text-rose-500" />
+                  <ShieldCheck className="h-4 w-4 text-muted-foreground" />
                   <span>Reviews</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
@@ -216,13 +212,13 @@ export function AppSidebar() {
             <SidebarMenu>
               <SidebarMenuItem>
                 <SidebarMenuButton render={<Link href="/m365" aria-label="Microsoft 365" title="Microsoft 365" />} isActive={pathname === "/m365"}>
-                  <Cloud className="h-4 w-4 text-blue-500" />
+                  <Cloud className="h-4 w-4 text-muted-foreground" />
                   <span>Microsoft 365</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
               <SidebarMenuItem>
                 <SidebarMenuButton render={<Link href="/grounding" aria-label="Grounded Answers" title="Grounded Answers" />} isActive={pathname === "/grounding"}>
-                  <Wand2 className="h-4 w-4 text-violet-500" />
+                  <Wand2 className="h-4 w-4 text-muted-foreground" />
                   <span>Grounded Answers</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>

@@ -1,62 +1,77 @@
 "use client";
 
 import Link from "next/link";
-import { Settings as SettingsIcon, ArrowLeft } from "lucide-react";
+import { Settings as SettingsIcon, ArrowRight, FolderGit2, Database, Server } from "lucide-react";
 import { PageHeader } from "@/components/layout/page-header";
-import { EngagementConfig } from "@/components/settings/engagement-config";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { api } from "@/lib/api";
 import { useDiscovery } from "@/stores/discovery-store";
 
 export default function SettingsPage() {
-  const { activeDiscovery, setActiveDiscovery } = useDiscovery();
-
-  if (!activeDiscovery) {
-    return (
-      <div className="mx-auto max-w-6xl space-y-6 p-6">
-        <PageHeader
-          eyebrow="Discovery settings"
-          title="Settings"
-          description="Sources, scans, exports, and publishing for the active discovery."
-          icon={SettingsIcon}
-          accent="brand"
-        />
-        <div className="flex flex-col items-center justify-center gap-3 rounded-lg border border-dashed py-20 text-center">
-          <SettingsIcon className="h-8 w-8 text-muted-foreground" aria-hidden />
-          <p className="text-sm text-muted-foreground">
-            Select or create a discovery to configure its sources.
-          </p>
-          <Button
-            render={<Link href="/" aria-label="Go to Dashboard" />}
-            variant="outline"
-            size="sm"
-          >
-            <ArrowLeft className="mr-1 h-3.5 w-3.5" aria-hidden />
-            Go to Dashboard
-          </Button>
-        </div>
-      </div>
-    );
-  }
+  const { activeDiscovery } = useDiscovery();
 
   return (
-    <div className="mx-auto max-w-6xl space-y-6 p-6">
+    <div className="mx-auto max-w-4xl space-y-6 p-6">
       <PageHeader
-        eyebrow={activeDiscovery.name || "Discovery settings"}
+        eyebrow="Engagement settings"
         title="Settings"
-        description="Sources, scans, exports, and publishing for the active discovery."
+        description="Provider configuration, environment, and discovery-wide preferences."
         icon={SettingsIcon}
         accent="brand"
       />
-      <EngagementConfig
-        discovery={activeDiscovery}
-        onUpdate={(patch) => {
-          api.discoveries
-            .update(activeDiscovery.id, patch)
-            .then((updated) => setActiveDiscovery(updated))
-            .catch(() => {});
-        }}
-      />
+
+      {activeDiscovery && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Sources & integrations</CardTitle>
+            <CardDescription>
+              Connect GitHub repos, local folders, and external knowledge bases for the active discovery.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button
+              render={<Link href="/capture" aria-label="Open Sources tab in Capture" />}
+              variant="outline"
+              size="sm"
+            >
+              Open Sources in Capture
+              <ArrowRight className="ml-1 h-3.5 w-3.5" aria-hidden />
+            </Button>
+            <p className="mt-2 text-xs text-muted-foreground">
+              Source connections are managed inline with capture so the workflow stays continuous.
+            </p>
+          </CardContent>
+        </Card>
+      )}
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Provider status</CardTitle>
+          <CardDescription>
+            Read-only summary of provider selection. Edit <code>.env</code> + redeploy to change.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-2 text-sm">
+          <div className="flex items-center gap-2 text-muted-foreground">
+            <Server className="h-4 w-4" aria-hidden />
+            <span>Backend health: visit <code>/api/health</code></span>
+          </div>
+          <div className="flex items-center gap-2 text-muted-foreground">
+            <Database className="h-4 w-4" aria-hidden />
+            <span>Schema state: visit <code>/api/health/schema</code></span>
+          </div>
+          <div className="flex items-center gap-2 text-muted-foreground">
+            <FolderGit2 className="h-4 w-4" aria-hidden />
+            <span>
+              Engagement repo for the active discovery is configured via{" "}
+              <Link href="/capture" className="underline underline-offset-2">
+                Capture → Sources
+              </Link>
+              .
+            </span>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }
