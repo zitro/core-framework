@@ -60,8 +60,8 @@ export function PhaseOverview() {
               key={phase}
               href={`/${phase}`}
               className={cn(
-                "group relative overflow-hidden rounded-lg border bg-card px-4 py-4 shadow-sm transition-all hover:bg-muted/40 hover:shadow-md",
-                "before:absolute before:left-0 before:top-0 before:h-full before:w-1 before:rounded-l-lg",
+                "group relative overflow-hidden rounded-xl bg-white border border-gray-200 p-6 transition-all duration-200 hover:shadow-lg hover:border-gray-300 hover:-translate-y-0.5",
+                "before:absolute before:left-0 before:top-0 before:h-full before:w-1 before:rounded-l-xl",
                 PHASE_RAIL[phase],
               )}
               aria-label={`Open ${config.label}`}

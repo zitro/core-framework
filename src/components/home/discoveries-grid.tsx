@@ -50,7 +50,7 @@ export function DiscoveriesGrid({
         return (
           <Card
             key={d.id}
-            className={`cursor-pointer transition-shadow hover:shadow-md ${isActive ? "ring-2 ring-brand" : ""}`}
+            className={`relative cursor-pointer overflow-hidden rounded-xl bg-white border border-gray-200 transition-all duration-200 hover:shadow-lg hover:border-gray-300 hover:-translate-y-0.5 ${isActive ? "ring-2 ring-brand" : ""}`}
             onClick={() => onPick(d)}
           >
             <CardHeader className="pb-2">
