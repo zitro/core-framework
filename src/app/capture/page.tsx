@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   AlertTriangle,
   CheckCircle2,
@@ -31,7 +32,6 @@ import type {
 import { api } from "@/lib/api";
 import { useDiscovery } from "@/stores/discovery-store";
 import { PhaseShell } from "@/components/layout/phase-shell";
-import { EngagementConfig } from "@/components/settings/engagement-config";
 import { methodsForPhase } from "@/lib/dt-methods";
 
 interface CaptureDraft {
@@ -228,8 +228,17 @@ interface PendingEvidenceFile {
 
 export default function CapturePage() {
   // State and refs
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const { activeDiscovery, setActiveDiscovery } = useDiscovery();
   const discoveryId = activeDiscovery?.id || "";
+
+  // Sources moved to /settings — redirect legacy ?tab=sources deep links.
+  useEffect(() => {
+    if (searchParams.get("tab") === "sources") {
+      router.replace("/settings");
+    }
+  }, [router, searchParams]);
 
   const [transcript, setTranscript] = useState("");
   const [transcriptSource, setTranscriptSource] = useState("");
@@ -610,24 +619,12 @@ export default function CapturePage() {
       showEvidencePanel={false}
       showDtMethodsPanel={false}
     >
-      <Tabs defaultValue="sources" className="space-y-4">
+      <Tabs defaultValue="context" className="space-y-4">
         <TabsList className="h-auto w-full justify-start gap-1 overflow-x-auto overflow-y-hidden whitespace-nowrap [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-          <TabsTrigger value="sources">Sources</TabsTrigger>
           <TabsTrigger value="context">Context</TabsTrigger>
           <TabsTrigger value="technologies">Technologies</TabsTrigger>
           <TabsTrigger value="transcript">Transcript</TabsTrigger>
         </TabsList>
-
-        <TabsContent value="sources" className="space-y-4">
-          <EngagementConfig
-            discovery={activeDiscovery}
-            onUpdate={(patch) => {
-              api.discoveries.update(activeDiscovery.id, patch).then((updated) => {
-                setActiveDiscovery(updated);
-              }).catch(() => {});
-            }}
-          />
-        </TabsContent>
 
         <TabsContent value="context" className="space-y-4">
           <div className="grid gap-4 xl:grid-cols-[minmax(0,1.45fr)_minmax(320px,0.75fr)]">
