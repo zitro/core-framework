@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { useDiscovery } from "@/stores/discovery-store";
 import type { DiscoveryMode } from "@/types/core";
 import { MODE_CONFIG, PHASE_CONFIG } from "@/types/core";
@@ -130,14 +131,17 @@ export default function DashboardPage() {
     }
   };
 
-  const handleDelete = async (id: string, discoveryName: string) => {
-    const shouldDelete = window.confirm(
-      `Delete discovery \"${discoveryName}\"? This cannot be undone.`
-    );
-    if (!shouldDelete) return;
-    setDeletingId(id);
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
+
+  const handleDelete = (id: string, discoveryName: string) => {
+    setDeleteTarget({ id, name: discoveryName });
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteTarget) return;
+    setDeletingId(deleteTarget.id);
     try {
-      await deleteDiscovery(id);
+      await deleteDiscovery(deleteTarget.id);
     } finally {
       setDeletingId("");
     }
@@ -405,6 +409,21 @@ export default function DashboardPage() {
           </div>
         )}
       </div>
+      <ConfirmDialog
+        open={deleteTarget !== null}
+        onOpenChange={(open) => {
+          if (!open) setDeleteTarget(null);
+        }}
+        title="Delete discovery?"
+        description={
+          deleteTarget
+            ? `“${deleteTarget.name}” will be permanently removed. This cannot be undone.`
+            : ""
+        }
+        confirmLabel="Delete"
+        destructive
+        onConfirm={confirmDelete}
+      />
     </div>
   );
 }
