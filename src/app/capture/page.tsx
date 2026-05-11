@@ -39,7 +39,6 @@ import { BrowsePanel } from "@/components/capture/discover/browse-panel";
 import { CompanyResearchPanel } from "@/components/capture/discover/company-research-panel";
 import { M365Panel } from "@/components/capture/discover/m365-panel";
 import { WebSearchPanel } from "@/components/capture/discover/web-search-panel";
-import { methodsForPhase } from "@/lib/dt-methods";
 
 interface CaptureDraft {
   quickNote: string;
@@ -77,8 +76,6 @@ type ContextOption = {
   icon: typeof Lightbulb;
   methodIds: string[];
 };
-
-const CAPTURE_METHODS = methodsForPhase("capture");
 
 const CONTEXT_OPTIONS: ContextOption[] = [
   {
@@ -275,23 +272,6 @@ export default function CapturePage() {
     () => CONTEXT_OPTIONS.find((option) => option.value === captureItemType) ?? CONTEXT_OPTIONS[0],
     [captureItemType],
   );
-
-  const contextCaptureGuidance = useMemo(() => {
-    switch (selectedContextOption.value) {
-      case "document":
-        return "Describe the document, then attach the file or add a related link so the project context keeps both the artifact and your interpretation.";
-      case "presentation":
-        return "Describe the deck, audience, date, or important sections, then attach the presentation or supporting links.";
-      case "recording":
-        return "Add meeting context, speakers, or what the recording captures, then attach the audio or video file.";
-      case "file":
-        return "Describe what the file is and why it matters, then attach the artifact so downstream AI can use it as evidence.";
-      case "url":
-        return "Add why the link matters, paste the URL, and include any short note that helps interpret it later.";
-      default:
-        return selectedContextOption.description;
-    }
-  }, [selectedContextOption]);
 
   const evidenceTypeCounts = useMemo(() => {
     return captureEvidence.reduce<Record<string, number>>((acc, item) => {
@@ -630,303 +610,264 @@ export default function CapturePage() {
         </TabsContent>
 
         <TabsContent value="context" className="space-y-4">
-          <div className="grid gap-4 xl:grid-cols-[minmax(0,1.45fr)_minmax(320px,0.75fr)]">
-            <div className="space-y-4">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-base">Add Context</CardTitle>
-                  <CardDescription>
-                    Follow the steps to add raw context. AI turns this into a versioned project brief in Orchestrate.
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="space-y-3">
-                    <div className="space-y-0.5">
-                      <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
-                        Step 1
-                      </p>
-                      <p className="text-sm font-medium">Choose what you are adding</p>
-                      <p className="text-xs text-muted-foreground">
-                        Pick the closest type. It controls tagging only; you can still attach files, links, or notes.
-                      </p>
+          <div className="grid gap-6 xl:grid-cols-[minmax(0,1.45fr)_minmax(260px,0.55fr)]">
+            <form
+              className="space-y-3"
+              onSubmit={(e) => {
+                e.preventDefault();
+                void addQuickNote("save");
+              }}
+            >
+              <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+                {CONTEXT_OPTIONS.map((option) => {
+                  const Icon = option.icon;
+                  const active = captureItemType === option.value;
+                  return (
+                    <button
+                      key={option.value}
+                      type="button"
+                      onClick={() => setCaptureItemType(option.value)}
+                      aria-pressed={active}
+                      className={`group flex cursor-pointer items-center gap-1.5 rounded-md border px-2 py-1.5 text-left text-xs transition-colors ${
+                        active
+                          ? "border-brand bg-brand/5 text-brand"
+                          : "border-border bg-background text-foreground/80 hover:border-brand/40 hover:text-foreground"
+                      }`}
+                    >
+                      <Icon
+                        className={`h-3.5 w-3.5 shrink-0 ${
+                          active ? "text-brand" : "text-muted-foreground group-hover:text-foreground"
+                        }`}
+                      />
+                      <span className="min-w-0 truncate font-medium">{option.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+
+              <p className="text-xs leading-relaxed text-muted-foreground">
+                {selectedContextOption.description}
+              </p>
+
+              <Textarea
+                ref={quickNoteTextareaRef}
+                value={quickNote}
+                onChange={(e) => setQuickNote(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
+                    e.preventDefault();
+                    if (canSaveContext && !savingNote) void addQuickNote("save");
+                  }
+                }}
+                placeholder={selectedContextOption.placeholder}
+                rows={selectedContextOption.value === "transcript" ? 12 : 8}
+                className="resize-y text-sm leading-relaxed"
+              />
+
+              <div className="grid gap-2 sm:grid-cols-2">
+                <Input
+                  value={captureReference}
+                  onChange={(e) => setCaptureReference(e.target.value)}
+                  placeholder={
+                    selectedContextOption.value === "transcript"
+                      ? "Meeting, speaker, or session label"
+                      : "Source / reference (optional)"
+                  }
+                />
+                <Input
+                  value={evidenceUrl}
+                  onChange={(e) => setEvidenceUrl(e.target.value)}
+                  placeholder={selectedContextOption.value === "url" ? "URL" : "Related URL (optional)"}
+                />
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2 text-xs">
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="inline-flex cursor-pointer items-center gap-1.5 rounded-md border px-2 py-1 text-muted-foreground transition-colors hover:border-brand/40 hover:text-foreground"
+                >
+                  <Paperclip className="h-3 w-3" />
+                  Attach files
+                </button>
+                {pendingFiles.length > 0 && (
+                  <span className="text-muted-foreground">
+                    {pendingFiles.length} file{pendingFiles.length === 1 ? "" : "s"} attached
+                  </span>
+                )}
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  multiple
+                  className="hidden"
+                  aria-label="Select evidence files"
+                  title="Select evidence files"
+                  onChange={(e) => void onSelectEvidenceFiles(e.target.files)}
+                />
+              </div>
+
+              {pendingFiles.length > 0 && (
+                <div className="space-y-1.5">
+                  {pendingFiles.map((file) => (
+                    <div
+                      key={`${file.name}:${file.size}`}
+                      className="flex items-center justify-between gap-2 rounded-md border bg-muted/30 px-2.5 py-1.5 text-xs"
+                    >
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate font-medium">{file.name}</span>
+                        <span className="text-[10px] text-muted-foreground">{formatFileSize(file.size)}</span>
+                      </span>
+                      <button
+                        type="button"
+                        aria-label={`Remove ${file.name}`}
+                        className="cursor-pointer rounded p-0.5 text-muted-foreground hover:bg-muted hover:text-foreground"
+                        onClick={() =>
+                          setPendingFiles((prev) =>
+                            prev.filter((item) => !(item.name === file.name && item.size === file.size)),
+                          )
+                        }
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
                     </div>
-                    <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
-                      {CONTEXT_OPTIONS.map((option) => {
-                        const Icon = option.icon;
-                        const active = captureItemType === option.value;
-                        return (
-                          <button
-                            key={option.value}
-                            type="button"
-                            onClick={() => setCaptureItemType(option.value)}
-                            aria-pressed={active}
-                            className={`group flex items-center gap-2 rounded-md border px-2.5 py-2 text-left text-sm transition-colors cursor-pointer ${
-                              active
-                                ? "border-brand bg-brand/5 text-brand"
-                                : "border-border bg-background text-foreground/80 hover:border-brand/40 hover:text-foreground"
-                            }`}
-                          >
-                            <Icon className={`h-4 w-4 shrink-0 ${active ? "text-brand" : "text-muted-foreground group-hover:text-foreground"}`} />
-                            <span className="truncate font-medium">{option.label}</span>
-                          </button>
-                        );
-                      })}
-                    </div>
-                    <div className="rounded-md border bg-muted/30 px-3 py-2.5">
-                      <div className="flex flex-wrap items-start gap-2">
-                        <Badge variant="secondary" className="text-[10px]">
-                          {selectedContextOption.evidenceType.replace("_", " ")}
-                        </Badge>
-                        <p className="flex-1 text-xs leading-relaxed text-muted-foreground">
-                          {selectedContextOption.description}
-                        </p>
-                      </div>
-                      {(() => {
-                        const optionMethods = CAPTURE_METHODS.filter((method) =>
-                          selectedContextOption.methodIds.includes(method.id),
-                        );
-                        if (optionMethods.length === 0) return null;
-                        return (
-                          <div className="mt-2 flex flex-wrap items-center gap-1.5">
-                            <span className="text-[10px] uppercase tracking-wider text-muted-foreground">Methods</span>
-                            {optionMethods.map((method) => (
-                              <Badge key={method.id} variant="outline" className="text-[10px]">
-                                {method.name}
-                              </Badge>
+                  ))}
+                </div>
+              )}
+
+              <div className="flex flex-wrap items-center justify-between gap-2 border-t pt-3">
+                <span className="text-[11px] text-muted-foreground">
+                  <kbd className="rounded border bg-muted/60 px-1 font-mono text-[10px]">⌘</kbd>
+                  <span className="mx-0.5">+</span>
+                  <kbd className="rounded border bg-muted/60 px-1 font-mono text-[10px]">Enter</kbd> to save
+                </span>
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => void addQuickNote("add-another")}
+                    disabled={savingNote || !canSaveContext}
+                    size="sm"
+                  >
+                    <Plus className="mr-1 h-3 w-3" />
+                    {savingNoteAction === "add-another" ? "Saving..." : "Save & add another"}
+                  </Button>
+                  <Button type="submit" disabled={savingNote || !canSaveContext} size="sm">
+                    {savingNoteAction === "save" ? "Saving..." : "Save"}
+                  </Button>
+                </div>
+              </div>
+
+              {error && <p className="text-sm text-red-500">{error}</p>}
+            </form>
+
+            <aside className="space-y-4">
+              <div className="space-y-1">
+                <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+                  Captured
+                </p>
+                <p className="font-heading text-3xl font-semibold tabular-nums">
+                  {captureEvidence.length}
+                </p>
+              </div>
+
+              {Object.entries(evidenceTypeCounts).length > 0 && (
+                <div className="flex flex-wrap gap-1">
+                  {Object.entries(evidenceTypeCounts).map(([type, count]) => (
+                    <Badge key={type} variant="outline" className="text-[10px] capitalize">
+                      {type.replace("_", " ")} · {count}
+                    </Badge>
+                  ))}
+                </div>
+              )}
+
+              {captureEvidence.length === 0 ? (
+                <p className="text-xs text-muted-foreground">
+                  Saved items will appear here as you capture.
+                </p>
+              ) : (
+                <div className="space-y-2.5">
+                  {captureEvidence
+                    .slice(-8)
+                    .reverse()
+                    .map((item) => (
+                      <div
+                        key={item.id}
+                        className="group border-l-2 border-muted py-0.5 pl-3 transition-colors hover:border-brand/60"
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="flex flex-wrap items-center gap-1">
+                            <span className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                              {item.evidence_type.replace("_", " ")}
+                            </span>
+                            {item.tags.slice(0, 2).map((tag) => (
+                              <span key={tag} className="text-[10px] text-muted-foreground/70">
+                                · {tag}
+                              </span>
                             ))}
                           </div>
-                        );
-                      })()}
-                    </div>
-                  </div>
-
-                  <div className="space-y-3 rounded-md border border-amber-500/30 bg-amber-500/5 p-3 shadow-sm">
-                    <div className="rounded-md bg-amber-500/10 px-3 py-2">
-                      <div className="flex flex-wrap items-start justify-between gap-2">
-                        <span>
-                          <p className="text-sm font-medium text-amber-950 dark:text-amber-100">
-                            Step 2: Add {selectedContextOption.label.toLowerCase()} context and evidence
-                          </p>
-                          <p className="text-xs text-amber-950/75 dark:text-amber-100/75">
-                            {contextCaptureGuidance}
-                          </p>
-                        </span>
-                        <Badge variant="secondary" className="shrink-0 text-[10px]">
-                          {selectedContextOption.evidenceType.replace("_", " ")}
-                        </Badge>
-                      </div>
-                    </div>
-                    <Textarea
-                      ref={quickNoteTextareaRef}
-                      value={quickNote}
-                      onChange={(e) => setQuickNote(e.target.value)}
-                      placeholder={selectedContextOption.placeholder}
-                      rows={6}
-                    />
-                    <div className="grid gap-2 sm:grid-cols-2">
-                      <Input
-                        value={captureReference}
-                        onChange={(e) => setCaptureReference(e.target.value)}
-                        placeholder="Source, speaker, meeting, or short label"
-                      />
-                      <Input
-                        value={evidenceUrl}
-                        onChange={(e) => setEvidenceUrl(e.target.value)}
-                        placeholder={selectedContextOption.value === "url" ? "URL" : "Related URL"}
-                      />
-                    </div>
-                    <div className="space-y-2 rounded-md border bg-background/70 p-3">
-                      <div className="flex flex-wrap items-center justify-between gap-2">
-                        <span>
-                          <p className="text-sm font-medium">Supporting evidence</p>
-                          <p className="text-xs text-muted-foreground">
-                            Optional files, recordings, decks, PDFs, docs, exports, or links for this {selectedContextOption.label.toLowerCase()}.
-                          </p>
-                        </span>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          onClick={() => fileInputRef.current?.click()}
-                          className="shrink-0"
-                        >
-                          <Paperclip className="mr-1.5 h-3.5 w-3.5" />
-                          Attach Files
-                        </Button>
-                      </div>
-                      <input
-                        ref={fileInputRef}
-                        type="file"
-                        multiple
-                        className="hidden"
-                        aria-label="Select evidence files"
-                        title="Select evidence files"
-                        onChange={(e) => void onSelectEvidenceFiles(e.target.files)}
-                      />
-                      <div className="space-y-2 text-sm">
-                        {evidenceUrl.trim() && (
-                          <div className="flex items-center gap-2 min-w-0 rounded-md bg-muted/40 px-2 py-1.5">
-                            <LinkIcon className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-                            <span className="truncate">{evidenceUrl.trim()}</span>
-                          </div>
-                        )}
-                        {pendingFiles.length === 0 && !evidenceUrl.trim() && (
-                          <p className="text-xs text-muted-foreground">
-                            Attachments and links added here will save with this context item.
-                          </p>
-                        )}
-                        {pendingFiles.map((file) => (
-                          <div
-                            key={`${file.name}:${file.size}`}
-                            className="flex items-center justify-between gap-2 rounded-md bg-muted/40 px-2 py-1.5"
-                          >
-                            <span className="min-w-0">
-                              <span className="block truncate text-sm">{file.name}</span>
-                              <span className="text-[11px] text-muted-foreground">
-                                {formatFileSize(file.size)}
-                              </span>
-                            </span>
+                          <div className="flex gap-0.5 opacity-0 transition-opacity group-hover:opacity-100">
                             <Button
                               type="button"
                               size="sm"
                               variant="ghost"
-                              onClick={() => setPendingFiles((prev) => prev.filter((item) => !(item.name === file.name && item.size === file.size)))}
+                              className="h-6 w-6 p-0"
+                              onClick={() => startEditingEvidence(item)}
+                              aria-label="Edit context item"
                             >
-                              <X className="h-3.5 w-3.5" />
+                              <Pencil className="h-3 w-3" />
+                            </Button>
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="ghost"
+                              className="h-6 w-6 p-0"
+                              onClick={() => void deleteEvidenceItem(item.id)}
+                              aria-label="Delete context item"
+                            >
+                              <Trash2 className="h-3 w-3" />
                             </Button>
                           </div>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="flex flex-wrap items-center gap-2 rounded-md border border-emerald-500/25 bg-emerald-500/10 p-3 shadow-sm">
-                    <Button
-                      onClick={() => void addQuickNote("save")}
-                      disabled={savingNote || !canSaveContext}
-                    >
-                      {savingNoteAction === "save" ? "Saving..." : "Save Context Item"}
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => void addQuickNote("add-another")}
-                      disabled={savingNote || !canSaveContext}
-                      className="bg-background/80"
-                    >
-                      <Plus className="mr-1.5 h-3.5 w-3.5" />
-                      {savingNoteAction === "add-another" ? "Saving..." : "Save & Add Another"}
-                    </Button>
-                    <span className="text-xs text-muted-foreground">
-                      Saved items become Capture evidence and feed downstream AI work.
-                    </span>
-                  </div>
-                  {error && <p className="text-sm text-red-500 mt-2">{error}</p>}
-                </CardContent>
-              </Card>
-            </div>
-
-            <div className="space-y-4">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-base">Saved Context</CardTitle>
-                  <CardDescription>
-                    Review, fix, or remove saved context before AI generates the next project brief version.
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  <div className="grid grid-cols-2 gap-2">
-                    {Object.entries(evidenceTypeCounts).length > 0 ? (
-                      Object.entries(evidenceTypeCounts).map(([type, count]) => (
-                        <div key={type} className="rounded-md border px-3 py-2">
-                          <p className="text-lg font-semibold">{count}</p>
-                          <p className="text-xs text-muted-foreground capitalize">
-                            {type.replace("_", " ")}
-                          </p>
                         </div>
-                      ))
-                    ) : (
-                      <div className="col-span-2 rounded-md border border-dashed px-3 py-4 text-sm text-muted-foreground">
-                        No Capture evidence saved yet.
-                      </div>
-                    )}
-                  </div>
-                  {captureEvidence.length > 0 ? (
-                    <div className="space-y-2">
-                      {captureEvidence.slice(-8).reverse().map((item) => (
-                        <div key={item.id} className="rounded-md border p-2">
-                          <div className="flex flex-wrap items-start justify-between gap-2">
-                            <div className="flex flex-wrap items-center gap-1.5">
-                              <Badge variant="secondary" className="text-[10px] capitalize">
-                                {item.evidence_type.replace("_", " ")}
-                              </Badge>
-                              {item.tags.slice(0, 3).map((tag) => (
-                                <Badge key={tag} variant="outline" className="text-[9px]">
-                                  {tag}
-                                </Badge>
-                              ))}
-                            </div>
-                            <div className="flex gap-1">
-                              <Button
-                                type="button"
-                                size="sm"
-                                variant="ghost"
-                                onClick={() => startEditingEvidence(item)}
-                                aria-label="Edit context item"
-                              >
-                                <Pencil className="h-3.5 w-3.5" />
+                        {editingEvidenceId === item.id ? (
+                          <div className="mt-1 space-y-1.5">
+                            <Textarea
+                              value={editingEvidenceContent}
+                              onChange={(event) => setEditingEvidenceContent(event.target.value)}
+                              rows={3}
+                              className="text-xs"
+                            />
+                            <div className="flex gap-1.5">
+                              <Button type="button" size="sm" onClick={() => void saveEvidenceEdit()}>
+                                Save
                               </Button>
                               <Button
                                 type="button"
                                 size="sm"
-                                variant="ghost"
-                                onClick={() => void deleteEvidenceItem(item.id)}
-                                aria-label="Delete context item"
+                                variant="outline"
+                                onClick={() => {
+                                  setEditingEvidenceId(null);
+                                  setEditingEvidenceContent("");
+                                }}
                               >
-                                <Trash2 className="h-3.5 w-3.5" />
+                                Cancel
                               </Button>
                             </div>
                           </div>
-                          {editingEvidenceId === item.id ? (
-                            <div className="mt-2 space-y-2">
-                              <Textarea
-                                value={editingEvidenceContent}
-                                onChange={(event) => setEditingEvidenceContent(event.target.value)}
-                                rows={4}
-                              />
-                              <div className="flex gap-2">
-                                <Button type="button" size="sm" onClick={() => void saveEvidenceEdit()}>
-                                  Save
-                                </Button>
-                                <Button
-                                  type="button"
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={() => {
-                                    setEditingEvidenceId(null);
-                                    setEditingEvidenceContent("");
-                                  }}
-                                >
-                                  Cancel
-                                </Button>
-                              </div>
-                            </div>
-                          ) : (
-                            <p className="mt-2 text-sm leading-relaxed">{previewText(item.content)}</p>
-                          )}
-                          <p className="mt-1 text-[11px] text-muted-foreground">
-                            {item.source || "Capture context"}
+                        ) : (
+                          <p className="mt-0.5 line-clamp-2 text-xs leading-relaxed text-foreground/80">
+                            {previewText(item.content)}
                           </p>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="rounded-md border border-dashed px-3 py-4 text-sm text-muted-foreground">
-                      Saved context items will appear here.
-                    </p>
-                  )}
-                </CardContent>
-              </Card>
-            </div>
+                        )}
+                        {item.source && (
+                          <p className="mt-0.5 truncate text-[10px] text-muted-foreground">
+                            {item.source}
+                          </p>
+                        )}
+                      </div>
+                    ))}
+                </div>
+              )}
+            </aside>
           </div>
         </TabsContent>
 
