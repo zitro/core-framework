@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
+import { PageHeader } from "@/components/layout/page-header";
 import { reviewsApi } from "@/lib/api-fde";
 import {
   REVIEW_STATUS_LABELS,
@@ -54,17 +55,13 @@ export default function ReviewsPage() {
 
   return (
     <div className="p-6 max-w-5xl mx-auto space-y-6">
-      <div className="flex items-center gap-3">
-        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-rose-500/10">
-          <ShieldCheck className="h-5 w-5 text-rose-500" />
-        </div>
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Reviews</h1>
-          <p className="text-muted-foreground text-sm">
-            Human-in-the-loop approval queue for any artifact.
-          </p>
-        </div>
-      </div>
+      <PageHeader
+        eyebrow="FDE"
+        title="Reviews"
+        description="Human-in-the-loop approval queue for any artifact."
+        icon={ShieldCheck}
+        accent="brand"
+      />
 
       <div className="flex flex-wrap gap-1.5">
         {FILTERS.map((f) => (

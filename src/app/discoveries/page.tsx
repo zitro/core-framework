@@ -1,12 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { FolderOpen, Search, Clock, ArrowRight } from "lucide-react";
+import { FolderOpen, Search, Clock, ArrowRight, Plus } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/layout/page-header";
+import { EmptyState } from "@/components/layout/empty-state";
 import { useRouter } from "next/navigation";
 import { useDiscovery } from "@/stores/discovery-store";
 import { PHASE_CONFIG, type Discovery } from "@/types/core";
@@ -68,14 +69,33 @@ export default function DiscoveriesPage() {
       {loading && <p className="text-sm text-muted-foreground">Loading discoveries...</p>}
 
       {!loading && filtered.length === 0 && (
-        <Card className="border-dashed">
-          <CardContent className="flex flex-col items-center justify-center py-10 text-center">
-            <FolderOpen className="h-8 w-8 text-muted-foreground mb-2" />
-            <p className="text-muted-foreground text-sm">
-              {filter ? "No discoveries match your search." : "No discoveries yet. Create one from the Dashboard."}
-            </p>
-          </CardContent>
-        </Card>
+        filter ? (
+          <EmptyState
+            icon={Search}
+            title="No matches"
+            description="No discoveries match your search."
+          />
+        ) : (
+          <EmptyState
+            icon={FolderOpen}
+            title="No discoveries yet"
+            description="Start your first discovery from the dashboard."
+            actions={
+              <Button
+                size="sm"
+                onClick={() => {
+                  if (typeof window !== "undefined") {
+                    window.dispatchEvent(new CustomEvent("core:start-new-discovery"));
+                  }
+                  router.push("/?newDiscovery=1");
+                }}
+              >
+                <Plus className="mr-1 h-3.5 w-3.5" aria-hidden />
+                Start new discovery
+              </Button>
+            }
+          />
+        )
       )}
 
       <div className="space-y-3">

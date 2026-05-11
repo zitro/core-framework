@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Briefcase, Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -11,6 +12,7 @@ import { toast } from "sonner";
 import { engagementsApi } from "@/lib/api-fde";
 import { EngagementDiscoveriesPanel } from "@/components/engagements/engagement-discoveries-panel";
 import { PageHeader } from "@/components/layout/page-header";
+import { EmptyState } from "@/components/layout/empty-state";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import {
   ENGAGEMENT_STATUS_LABELS,
@@ -27,6 +29,7 @@ const STATUSES: EngagementStatus[] = [
 ];
 
 export default function EngagementsPage() {
+  const router = useRouter();
   const [items, setItems] = useState<Engagement[]>([]);
   const [name, setName] = useState("");
   const [customer, setCustomer] = useState("");
@@ -125,7 +128,26 @@ export default function EngagementsPage() {
 
       <div className="space-y-3">
         {items.length === 0 ? (
-          <p className="text-sm text-muted-foreground">No engagements yet.</p>
+          <EmptyState
+            icon={Briefcase}
+            title="No engagements yet"
+            description="Create one above to group discoveries under a customer engagement, or start a new project from the dashboard."
+            actions={
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => {
+                  if (typeof window !== "undefined") {
+                    window.dispatchEvent(new CustomEvent("core:start-new-discovery"));
+                  }
+                  router.push("/?newDiscovery=1");
+                }}
+              >
+                <Plus className="mr-1 h-3.5 w-3.5" aria-hidden />
+                Start a new project
+              </Button>
+            }
+          />
         ) : (
           items.map((e) => (
             <Card key={e.id}>

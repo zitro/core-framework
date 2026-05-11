@@ -18,6 +18,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PageHeader } from "@/components/layout/page-header";
+import { EmptyState } from "@/components/layout/empty-state";
 import type { EngagementContentResult } from "@/types/core";
 import { api } from "@/lib/api";
 import { useDiscovery } from "@/stores/discovery-store";
@@ -143,19 +144,19 @@ export default function ContextPage() {
                 icon={FileText}
                 label="Files"
                 value={stats.files}
-                color="text-blue-500 bg-blue-500/10"
+                color="text-muted-foreground bg-muted"
               />
               <StatCard
                 icon={FolderOpen}
                 label="Projects"
                 value={stats.projects}
-                color="text-violet-500 bg-violet-500/10"
+                color="text-muted-foreground bg-muted"
               />
               <StatCard
                 icon={Layers}
                 label="Content Types"
                 value={stats.types}
-                color="text-amber-500 bg-amber-500/10"
+                color="text-muted-foreground bg-muted"
               />
             </div>
           )}
@@ -205,18 +206,11 @@ export default function ContextPage() {
 
       {/* Empty state */}
       {!data && !loading && !error && (
-        <Card className="border-dashed">
-          <CardContent className="flex flex-col items-center justify-center py-16 text-center">
-            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-muted mb-4">
-              <FolderGit2 className="h-7 w-7 text-muted-foreground/50" />
-            </div>
-            <h2 className="text-lg font-medium mb-1">No repo loaded</h2>
-            <p className="text-sm text-muted-foreground max-w-md">
-              Enter the path to your engagement repo above to browse its content,
-              search across files, and ingest new information with AI classification.
-            </p>
-          </CardContent>
-        </Card>
+        <EmptyState
+          icon={FolderGit2}
+          title="No repo loaded"
+          description="Enter the path to your engagement repo above to browse content, search across files, and ingest new information."
+        />
       )}
     </div>
   );

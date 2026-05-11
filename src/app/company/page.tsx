@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { PageHeader } from "@/components/layout/page-header";
 import { useDiscovery } from "@/stores/discovery-store";
 import { companyResearcherApi } from "@/lib/api-fde";
 import type { CompanyProfile } from "@/types/fde";
@@ -35,17 +36,13 @@ export default function CompanyResearchPage() {
 
   return (
     <div className="p-6 max-w-5xl mx-auto space-y-6">
-      <div className="flex items-center gap-3">
-        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-500/10">
-          <Building2 className="h-5 w-5 text-emerald-500" />
-        </div>
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Company Research</h1>
-          <p className="text-muted-foreground text-sm">
-            Build a structured profile from web search and the active discovery.
-          </p>
-        </div>
-      </div>
+      <PageHeader
+        eyebrow="FDE"
+        title="Company Research"
+        description="Build a structured profile from web search and the active discovery."
+        icon={Building2}
+        accent="brand"
+      />
 
       <Card>
         <CardHeader>

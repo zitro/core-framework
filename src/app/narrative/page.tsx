@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
+import { PageHeader } from "@/components/layout/page-header";
 import { useDiscovery } from "@/stores/discovery-store";
 import { api } from "@/lib/api";
 
@@ -50,17 +51,13 @@ export default function NarrativePage() {
 
   return (
     <div className="p-6 max-w-5xl mx-auto space-y-6">
-      <div className="flex items-center gap-3">
-        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-fuchsia-500/10">
-          <Sparkles className="h-5 w-5 text-fuchsia-500" />
-        </div>
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Discovery Narrative</h1>
-          <p className="text-muted-foreground text-sm">
-            Synthesize the latest discovery context into a shareable story.
-          </p>
-        </div>
-      </div>
+      <PageHeader
+        eyebrow="Tools"
+        title="Discovery Narrative"
+        description="Synthesize the latest discovery context into a shareable story."
+        icon={Sparkles}
+        accent="brand"
+      />
 
       {!activeDiscovery && (
         <Card>
