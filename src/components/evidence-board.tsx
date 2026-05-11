@@ -20,18 +20,18 @@ import { PHASE_CONFIG, type Evidence, type CorePhase, type ConfidenceLevel } fro
 import { api } from "@/lib/api";
 import { useDiscovery } from "@/stores/discovery-store";
 
-const PHASE_COLORS: Record<CorePhase, string> = {
-  capture: "bg-blue-500/10 text-blue-700 border-blue-500/30",
-  orchestrate: "bg-amber-500/10 text-amber-700 border-amber-500/30",
-  refine: "bg-emerald-500/10 text-emerald-700 border-emerald-500/30",
-  execute: "bg-violet-500/10 text-violet-700 border-violet-500/30",
+const PHASE_BADGE_VARIANTS: Record<CorePhase, "outline" | "secondary"> = {
+  capture: "secondary",
+  orchestrate: "secondary",
+  refine: "secondary",
+  execute: "secondary",
 };
 
-const CONFIDENCE_COLORS: Record<ConfidenceLevel, string> = {
-  validated: "bg-emerald-500/10 text-emerald-700",
-  assumed: "bg-amber-500/10 text-amber-700",
-  unknown: "bg-zinc-500/10 text-zinc-600",
-  conflicting: "bg-red-500/10 text-red-700",
+const CONFIDENCE_BADGE_VARIANTS: Record<ConfidenceLevel, "outline" | "secondary" | "default"> = {
+  validated: "default",
+  assumed: "secondary",
+  unknown: "outline",
+  conflicting: "outline",
 };
 
 export function EvidenceBoard() {
@@ -253,14 +253,14 @@ export function EvidenceBoard() {
                       <p className="text-sm">{item.content}</p>
                       <div className="flex flex-wrap items-center gap-1.5 mt-2">
                         <Badge
-                          variant="outline"
-                          className={`border-0 text-[10px] ${PHASE_COLORS[item.phase]}`}
+                          variant={PHASE_BADGE_VARIANTS[item.phase]}
+                          className="text-[10px]"
                         >
                           {PHASE_CONFIG[item.phase]?.label || item.phase}
                         </Badge>
                         <Badge
-                          variant="outline"
-                          className={`border-0 text-[10px] ${CONFIDENCE_COLORS[item.confidence]}`}
+                          variant={CONFIDENCE_BADGE_VARIANTS[item.confidence]}
+                          className={`text-[10px] ${item.confidence === "validated" ? "" : ""}`}
                         >
                           {item.confidence}
                         </Badge>
