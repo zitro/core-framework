@@ -823,32 +823,6 @@ export default function CapturePage() {
             <div className="space-y-4">
               <Card>
                 <CardHeader>
-                  <CardTitle className="text-base">Design Thinking Lens</CardTitle>
-                  <CardDescription>
-                    Capture-phase methods embedded into context intake.
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  {CAPTURE_METHODS.map((method) => (
-                    <div key={method.id} className="border-l-2 pl-3">
-                      <div className="flex items-center gap-2">
-                        <p className="text-sm font-medium">{method.name}</p>
-                        {method.template && (
-                          <Badge variant="outline" className="text-[9px]">
-                            template
-                          </Badge>
-                        )}
-                      </div>
-                      <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-                        {method.whenToUse}
-                      </p>
-                    </div>
-                  ))}
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
                   <CardTitle className="text-base">Saved Context</CardTitle>
                   <CardDescription>
                     Review, fix, or remove saved context before AI generates the next project brief version.
