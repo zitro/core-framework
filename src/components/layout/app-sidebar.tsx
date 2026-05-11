@@ -1,6 +1,7 @@
 "use client";
 
 import packageJson from "../../../package.json";
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Search, Compass, Lightbulb, Rocket, Home, BookOpen, FolderGit2, Globe, BookMarked, Building2, Briefcase, ShieldCheck, Cloud, Wand2, Settings } from "lucide-react";
@@ -78,14 +79,27 @@ export function AppSidebar() {
     <Sidebar>
       <SidebarHeader className="border-b px-4 py-3">
         <Link href="/" className="flex items-center gap-2">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground font-bold text-sm">
-            C
-          </div>
+          <Image
+            src="/brand/core_logoSymbol_nobg.png"
+            alt=""
+            width={44}
+            height={44}
+            priority
+            className="h-11 w-11 shrink-0"
+          />
           <div>
-            <h2 className="text-sm font-semibold tracking-tight">
-              CORE Discovery
+            <h2 className="flex items-center gap-1.5 text-base font-semibold tracking-tight">
+              <Image
+                src="/brand/core_logoText_nobg.png"
+                alt="CORE"
+                width={96}
+                height={30}
+                priority
+                className="h-6 w-auto dark:invert"
+              />
+              <span>Discovery</span>
             </h2>
-            <p className="text-[10px] text-muted-foreground">
+            <p className="whitespace-nowrap text-[10px] text-muted-foreground">
               Capture · Orchestrate · Refine · Execute
             </p>
           </div>

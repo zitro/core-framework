@@ -93,6 +93,7 @@ def create_app() -> FastAPI:
         search,
         synthesis,
         transcripts,
+        v2,
     )
 
     app = FastAPI(
@@ -199,6 +200,7 @@ def create_app() -> FastAPI:
         prefix="/api/synthesis",
         tags=["synthesis", "threads"],
     )
+    app.include_router(v2.router, prefix="/api/v2", tags=["v2"])
     app.include_router(
         engagement_context.router,
         prefix="/api/engagement-context",
