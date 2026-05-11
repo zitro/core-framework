@@ -33,6 +33,7 @@ export default function SettingsPage() {
               render={<Link href="/capture" aria-label="Open Sources tab in Capture" />}
               variant="outline"
               size="sm"
+              nativeButton={false}
             >
               Open Sources in Capture
               <ArrowRight className="ml-1 h-3.5 w-3.5" aria-hidden />

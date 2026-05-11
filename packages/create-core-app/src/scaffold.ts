@@ -1,4 +1,5 @@
 import { mkdir, writeFile } from "node:fs/promises";
+import { randomUUID } from "node:crypto";
 import { isAbsolute, join, resolve } from "node:path";
 
 import { atomicWrite } from "./atomic.js";
@@ -43,6 +44,12 @@ export async function scaffold(o: ScaffoldOptions): Promise<void> {
     "extensions",
     "config/prompts",
     "infra",
+    // data/ subdirs the v1.3.1 backend reads from on first boot. Pre-creating
+    // them lets us seed customer + engagement records so the UI loads with
+    // content instead of an empty "No project selected" state.
+    "data/customers",
+    "data/engagements",
+    "data/discoveries",
   ];
   if (o.initialProject) dirs.push(`projects/${o.initialProject}`);
 
@@ -112,6 +119,62 @@ export async function scaffold(o: ScaffoldOptions): Promise<void> {
       : Promise.resolve(),
   ]);
 
+  // Seed records so the UI is non-empty on first boot. v1.3.1's backend
+  // reads these JSONs directly from data/ on demand; no migration is
+  // needed. Slugs match what the UI expects from POST /api/engagements.
+  const customerId = randomUUID();
+  const customerSeed = {
+    slug: o.name,
+    display_name: o.displayName,
+    industry: "",
+    summary: "",
+    sources: [],
+    id: customerId,
+  };
+  await atomicWrite(
+    join(o.target, `data/customers/${customerId}.json`),
+    JSON.stringify(customerSeed, null, 2) + "\n",
+  );
+
+  if (o.initialProject) {
+    const projectSlug = slugify(o.initialProject);
+    const projectMeta = {
+      schema_version: "1.0.0",
+      slug: projectSlug,
+      name: o.initialProject,
+      description: "",
+      tags: [],
+    };
+    await atomicWrite(
+      join(o.target, `projects/${o.initialProject}/project.json`),
+      JSON.stringify(projectMeta, null, 2) + "\n",
+    );
+
+    const engagementId = randomUUID();
+    const now = new Date().toISOString();
+    const engagementSeed = {
+      id: engagementId,
+      slug: projectSlug,
+      name: o.initialProject,
+      customer: o.displayName,
+      industry: "",
+      summary: "",
+      status: "proposed",
+      repo_path: "",
+      discovery_ids: [],
+      owners: [],
+      tags: [],
+      created_by: "",
+      updated_by: "",
+      created_at: now,
+      updated_at: now,
+    };
+    await atomicWrite(
+      join(o.target, `data/engagements/${engagementId}.json`),
+      JSON.stringify(engagementSeed, null, 2) + "\n",
+    );
+  }
+
   // Marker LAST so a crash anywhere above leaves no marker — next CLI
   // run will refuse to upgrade and the user can rescaffold cleanly.
   const marker: CoreDiscoveryMarker = {
@@ -136,13 +199,18 @@ function projectReadme(slug: string): string {
   return [
     `# ${slug}`,
     "",
-    "Drop project source markdown here. Register it with the running backend so it appears in the UI:",
-    "",
-    "```powershell",
-    `$body = @{ name = "${slug}"; slug = "${slug}"; repo_path = "${slug}" } | ConvertTo-Json`,
-    "Invoke-RestMethod -Uri http://localhost:8000/api/projects -Method Post `",
-    "  -ContentType \"application/json\" -Body $body",
-    "```",
+    "Drop project source markdown into this folder. The scaffolder already",
+    "seeded the matching engagement record in `data/engagements/`, so this",
+    "project shows up in the UI as soon as you start the stack.",
     "",
   ].join("\n");
+}
+
+/** URL-safe slug from a free-text project name. Lowercase + hyphens; collapses
+ *  runs; strips leading/trailing hyphens. */
+function slugify(name: string): string {
+  return name
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
 }
