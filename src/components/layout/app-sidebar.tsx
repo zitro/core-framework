@@ -171,9 +171,15 @@ export function AppSidebar() {
                 </SidebarMenuButton>
               </SidebarMenuItem>
               <SidebarMenuItem>
-                <SidebarMenuButton render={<Link href="/settings" aria-label="Settings" title="Settings" />} isActive={pathname === "/settings"}>
-                  <Settings className="h-4 w-4 text-muted-foreground" />
-                  <span>Settings</span>
+                <SidebarMenuButton render={<Link href="/m365" aria-label="Microsoft 365" title="Microsoft 365" />} isActive={pathname === "/m365"}>
+                  <Cloud className="h-4 w-4 text-muted-foreground" />
+                  <span>Microsoft 365</span>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton render={<Link href="/grounding" aria-label="Grounded Answers" title="Grounded Answers" />} isActive={pathname === "/grounding"}>
+                  <Wand2 className="h-4 w-4 text-muted-foreground" />
+                  <span>Grounded Answers</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
             </SidebarMenu>
@@ -206,26 +212,18 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
 
-        <SidebarGroup>
-          <SidebarGroupLabel>M365</SidebarGroupLabel>
+        <SidebarGroup className="mt-auto">
           <SidebarGroupContent>
             <SidebarMenu>
               <SidebarMenuItem>
-                <SidebarMenuButton render={<Link href="/m365" aria-label="Microsoft 365" title="Microsoft 365" />} isActive={pathname === "/m365"}>
-                  <Cloud className="h-4 w-4 text-muted-foreground" />
-                  <span>Microsoft 365</span>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-              <SidebarMenuItem>
-                <SidebarMenuButton render={<Link href="/grounding" aria-label="Grounded Answers" title="Grounded Answers" />} isActive={pathname === "/grounding"}>
-                  <Wand2 className="h-4 w-4 text-muted-foreground" />
-                  <span>Grounded Answers</span>
+                <SidebarMenuButton render={<Link href="/settings" aria-label="Settings" title="Settings" />} isActive={pathname === "/settings"}>
+                  <Settings className="h-4 w-4 text-muted-foreground" />
+                  <span>Settings</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
-
 
       </SidebarContent>
 
