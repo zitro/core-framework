@@ -9,6 +9,7 @@ from app.dependencies import get_current_user
 from app.models.core import SolutionBlueprint
 from app.providers.llm import get_llm_provider
 from app.providers.storage import get_storage_provider
+from app.utils.ai_feedback import render_feedback_block
 from app.utils.audit import stamp_create
 from app.utils.context import gather_context, get_solution_providers
 from app.utils.review_gate import auto_request_review
@@ -94,6 +95,10 @@ async def generate_blueprint(request: BlueprintRequest):
     user_block = ""
     if request.user_instructions:
         user_block = f"\n\nUser guidance for this version:\n{request.user_instructions}"
+
+    feedback_block = await render_feedback_block(request.discovery_id, "blueprint")
+    if feedback_block:
+        user_block += f"\n\n{feedback_block}"
 
     user_prompt = (
         f"Discovery context:\n\n{context}{user_block}\n\n"

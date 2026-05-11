@@ -30,7 +30,15 @@ router = APIRouter(dependencies=[Depends(get_current_user)])
 
 COLLECTION = "ai_feedback"
 
-Surface = Literal["problem", "usecase", "narrative", "grounded", "questions"]
+Surface = Literal[
+    "problem",
+    "usecase",
+    "narrative",
+    "grounded",
+    "questions",
+    "expert_review",
+    "blueprint",
+]
 
 
 class FeedbackRecord(BaseModel):
