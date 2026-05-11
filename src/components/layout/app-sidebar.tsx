@@ -121,6 +121,12 @@ export function AppSidebar() {
                   <span>Dashboard</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton render={<Link href="/engagements" aria-label="Engagements" title="Engagements" />} isActive={pathname === "/engagements"}>
+                  <Briefcase className="h-4 w-4 text-muted-foreground" />
+                  <span>Engagements</span>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
@@ -170,20 +176,6 @@ export function AppSidebar() {
                 <SidebarMenuButton render={<Link href="/methodology" aria-label="Methodology" title="Methodology" />} isActive={pathname === "/methodology"}>
                   <BookMarked className="h-4 w-4 text-muted-foreground" />
                   <span>Methodology</span>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-
-        <SidebarGroup>
-          <SidebarGroupLabel>FDE</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              <SidebarMenuItem>
-                <SidebarMenuButton render={<Link href="/engagements" aria-label="Engagements" title="Engagements" />} isActive={pathname === "/engagements"}>
-                  <Briefcase className="h-4 w-4 text-muted-foreground" />
-                  <span>Engagements</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
               <SidebarMenuItem>
