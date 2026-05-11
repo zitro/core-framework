@@ -219,6 +219,72 @@ async def test_regenerate_returns_artifact_payload(client: AsyncClient, tmp_path
     assert body["artifact"]["title"] == "Echo Artifact"
 
 
+# ── /critique /signals /compass (Phase 6D) ──────────────────────────────
+
+
+async def test_signals_empty_when_no_synthesis_yet(client: AsyncClient) -> None:
+    """A project with no artifacts produces only 'missing-critical' signals
+    (one per critical ArtifactType)."""
+    await _seed_project("proj-signals-empty")
+    resp = await client.get("/api/synthesis/proj-signals-empty/signals")
+    assert resp.status_code == 200
+    body = resp.json()
+    assert "signals" in body
+    # All signals should be 'missing-critical' kind since nothing has
+    # been generated.
+    for s in body["signals"]:
+        assert s["kind"] == "missing-critical"
+
+
+async def test_compass_returns_per_category_health(client: AsyncClient) -> None:
+    await _seed_project("proj-compass-empty")
+    resp = await client.get("/api/synthesis/proj-compass-empty/compass")
+    assert resp.status_code == 200
+    body = resp.json()
+    assert "categories" in body
+    assert "overall" in body
+    assert len(body["categories"]) == 7  # one health entry per Category
+    # With no artifacts every category should be 'red' (all critical missing).
+    healths = {c["category"]: c["health"] for c in body["categories"]}
+    assert all(h in {"red", "amber", "green"} for h in healths.values())
+
+
+async def test_critique_404_on_missing_artifact(client: AsyncClient) -> None:
+    await _seed_project("proj-no-artifact")
+    resp = await client.post("/api/synthesis/proj-no-artifact/artifacts/does-not-exist/critique")
+    assert resp.status_code == 404
+
+
+async def test_critique_runs_against_existing_artifact(client: AsyncClient, tmp_path) -> None:
+    """Generate one artifact, then critique it via the dedicated endpoint."""
+    corpus_dir = tmp_path / "corpus"
+    corpus_dir.mkdir()
+    (corpus_dir / "x.md").write_text("text\n", encoding="utf-8")
+    await _seed_project("proj-critique-run", local_dir=str(corpus_dir))
+
+    with patch("app.synthesis.generator.get_llm_provider", return_value=_EchoLLM()):
+        synth = await client.post("/api/synthesis/proj-critique-run/synthesize")
+    assert synth.status_code == 200
+
+    arts = await client.get("/api/synthesis/proj-critique-run/artifacts")
+    artifact_id = arts.json()["artifacts"][0]["id"]
+    assert artifact_id
+
+    class _CleanCriticLLM:
+        async def complete_json(self, system: str, user: str) -> dict[str, Any]:
+            return {"score": 0.9, "issues": []}
+
+    with patch("app.synthesis.critic.get_llm_provider", return_value=_CleanCriticLLM()):
+        resp = await client.post(
+            f"/api/synthesis/proj-critique-run/artifacts/{artifact_id}/critique"
+        )
+
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["critique"]["artifact_id"] == artifact_id
+    assert 0.0 <= body["critique"]["score"] <= 1.0
+
+
 # ── auth ────────────────────────────────────────────────────────────────
 
 
