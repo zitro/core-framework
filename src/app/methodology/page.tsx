@@ -1,8 +1,9 @@
 "use client";
 
-import { Compass } from "lucide-react";
+import { BookMarked } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { PageHeader } from "@/components/layout/page-header";
 import {
   DT_METHODS,
   DT_PRINCIPLES,
@@ -15,17 +16,13 @@ const PHASES: CorePhase[] = ["capture", "orchestrate", "refine", "execute"];
 export default function MethodologyPage() {
   return (
     <div className="p-6 max-w-5xl mx-auto space-y-6">
-      <div className="flex items-center gap-3">
-        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-amber-500/10">
-          <Compass className="h-5 w-5 text-amber-500" />
-        </div>
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Methodology</h1>
-          <p className="text-muted-foreground text-sm">
-            How CORE phases map to design thinking, and which methods to reach for.
-          </p>
-        </div>
-      </div>
+      <PageHeader
+        eyebrow="Tools"
+        title="Methodology"
+        description="How CORE phases map to design thinking, and which methods to reach for."
+        icon={BookMarked}
+        accent="brand"
+      />
 
       <Card>
         <CardHeader>

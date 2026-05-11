@@ -15,6 +15,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { PageHeader } from "@/components/layout/page-header";
 import { m365Api, type GraphMeeting } from "@/lib/api-m365";
 
 type Tab = "files" | "messages" | "meetings" | "accounts";
@@ -31,26 +32,23 @@ export default function M365Page() {
 
   return (
     <div className="p-6 max-w-5xl mx-auto space-y-6">
-      <div className="flex items-center gap-3">
-        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-500/10">
-          <Cloud className="h-5 w-5 text-blue-500" />
-        </div>
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Microsoft 365</h1>
-          <p className="text-muted-foreground text-sm">
-            Read-only access to Graph (files, messages, meetings) and Dynamics 365 accounts.
-          </p>
-        </div>
-      </div>
-
-      <div className="flex gap-2 text-xs">
-        <Badge variant={graphEnabled ? "default" : "outline"}>
-          Graph {graphEnabled ? "enabled" : "disabled"}
-        </Badge>
-        <Badge variant={crmEnabled ? "default" : "outline"}>
-          Dynamics {crmEnabled ? "enabled" : "disabled"}
-        </Badge>
-      </div>
+      <PageHeader
+        eyebrow="Tools"
+        title="Microsoft 365"
+        description="Read-only access to Graph (files, messages, meetings) and Dynamics 365 accounts."
+        icon={Cloud}
+        accent="brand"
+        actions={
+          <div className="flex gap-2 text-xs">
+            <Badge variant={graphEnabled ? "default" : "outline"}>
+              Graph {graphEnabled ? "enabled" : "disabled"}
+            </Badge>
+            <Badge variant={crmEnabled ? "default" : "outline"}>
+              Dynamics {crmEnabled ? "enabled" : "disabled"}
+            </Badge>
+          </div>
+        }
+      />
 
       <Tabs value={tab} onValueChange={(v) => setTab(v as Tab)}>
         <TabsList>

@@ -1,11 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { Sparkles, ExternalLink, Loader2 } from "lucide-react";
+import { ExternalLink, Loader2, Wand2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
+import { PageHeader } from "@/components/layout/page-header";
 import { m365Api, type GroundingResponse } from "@/lib/api-m365";
 
 export default function GroundingPage() {
@@ -25,17 +26,13 @@ export default function GroundingPage() {
 
   return (
     <div className="p-6 max-w-4xl mx-auto space-y-6">
-      <div className="flex items-center gap-3">
-        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-violet-500/10">
-          <Sparkles className="h-5 w-5 text-violet-500" />
-        </div>
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Grounded Answers</h1>
-          <p className="text-muted-foreground text-sm">
-            Search-grounded synthesis with inline citations.
-          </p>
-        </div>
-      </div>
+      <PageHeader
+        eyebrow="Tools"
+        title="Grounded Answers"
+        description="Search-grounded synthesis with inline citations."
+        icon={Wand2}
+        accent="brand"
+      />
 
       <Card>
         <CardHeader>
