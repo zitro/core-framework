@@ -95,11 +95,12 @@ def create_app() -> FastAPI:
         synthesis,
         transcripts,
         v2,
+        version,
     )
 
     app = FastAPI(
         title=settings.app_name,
-        version="1.3.2",
+        version="1.4.0",
         description="CORE Discovery Framework API",
         lifespan=_lifespan,
     )
@@ -203,6 +204,7 @@ def create_app() -> FastAPI:
     )
     app.include_router(v2.router, prefix="/api/v2", tags=["v2"])
     app.include_router(ai_feedback.router, prefix="/api/ai-feedback", tags=["ai-feedback"])
+    app.include_router(version.router, prefix="/api", tags=["version"])
     app.include_router(
         engagement_context.router,
         prefix="/api/engagement-context",
@@ -225,6 +227,7 @@ def create_app() -> FastAPI:
     async def health():
         return {
             "status": "healthy",
+            "version": app.version,
             "providers": {
                 "llm": settings.llm_provider,
                 "storage": settings.storage_provider,

@@ -11,6 +11,7 @@ import { AppSidebar } from "@/components/layout/app-sidebar";
 import { AppHeader } from "@/components/layout/app-header";
 import { CommandPalette } from "@/components/layout/command-palette";
 import { ProjectBootstrap } from "@/components/layout/project-bootstrap";
+import { UpdateBanner } from "@/components/layout/update-banner";
 import "./globals.css";
 import "highlight.js/styles/github-dark.min.css";
 
@@ -60,6 +61,7 @@ export default function RootLayout({
                   <SidebarProvider>
                     <AppSidebar />
                     <div className="flex-1 flex flex-col overflow-hidden">
+                      <UpdateBanner />
                       <AppHeader />
                       <main className="flex-1 overflow-auto">
                         {children}
