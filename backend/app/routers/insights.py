@@ -3,11 +3,12 @@
 Read-side aggregations that span phases. Each tool gets its own endpoint
 so the frontend can lazy-load only the panel that's currently open.
 
-  GET /api/insights/coverage?discovery_id=...   coverage heatmap
-  GET /api/insights/inbox?discovery_id=...      actionable open items
-
-The frontend page at /insights houses every tool as a tab; this router
-will grow as we add Activity / Decision log / Stakeholder map / etc.
+  GET /api/insights/coverage?discovery_id=...     coverage heatmap
+  GET /api/insights/inbox?discovery_id=...        actionable open items
+  GET /api/insights/activity?discovery_id=...     recent events
+  GET /api/insights/stakeholders?discovery_id=…   stakeholder roll-up
+  GET /api/insights/decisions?discovery_id=…      decision log
+  GET /api/insights/search?discovery_id=…&q=…     full-text search
 """
 
 from __future__ import annotations
@@ -537,3 +538,170 @@ async def decisions(discovery_id: str = Query(...)) -> DecisionsResponse:
 
     out.sort(key=lambda d: d.created_at, reverse=True)
     return DecisionsResponse(decisions=out, total=len(out))
+
+
+# ── search ─────────────────────────────────────────────────────────────
+
+
+class SearchHit(BaseModel):
+    kind: str  # "evidence" | "brief" | "problem" | "usecase" | "review" | "blueprint" | "comment"
+    title: str
+    snippet: str
+    surface: str
+    score: int
+
+
+class SearchResponse(BaseModel):
+    query: str
+    hits: list[SearchHit]
+    total: int
+
+
+def _snippet_around(text: str, needle: str, width: int = 160) -> str:
+    """Return a short snippet of ``text`` centered around the first
+    case-insensitive occurrence of ``needle``."""
+    if not text:
+        return ""
+    haystack = text.lower()
+    needle_l = needle.lower()
+    idx = haystack.find(needle_l)
+    if idx < 0:
+        # No exact match — return the start of the text.
+        return _shorten(text, width)
+    half = max(0, width // 2 - len(needle))
+    start = max(0, idx - half)
+    end = min(len(text), idx + len(needle) + half)
+    snippet = text[start:end].strip().replace("\n", " ")
+    if start > 0:
+        snippet = "…" + snippet
+    if end < len(text):
+        snippet = snippet + "…"
+    return snippet
+
+
+def _score_text(text: str, terms: list[str]) -> int:
+    """Sum of case-insensitive occurrences of each term in text."""
+    if not text:
+        return 0
+    lower = text.lower()
+    return sum(lower.count(t.lower()) for t in terms)
+
+
+@router.get("/search", response_model=SearchResponse)
+async def search(
+    discovery_id: str = Query(...),
+    q: str = Query(..., min_length=1, max_length=200),
+    limit: int = Query(30, ge=1, le=100),
+) -> SearchResponse:
+    """Naive full-text search across the discovery's data.
+
+    Splits the query into terms, scans every relevant collection,
+    scores each row by total term occurrences, and returns the top N
+    ranked hits with snippets. Substring-only — no stemming, no
+    synonyms. Good enough for "where did I see X?" lookups.
+    """
+    storage = get_storage_provider()
+    disc = await storage.get("discoveries", discovery_id)
+    if not disc:
+        raise HTTPException(status_code=404, detail="Discovery not found")
+
+    terms = [t for t in q.split() if t.strip()]
+    if not terms:
+        return SearchResponse(query=q, hits=[], total=0)
+
+    hits: list[SearchHit] = []
+
+    async def _list_disc(collection: str) -> list[dict]:
+        for key in ("discovery_id", "discoveryId"):
+            try:
+                items = await storage.list(collection, {key: discovery_id})
+            except Exception:
+                items = []
+            if items:
+                return items
+        return []
+
+    for ev in await _list_disc("evidence"):
+        text = str(ev.get("content") or "")
+        score = _score_text(text, terms) + _score_text(str(ev.get("source") or ""), terms)
+        if score:
+            hits.append(
+                SearchHit(
+                    kind="evidence",
+                    title=f"{ev.get('evidence_type', 'evidence')} · {ev.get('source', '')}".strip(" ·"),
+                    snippet=_snippet_around(text, terms[0]),
+                    surface=f"/{ev.get('phase', 'capture')}",
+                    score=score,
+                )
+            )
+
+    for b in await _list_disc("context_briefs"):
+        text = f"{b.get('title', '')}\n{b.get('summary', '')}\n{b.get('evidence_summary', '')}"
+        score = _score_text(text, terms)
+        if score:
+            hits.append(
+                SearchHit(
+                    kind="brief",
+                    title=f"Brief v{b.get('version', '?')}: {b.get('title', '(untitled)')}",
+                    snippet=_snippet_around(text, terms[0]),
+                    surface="/orchestrate?tab=overview",
+                    score=score,
+                )
+            )
+
+    for ps in await _list_disc("problem_statements"):
+        text = " ".join(
+            str(ps.get(k) or "")
+            for k in ("statement", "who", "what", "why", "impact")
+        )
+        score = _score_text(text, terms)
+        if score:
+            hits.append(
+                SearchHit(
+                    kind="problem",
+                    title=f"Problem statement v{ps.get('version', '?')}",
+                    snippet=_snippet_around(text, terms[0]),
+                    surface="/orchestrate?tab=drafts",
+                    score=score,
+                )
+            )
+
+    for uc in await _list_disc("use_cases"):
+        text = " ".join(
+            str(uc.get(k) or "")
+            for k in ("title", "summary", "goal", "current_state", "desired_state", "business_value")
+        )
+        score = _score_text(text, terms)
+        if score:
+            hits.append(
+                SearchHit(
+                    kind="usecase",
+                    title=f"Use case v{uc.get('version', '?')}: {uc.get('title', '(untitled)')}",
+                    snippet=_snippet_around(text, terms[0]),
+                    surface="/orchestrate?tab=drafts",
+                    score=score,
+                )
+            )
+
+    project_id = str(disc.get("engagement_id") or disc.get("project_id") or "")
+    if project_id:
+        try:
+            comments = await storage.list("artifact_comments", {"project_id": project_id})
+        except Exception:
+            comments = []
+        for c in comments:
+            text = str(c.get("body") or "")
+            score = _score_text(text, terms)
+            if score:
+                hits.append(
+                    SearchHit(
+                        kind="comment",
+                        title=f"{c.get('author') or c.get('role') or 'user'} commented",
+                        snippet=_snippet_around(text, terms[0]),
+                        surface="/orchestrate",
+                        score=score,
+                    )
+                )
+
+    hits.sort(key=lambda h: h.score, reverse=True)
+    return SearchResponse(query=q, hits=hits[:limit], total=len(hits))
