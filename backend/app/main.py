@@ -89,12 +89,13 @@ def create_app() -> FastAPI:
         refine,
         reviews,
         search,
+        synthesis,
         transcripts,
     )
 
     app = FastAPI(
         title=settings.app_name,
-        version="1.3.1",
+        version="1.3.2",
         description="CORE Discovery Framework API",
         lifespan=_lifespan,
     )
@@ -190,6 +191,7 @@ def create_app() -> FastAPI:
     app.include_router(audit.router, prefix="/api/audit", tags=["audit"])
     app.include_router(github_auth.router, prefix="/api/github", tags=["github"])
     app.include_router(health_schema.router, prefix="/api/health", tags=["health"])
+    app.include_router(synthesis.router, prefix="/api/synthesis", tags=["synthesis"])
 
     from app.utils.telemetry import configure_telemetry
 
