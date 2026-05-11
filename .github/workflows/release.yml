@@ -66,6 +66,18 @@ jobs:
           npx vitest run
           pnpm build
 
+      # Schema drift gate introspects Pydantic models, so the frontend
+      # suite also needs Python + the backend package installed.
+      - if: matrix.suite == 'frontend'
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version: "3.13"
+          cache: pip
+
+      - if: matrix.suite == 'frontend'
+        working-directory: backend
+        run: pip install -e ".[dev,local]"
+
       - name: Schema-artifact drift (frontend suite only)
         if: matrix.suite == 'frontend'
         run: pnpm check:schemas
