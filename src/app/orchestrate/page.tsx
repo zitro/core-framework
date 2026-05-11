@@ -31,6 +31,7 @@ import type { Evidence, Question, QuestionSet, TranscriptAnalysis } from "@/type
 import { api } from "@/lib/api";
 import { useDiscovery } from "@/stores/discovery-store";
 import { PhaseShell } from "@/components/layout/phase-shell";
+import { DiscoveryRequired } from "@/components/layout/discovery-required";
 import { ProblemStatementBuilder } from "@/components/orchestrate/problem-statement-builder";
 import { UseCaseBuilder } from "@/components/orchestrate/use-case-builder";
 import { ContextBriefBuilder } from "@/components/orchestrate/context-brief-builder";
@@ -655,12 +656,7 @@ export default function OrchestratePage() {
   };
 
   if (!activeDiscovery) {
-    return (
-      <div className="p-6 max-w-6xl mx-auto flex flex-col items-center justify-center py-20 text-center">
-        <Compass className="h-8 w-8 text-muted-foreground mb-2" />
-        <p className="text-muted-foreground text-sm">Select or create a discovery from the Dashboard to start orchestrating.</p>
-      </div>
-    );
+    return <DiscoveryRequired phase="orchestrate" />;
   }
 
   return (

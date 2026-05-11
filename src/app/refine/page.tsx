@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useState } from "react";
-import { FlaskConical, Target, Users, Cpu } from "lucide-react";
+import { Target, Users, Cpu } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { Assumption, Discovery } from "@/types/core";
 import { api } from "@/lib/api";
@@ -10,17 +10,13 @@ import { AssumptionTracker } from "@/components/refine/assumption-tracker";
 import { ExpertReviewWorkshop } from "@/components/refine/expert-review-workshop";
 import { SolutionArchitect } from "@/components/refine/solution-architect";
 import { PhaseShell } from "@/components/layout/phase-shell";
+import { DiscoveryRequired } from "@/components/layout/discovery-required";
 
 export default function RefinePage() {
   const { activeDiscovery } = useDiscovery();
 
   if (!activeDiscovery) {
-    return (
-      <div className="p-6 max-w-6xl mx-auto flex flex-col items-center justify-center py-20 text-center">
-        <FlaskConical className="h-8 w-8 text-muted-foreground mb-2" />
-        <p className="text-muted-foreground text-sm">Select or create a discovery from the Dashboard to start refining.</p>
-      </div>
-    );
+    return <DiscoveryRequired phase="refine" />;
   }
 
   return <RefineWorkspace key={activeDiscovery.id} activeDiscovery={activeDiscovery} />;

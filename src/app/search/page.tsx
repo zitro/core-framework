@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { PageHeader } from "@/components/layout/page-header";
+import { EmptyState } from "@/components/layout/empty-state";
 import { api } from "@/lib/api";
 
 interface SearchResult {
@@ -69,6 +70,14 @@ export default function SearchPage() {
             environment to <code>duckduckgo</code> or <code>bing</code> to enable.
           </CardContent>
         </Card>
+      )}
+
+      {enabled !== false && !loading && results.length === 0 && (
+        <EmptyState
+          icon={Globe}
+          title="Search the web for context"
+          description="Pull external sources into your discovery. Results never auto-attach to evidence — paste useful snippets into Capture yourself."
+        />
       )}
 
       {results.length > 0 && (
