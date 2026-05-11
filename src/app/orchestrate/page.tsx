@@ -209,7 +209,6 @@ export default function OrchestratePage() {
   const [selectedQuestionIndex, setSelectedQuestionIndex] = useState<number | null>(null);
   const [attachingQuestionEvidence, setAttachingQuestionEvidence] = useState<Record<number, boolean>>({});
   const [generating, setGenerating] = useState(false);
-  const [bootstrapping, setBootstrapping] = useState(false);
   const [savingComments, setSavingComments] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [captureEvidence, setCaptureEvidence] = useState<Evidence[]>([]);
@@ -505,47 +504,11 @@ export default function OrchestratePage() {
     setAnalysisNotes("");
   };
 
-  useEffect(() => {
-    const bootstrap = async () => {
-      if (!discoveryId || bootstrapping || savedQuestionSets.length > 0 || questions.length > 0) return;
-      setBootstrapping(true);
-      setError(null);
-      try {
-        const [problemVersions, useCaseVersions] = await Promise.all([
-          api.problemStatements.list(discoveryId),
-          api.useCases.list(discoveryId),
-        ]);
-
-        const seedContext = generationContext.trim() || INTRO_CALL_CONTEXT_TEMPLATE;
-        const generated = await api.questions.generate({
-          discovery_id: discoveryId,
-          phase: "orchestrate",
-          context: seedContext,
-          num_questions: DEFAULT_QUESTION_COUNT,
-        });
-        setQuestions(generated.questions);
-        setSavedQuestionSets((prev) => [...prev, generated]);
-        setUsingStarterQuestions(false);
-
-        const jobs: Promise<unknown>[] = [];
-        if (problemVersions.length === 0) {
-          jobs.push(api.problemStatements.generate({ discovery_id: discoveryId }));
-        }
-        if (useCaseVersions.length === 0) {
-          jobs.push(api.useCases.generate({ discovery_id: discoveryId }));
-        }
-        if (jobs.length > 0) {
-          await Promise.all(jobs);
-        }
-      } catch (e) {
-        setError(e instanceof Error ? e.message : "Failed to auto-generate orchestrate artifacts");
-      } finally {
-        setBootstrapping(false);
-      }
-    };
-
-    void bootstrap();
-  }, [bootstrapping, discoveryId, generationContext, questions.length, savedQuestionSets.length]);
+  // Auto-bootstrap removed: it silently fired api.questions.generate,
+  // api.problemStatements.generate, and api.useCases.generate on every
+  // mount, all of which hit LLM-backed endpoints that 502 without a
+  // provider configured (the v1.3.1 default). Users now click the
+  // explicit Generate buttons in each section to start a generation.
 
   const applyIntroCallTemplate = () => {
     setContext(INTRO_CALL_CONTEXT_TEMPLATE);

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Bot,
   CheckCircle2,
@@ -76,9 +76,7 @@ export function ExpertReviewWorkshop({
   const [selectedAgentIds, setSelectedAgentIds] = useState<string[]>([]);
   const [instructions, setInstructions] = useState("");
   const [runningAgentIds, setRunningAgentIds] = useState<string[]>([]);
-  const [autoReviewing, setAutoReviewing] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const autoReviewAttemptedRef = useRef(false);
 
   const latestReview = reviews.length > 0 ? reviews[reviews.length - 1] : null;
   const latestBrief = briefs.length > 0 ? briefs[briefs.length - 1] : null;
@@ -100,22 +98,10 @@ export function ExpertReviewWorkshop({
       setSelectedAgentIds(agentList.map((agent) => agent.id));
     }
 
-    const fullBoard = new Set(agentList.map((agent) => agent.id));
-    const hasFullBoardReview = reviewList.some(
-      (review) => review.agent_ids.length === fullBoard.size && review.agent_ids.every((id) => fullBoard.has(id)),
-    );
-    if (!hasFullBoardReview && !autoReviewAttemptedRef.current && agentList.length > 0) {
-      autoReviewAttemptedRef.current = true;
-      setAutoReviewing(true);
-      try {
-        const autoReview = await api.refine.ensureFullReview(discoveryId);
-        setReviews((prev) => (prev.some((review) => review.id === autoReview.id) ? prev : [...prev, autoReview]));
-      } catch (e) {
-        setError(e instanceof Error ? e.message : "Automatic full-board review could not run yet");
-      } finally {
-        setAutoReviewing(false);
-      }
-    }
+    // Auto-fire of api.refine.ensureFullReview removed: it hit the
+    // LLM-backed /api/refine/reviews/auto/<id> endpoint on every mount
+    // and 502'd without an LLM provider. Users click 'Run Full Board'
+    // below to trigger the same flow explicitly.
   }, [discoveryId, selectedAgentIds.length]);
 
   useEffect(() => {
@@ -212,7 +198,6 @@ export function ExpertReviewWorkshop({
             <Badge variant="secondary">{activeDiscovery.evidence?.length ?? 0} evidence items</Badge>
             <Badge variant="secondary">{assumptions.length} tracked assumptions</Badge>
             <Badge variant="secondary">{latestReview ? `${latestReview.opinions.length} latest agent opinions` : "No expert review yet"}</Badge>
-            {autoReviewing && <Badge variant="outline">Full board running automatically...</Badge>}
           </div>
         </CardContent>
       </Card>
