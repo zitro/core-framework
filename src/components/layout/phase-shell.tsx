@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import { Search, Compass, Lightbulb, Rocket, type LucideIcon } from "lucide-react";
 import type { CorePhase } from "@/types/core";
 import { PHASE_CONFIG } from "@/types/core";
+import { PageHeader } from "@/components/layout/page-header";
 import { PhaseProgress, NextPhaseCTA } from "@/components/layout/phase-progress";
 import { PhaseEvidencePanel } from "@/components/layout/phase-evidence-panel";
 import { DtMethodsPanel } from "@/components/layout/dt-methods-panel";
@@ -15,11 +16,11 @@ const PHASE_ICONS: Record<CorePhase, LucideIcon> = {
   execute: Rocket,
 };
 
-const PHASE_ICON_BG: Record<CorePhase, string> = {
-  capture: "bg-blue-500/10 text-blue-500",
-  orchestrate: "bg-amber-500/10 text-amber-500",
-  refine: "bg-emerald-500/10 text-emerald-500",
-  execute: "bg-violet-500/10 text-violet-500",
+const PHASE_EYEBROW: Record<CorePhase, string> = {
+  capture: "Phase 1 · Capture",
+  orchestrate: "Phase 2 · Orchestrate",
+  refine: "Phase 3 · Refine",
+  execute: "Phase 4 · Execute",
 };
 
 const PHASE_GUIDANCE: Record<CorePhase, { heading: string; steps: string[] }> = {
@@ -74,29 +75,23 @@ export function PhaseShell({
 }: PhaseShellProps) {
   const config = PHASE_CONFIG[phase];
   const Icon = PHASE_ICONS[phase];
-  const iconStyle = PHASE_ICON_BG[phase];
   const guidance = PHASE_GUIDANCE[phase];
 
   return (
-    <div className="p-6 max-w-6xl mx-auto space-y-4">
-      {/* Progress Stepper */}
+    <div className="p-6 max-w-6xl mx-auto space-y-5">
       <PhaseProgress currentPhase={phase} />
 
-      {/* Phase Header */}
-      <div className="flex items-start gap-3">
-        <div className={`flex h-10 w-10 items-center justify-center rounded-lg ${iconStyle}`}>
-          <Icon className="h-5 w-5" />
-        </div>
-        <div className="flex-1">
-          <h1 className="text-2xl font-bold tracking-tight">{config.label}</h1>
-          <p className="text-muted-foreground text-sm">{config.description}</p>
-        </div>
-      </div>
+      <PageHeader
+        eyebrow={PHASE_EYEBROW[phase]}
+        title={config.label}
+        description={config.description}
+        icon={Icon}
+        accent={phase}
+      />
 
-      {/* Guidance */}
       <div className="rounded-lg border bg-muted/30 px-4 py-3">
-        <p className="text-sm font-medium mb-1.5">{guidance.heading}</p>
-        <ol className="text-xs text-muted-foreground space-y-0.5 list-decimal list-inside">
+        <p className="mb-1.5 text-sm font-medium">{guidance.heading}</p>
+        <ol className="list-inside list-decimal space-y-0.5 text-xs text-muted-foreground">
           {guidance.steps.map((step, i) => (
             <li key={i}>{step}</li>
           ))}

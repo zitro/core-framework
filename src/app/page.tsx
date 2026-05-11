@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Search, Compass, Lightbulb, Rocket, Plus, Pencil, Trash2 } from "lucide-react";
+import { Search, Compass, Lightbulb, Rocket, Plus, Pencil, Trash2, LayoutDashboard } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -21,6 +21,7 @@ import { MODE_CONFIG, PHASE_CONFIG } from "@/types/core";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { DocsPathConfig } from "@/components/settings/docs-path-config";
+import { PageHeader } from "@/components/layout/page-header";
 import { useProject } from "@/stores/project-store";
 
 const PHASE_ICONS = {
@@ -149,14 +150,14 @@ export default function DashboardPage() {
 
   return (
     <div className="p-6 max-w-6xl mx-auto space-y-8">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">CORE Discovery</h1>
-          <p className="text-muted-foreground text-sm mt-1">
-            AI-powered product discovery coaching
-          </p>
-        </div>
-        <Dialog open={open} onOpenChange={handleOpenChange}>
+      <PageHeader
+        eyebrow="Dashboard"
+        title="CORE Discovery"
+        description="AI-powered product discovery coaching — Capture, Orchestrate, Refine, Execute."
+        icon={LayoutDashboard}
+        accent="brand"
+      />
+      <Dialog open={open} onOpenChange={handleOpenChange}>
           <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-lg">
             <DialogHeader>
               <DialogTitle>Start a New Discovery</DialogTitle>
@@ -266,7 +267,6 @@ export default function DashboardPage() {
             </div>
           </DialogContent>
         </Dialog>
-      </div>
 
       {/* Platform Overview */}
       <Card className="border-border/70 bg-muted/20">

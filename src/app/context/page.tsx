@@ -17,6 +17,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { PageHeader } from "@/components/layout/page-header";
 import type { EngagementContentResult } from "@/types/core";
 import { api } from "@/lib/api";
 import { useDiscovery } from "@/stores/discovery-store";
@@ -74,28 +75,20 @@ export default function ContextPage() {
 
   return (
     <div className="p-6 max-w-6xl mx-auto space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-teal-500/10">
-            <FolderGit2 className="h-5 w-5 text-teal-500" />
-          </div>
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight">
-              Engagement Context
-            </h1>
-            <p className="text-muted-foreground text-sm">
-              Browse, search, and ingest content from your engagement knowledge base
-            </p>
-          </div>
-        </div>
-        {data && (
-          <Badge variant="outline" className="text-sm gap-1.5 py-1 px-3">
-            <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-            Connected
-          </Badge>
-        )}
-      </div>
+      <PageHeader
+        eyebrow="Tools"
+        title="Engagement Context"
+        description="Browse, search, and ingest content from your engagement knowledge base."
+        icon={FolderGit2}
+        actions={
+          data && (
+            <Badge variant="outline" className="gap-1.5 px-3 py-1 text-sm">
+              <span className="h-2 w-2 animate-pulse rounded-full bg-emerald-500" />
+              Connected
+            </Badge>
+          )
+        }
+      />
 
       {/* Path Input */}
       <Card>

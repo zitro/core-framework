@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { PageHeader } from "@/components/layout/page-header";
 import { api } from "@/lib/api";
 
 interface SearchResult {
@@ -38,17 +39,12 @@ export default function SearchPage() {
 
   return (
     <div className="p-6 max-w-5xl mx-auto space-y-6">
-      <div className="flex items-center gap-3">
-        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-cyan-500/10">
-          <Globe className="h-5 w-5 text-cyan-500" />
-        </div>
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Web Search</h1>
-          <p className="text-muted-foreground text-sm">
-            Pull external context into discovery. Configure provider via SEARCH_PROVIDER.
-          </p>
-        </div>
-      </div>
+      <PageHeader
+        eyebrow="Tools"
+        title="Web Search"
+        description="Pull external context into discovery. Configure provider via SEARCH_PROVIDER."
+        icon={Globe}
+      />
 
       <Card>
         <CardContent className="pt-6">
