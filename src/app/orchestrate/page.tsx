@@ -611,7 +611,7 @@ export default function OrchestratePage() {
               </span>
             </span>
             {questionComments[index]?.trim() && (
-              <span className="mt-2 block text-xs font-medium text-emerald-700 dark:text-emerald-300">
+              <span className="mt-2 block text-xs font-medium text-brand">
                 Answer drafted
               </span>
             )}
@@ -652,13 +652,9 @@ export default function OrchestratePage() {
                 Transcripts
               </TabsTrigger>
             )}
-            <TabsTrigger value="problem" className="gap-1.5">
+            <TabsTrigger value="drafts" className="gap-1.5">
               <FileText className="h-3.5 w-3.5" />
-              Problem Frame
-            </TabsTrigger>
-            <TabsTrigger value="usecase" className="gap-1.5">
-              <Briefcase className="h-3.5 w-3.5" />
-              Use Case Draft
+              Drafts
             </TabsTrigger>
             <TabsTrigger value="narrative" className="gap-1.5">
               <Sparkles className="h-3.5 w-3.5" />
@@ -729,8 +725,8 @@ export default function OrchestratePage() {
                     </div>
 
                     {shortcutMessage && (
-                      <div className="flex items-center gap-2 rounded-md border border-emerald-500/25 bg-emerald-500/10 px-3 py-2 text-sm text-emerald-900 dark:text-emerald-100">
-                        <CheckCircle2 className="h-4 w-4 shrink-0" />
+                      <div className="flex items-center gap-2 rounded-md border bg-muted/40 px-3 py-2 text-sm text-muted-foreground">
+                        <CheckCircle2 className="h-4 w-4 shrink-0 text-brand" />
                         <span>{shortcutMessage}</span>
                       </div>
                     )}
@@ -1020,35 +1016,42 @@ export default function OrchestratePage() {
             </TabsContent>
           )}
 
-          <TabsContent value="problem" className="space-y-4">
-            <div className="rounded-md border bg-muted/30 px-3 py-2 text-sm text-muted-foreground">
-              <Route className="mr-1.5 inline h-3.5 w-3.5" />
-              Draft problem frames belong here while the team is still synthesizing. Refine is where the final statement gets hardened.
-            </div>
-          <ProblemStatementBuilder discoveryId={discoveryId} activeDiscovery={activeDiscovery} />
-          </TabsContent>
-
-          <TabsContent value="usecase" className="space-y-4">
-            <div className="rounded-md border bg-muted/30 px-3 py-2 text-sm text-muted-foreground">
-              <Route className="mr-1.5 inline h-3.5 w-3.5" />
-              Draft use cases belong here as working synthesis. Refine is where priorities, scope, and final recommendations are locked.
-            </div>
-          <UseCaseBuilder discoveryId={discoveryId} />
+          <TabsContent value="drafts" className="space-y-4">
+            <p className="text-xs text-muted-foreground">
+              Working synthesis drafts. Refine is where final statements get hardened.
+            </p>
+            <Tabs defaultValue="problem" className="space-y-4">
+              <TabsList variant="line" className="gap-3 border-b">
+                <TabsTrigger value="problem" className="gap-1.5">
+                  <Route className="h-3.5 w-3.5" />
+                  Problem Frame
+                </TabsTrigger>
+                <TabsTrigger value="usecase" className="gap-1.5">
+                  <Briefcase className="h-3.5 w-3.5" />
+                  Use Case
+                </TabsTrigger>
+              </TabsList>
+              <TabsContent value="problem">
+                <ProblemStatementBuilder discoveryId={discoveryId} activeDiscovery={activeDiscovery} />
+              </TabsContent>
+              <TabsContent value="usecase">
+                <UseCaseBuilder discoveryId={discoveryId} />
+              </TabsContent>
+            </Tabs>
           </TabsContent>
 
           <TabsContent value="narrative" className="space-y-4">
-            <div className="rounded-md border bg-muted/30 px-3 py-2 text-sm text-muted-foreground">
-              <Sparkles className="mr-1.5 inline h-3.5 w-3.5" />
-              The discovery as a continuous story. Audience, style, and focus shape the same source material — re-generate any time the underlying evidence changes.
-            </div>
+            <p className="text-xs text-muted-foreground">
+              The discovery as a continuous story. Audience, style, and focus shape the same source material —
+              regenerate any time the underlying evidence changes.
+            </p>
             <NarrativePanel discovery={activeDiscovery} />
           </TabsContent>
 
           <TabsContent value="grounded" className="space-y-4">
-            <div className="rounded-md border bg-muted/30 px-3 py-2 text-sm text-muted-foreground">
-              <Wand2 className="mr-1.5 inline h-3.5 w-3.5" />
+            <p className="text-xs text-muted-foreground">
               Ask a question and get a grounded answer with inline citations, pulled from M365 search.
-            </div>
+            </p>
             <GroundedPanel />
           </TabsContent>
         </Tabs>
