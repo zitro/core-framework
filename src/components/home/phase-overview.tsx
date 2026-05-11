@@ -60,7 +60,7 @@ export function PhaseOverview() {
               key={phase}
               href={`/${phase}`}
               className={cn(
-                "group relative overflow-hidden rounded-lg border bg-card px-4 py-4 transition-colors hover:bg-muted/40",
+                "group relative overflow-hidden rounded-lg border bg-card px-4 py-4 shadow-sm transition-all hover:bg-muted/40 hover:shadow-md",
                 "before:absolute before:left-0 before:top-0 before:h-full before:w-1 before:rounded-l-lg",
                 PHASE_RAIL[phase],
               )}
