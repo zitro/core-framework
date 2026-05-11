@@ -1,12 +1,20 @@
 "use client";
 
+/**
+ * UseCaseBuilder — AI-drafted, iteratively-refined use case.
+ *
+ * Purpose: turn the discovery's evidence + transcripts + working
+ * material into a single structured use case (persona, goal, current/
+ * desired state, business value, impact, metrics, summary). One latest
+ * version is always shown; older versions collapse into history.
+ */
+
 import { useCallback, useEffect, useState } from "react";
-import { Sparkles, ChevronDown, ChevronUp } from "lucide-react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import { ChevronDown, ChevronUp, Loader2 } from "lucide-react";
+
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Separator } from "@/components/ui/separator";
 import type { UseCaseVersion } from "@/types/core";
 import { api } from "@/lib/api";
 
@@ -18,17 +26,21 @@ export function UseCaseBuilder({ discoveryId }: UseCaseBuilderProps) {
   const [versions, setVersions] = useState<UseCaseVersion[]>([]);
   const [generating, setGenerating] = useState(false);
   const [instructions, setInstructions] = useState("");
-  const [expanded, setExpanded] = useState(true);
+  const [historyOpen, setHistoryOpen] = useState(false);
 
   const loadVersions = useCallback(async () => {
     if (!discoveryId) return;
     try {
       const items = await api.useCases.list(discoveryId);
       setVersions(items);
-    } catch { /* non-critical */ }
+    } catch {
+      /* non-critical */
+    }
   }, [discoveryId]);
 
-  useEffect(() => { loadVersions(); }, [loadVersions]);
+  useEffect(() => {
+    void loadVersions();
+  }, [loadVersions]);
 
   const generate = async () => {
     setGenerating(true);
@@ -39,120 +51,146 @@ export function UseCaseBuilder({ discoveryId }: UseCaseBuilderProps) {
       });
       setVersions((prev) => [...prev, result]);
       setInstructions("");
-    } catch { /* toast handled by api */ }
-    finally { setGenerating(false); }
+    } catch {
+      /* toast handled by api */
+    } finally {
+      setGenerating(false);
+    }
   };
 
   const latest = versions.length > 0 ? versions[versions.length - 1] : null;
 
   return (
-    <div className="space-y-4">
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base flex items-center gap-2">
-            <Sparkles className="h-4 w-4 text-amber-500" />
-            Use Case Generator
-          </CardTitle>
-          <CardDescription>
-            AI distills all your evidence, transcripts, and docs into a structured use case
-            with business value and impact.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <Textarea
-            value={instructions}
-            onChange={(e) => setInstructions(e.target.value)}
-            placeholder="Optional: Guide the AI — e.g., 'Focus on the compliance reporting pain point' or 'Target the portfolio management persona'"
-            rows={2}
-          />
-          <Button onClick={generate} disabled={generating}>
-            {generating ? "Generating..." : latest ? "Regenerate Use Case" : "Generate Use Case"}
+    <div className="space-y-5">
+      <section className="space-y-2">
+        <p className="text-xs text-muted-foreground">
+          AI distills evidence, transcripts, and docs into a structured use case with business
+          value and impact. Add a directive below to steer this generation; persistent feedback
+          lives in the box at the bottom of the tab.
+        </p>
+        <Textarea
+          value={instructions}
+          onChange={(e) => setInstructions(e.target.value)}
+          placeholder="Optional steer for this generation — e.g. 'Focus on the compliance reporting pain' or 'Target the portfolio manager persona'"
+          rows={2}
+          className="text-sm"
+        />
+        <div className="flex items-center justify-end">
+          <Button onClick={() => void generate()} disabled={generating} size="sm">
+            {generating ? (
+              <>
+                <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+                Generating…
+              </>
+            ) : latest ? (
+              "Regenerate"
+            ) : (
+              "Generate use case"
+            )}
           </Button>
-        </CardContent>
-      </Card>
+        </div>
+      </section>
 
       {latest && (
-        <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-base">{latest.title || "Use Case"}</CardTitle>
-              <Badge variant="secondary" className="text-[10px]">v{latest.version}</Badge>
+        <section className="space-y-4 border-l-2 border-brand/60 pl-4">
+          <header className="space-y-1">
+            <div className="flex flex-wrap items-center gap-2">
+              <h3 className="font-heading text-base font-semibold">
+                {latest.title || "Use Case"}
+              </h3>
+              <Badge variant="secondary" className="text-[10px]">
+                v{latest.version}
+              </Badge>
             </div>
-            <CardDescription>{latest.persona}</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-1">
-                <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Goal</p>
-                <p className="text-sm">{latest.goal}</p>
-              </div>
-              <div className="space-y-1">
-                <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Current State</p>
-                <p className="text-sm">{latest.current_state}</p>
-              </div>
-              <div className="space-y-1">
-                <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Desired State</p>
-                <p className="text-sm">{latest.desired_state}</p>
-              </div>
-              <div className="space-y-1">
-                <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Estimated Effort</p>
-                <p className="text-sm">{latest.business_impact || "—"}</p>
-              </div>
-            </div>
-            <Separator />
-            <div className="space-y-1">
-              <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Business Value</p>
-              <p className="text-sm">{latest.business_value}</p>
-            </div>
-            <div className="space-y-1">
-              <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Business Impact</p>
-              <p className="text-sm">{latest.business_impact}</p>
-            </div>
-            {latest.success_metrics.length > 0 && (
-              <div className="space-y-1">
-                <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Success Metrics</p>
-                <ul className="list-disc list-inside text-sm space-y-0.5">
-                  {latest.success_metrics.map((m, i) => <li key={i}>{m}</li>)}
-                </ul>
-              </div>
+            {latest.persona && (
+              <p className="text-xs text-muted-foreground">{latest.persona}</p>
             )}
-            <Separator />
-            <div className="space-y-1">
-              <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Summary</p>
-              <p className="text-sm whitespace-pre-line">{latest.summary}</p>
-            </div>
-          </CardContent>
-        </Card>
+          </header>
+
+          <div className="grid gap-4 md:grid-cols-2">
+            <Field label="Goal">{latest.goal}</Field>
+            <Field label="Current state">{latest.current_state}</Field>
+            <Field label="Desired state">{latest.desired_state}</Field>
+            <Field label="Business value">{latest.business_value}</Field>
+            <Field label="Business impact" className="md:col-span-2">
+              {latest.business_impact}
+            </Field>
+          </div>
+
+          {latest.success_metrics.length > 0 && (
+            <Field label="Success metrics">
+              <ul className="mt-0.5 space-y-0.5">
+                {latest.success_metrics.map((m, i) => (
+                  <li
+                    key={i}
+                    className="border-l-2 border-muted py-0.5 pl-2.5 text-xs leading-relaxed"
+                  >
+                    {m}
+                  </li>
+                ))}
+              </ul>
+            </Field>
+          )}
+
+          {latest.summary && (
+            <Field label="Summary">
+              <p className="whitespace-pre-line text-sm leading-relaxed">{latest.summary}</p>
+            </Field>
+          )}
+        </section>
       )}
 
       {versions.length > 1 && (
-        <Card>
-          <CardHeader className="pb-2 cursor-pointer" onClick={() => setExpanded(!expanded)}>
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-sm">
-                Version History
-                <Badge variant="secondary" className="ml-2 text-[10px]">{versions.length}</Badge>
-              </CardTitle>
-              {expanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-            </div>
-          </CardHeader>
-          {expanded && (
-            <CardContent className="space-y-2">
+        <section className="space-y-2">
+          <button
+            type="button"
+            onClick={() => setHistoryOpen(!historyOpen)}
+            className="flex cursor-pointer items-center gap-1.5 text-[10px] font-medium uppercase tracking-wider text-muted-foreground hover:text-foreground"
+          >
+            {historyOpen ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+            Version history ({versions.length})
+          </button>
+          {historyOpen && (
+            <ul className="space-y-1">
               {[...versions].reverse().map((v) => (
-                <div key={v.id} className="p-2 rounded border text-xs space-y-1">
-                  <div className="flex items-center justify-between">
-                    <span className="font-medium">v{v.version}: {v.title}</span>
-                    <span className="text-muted-foreground">
+                <li
+                  key={v.id}
+                  className="border-l-2 border-muted py-0.5 pl-2.5 text-xs"
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="truncate font-medium">
+                      v{v.version} · {v.title}
+                    </span>
+                    <span className="shrink-0 text-[10px] text-muted-foreground">
                       {new Date(v.created_at).toLocaleDateString()}
                     </span>
                   </div>
-                  <p className="text-muted-foreground line-clamp-2">{v.summary}</p>
-                </div>
+                  <p className="line-clamp-2 text-muted-foreground">{v.summary}</p>
+                </li>
               ))}
-            </CardContent>
+            </ul>
           )}
-        </Card>
+        </section>
       )}
+    </div>
+  );
+}
+
+function Field({
+  label,
+  children,
+  className,
+}: {
+  label: string;
+  children: React.ReactNode;
+  className?: string;
+}) {
+  return (
+    <div className={["space-y-1", className].filter(Boolean).join(" ")}>
+      <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+        {label}
+      </p>
+      <div className="text-sm leading-relaxed">{children}</div>
     </div>
   );
 }

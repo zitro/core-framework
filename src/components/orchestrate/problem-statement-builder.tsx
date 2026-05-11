@@ -1,14 +1,22 @@
 "use client";
 
+/**
+ * ProblemStatementBuilder — AI-drafted, human-editable problem framing.
+ *
+ * Purpose: turn discovery evidence into a single, sharable problem
+ * statement (who / what / why / impact + full statement). The user can
+ * always override the AI's draft in the editable fields; persistent
+ * "always do this" feedback lives in the AiFeedback box on the tab.
+ */
+
 import { useEffect, useState } from "react";
-import { Sparkles, History, Pencil } from "lucide-react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import { History, Loader2, Pencil } from "lucide-react";
+
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import type { ProblemStatementVersion, Discovery } from "@/types/core";
+import type { Discovery, ProblemStatementVersion } from "@/types/core";
 import { api } from "@/lib/api";
 
 interface ProblemStatementBuilderProps {
@@ -16,7 +24,10 @@ interface ProblemStatementBuilderProps {
   activeDiscovery: Discovery | null;
 }
 
-export function ProblemStatementBuilder({ discoveryId, activeDiscovery }: ProblemStatementBuilderProps) {
+export function ProblemStatementBuilder({
+  discoveryId,
+  activeDiscovery,
+}: ProblemStatementBuilderProps) {
   const [who, setWho] = useState("");
   const [what, setWhat] = useState("");
   const [why, setWhy] = useState("");
@@ -24,24 +35,29 @@ export function ProblemStatementBuilder({ discoveryId, activeDiscovery }: Proble
   const [statementText, setStatementText] = useState("");
   const [userInstructions, setUserInstructions] = useState("");
   const [psVersions, setPsVersions] = useState<ProblemStatementVersion[]>([]);
-  const [generatingPS, setGeneratingPS] = useState(false);
+  const [generating, setGenerating] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [showHistory, setShowHistory] = useState(false);
+  const [historyOpen, setHistoryOpen] = useState(false);
 
   useEffect(() => {
     if (!discoveryId) return;
-    api.problemStatements.list(discoveryId).then((versions) => {
-      setPsVersions(versions);
-      if (versions.length > 0) {
-        const latest = versions[versions.length - 1];
-        setWho(latest.who);
-        setWhat(latest.what);
-        setWhy(latest.why);
-        setImpact(latest.impact);
-        setStatementText(latest.statement);
-      }
-    }).catch(() => { /* non-critical */ });
+    api.problemStatements
+      .list(discoveryId)
+      .then((versions) => {
+        setPsVersions(versions);
+        if (versions.length > 0) {
+          const latest = versions[versions.length - 1];
+          setWho(latest.who);
+          setWhat(latest.what);
+          setWhy(latest.why);
+          setImpact(latest.impact);
+          setStatementText(latest.statement);
+        }
+      })
+      .catch(() => {
+        /* non-critical */
+      });
   }, [discoveryId]);
 
   useEffect(() => {
@@ -57,7 +73,7 @@ export function ProblemStatementBuilder({ discoveryId, activeDiscovery }: Proble
   }, [activeDiscovery?.id, activeDiscovery?.problem_statement, psVersions.length]);
 
   const generate = async () => {
-    setGeneratingPS(true);
+    setGenerating(true);
     setError(null);
     try {
       const result = await api.problemStatements.generate({
@@ -74,7 +90,7 @@ export function ProblemStatementBuilder({ discoveryId, activeDiscovery }: Proble
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to generate problem statement");
     } finally {
-      setGeneratingPS(false);
+      setGenerating(false);
     }
   };
 
@@ -84,10 +100,20 @@ export function ProblemStatementBuilder({ discoveryId, activeDiscovery }: Proble
     setSaving(true);
     try {
       await api.discoveries.update(id, {
-        problem_statement: { who, what, why, impact, statement: statementText, confidence: "assumed" },
+        problem_statement: {
+          who,
+          what,
+          why,
+          impact,
+          statement: statementText,
+          confidence: "assumed",
+        },
       } as Partial<Discovery>);
-    } catch { /* silent */ }
-    finally { setSaving(false); }
+    } catch {
+      /* silent */
+    } finally {
+      setSaving(false);
+    }
   };
 
   const loadVersion = (v: ProblemStatementVersion) => {
@@ -96,148 +122,172 @@ export function ProblemStatementBuilder({ discoveryId, activeDiscovery }: Proble
     setWhy(v.why);
     setImpact(v.impact);
     setStatementText(v.statement);
-    setShowHistory(false);
+    setHistoryOpen(false);
+  };
+
+  const regenerateWithEdits = () => {
+    setUserInstructions(
+      `Incorporate these edits — Who: ${who}; What: ${what}; Why: ${why}; Impact: ${impact}`,
+    );
+    void generate();
   };
 
   return (
-    <div className="space-y-4">
-      {/* AI Generation */}
-      <Card className="border-amber-500/20">
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle className="text-base flex items-center gap-2">
-                <Sparkles className="h-4 w-4 text-amber-500" />
-                AI Problem Statement Generator
-              </CardTitle>
-              <CardDescription>
-                AI synthesizes all your evidence, transcripts, and questions into a problem statement.
-              </CardDescription>
-            </div>
-            {psVersions.length > 0 && (
-              <Button variant="outline" size="sm" onClick={() => setShowHistory(!showHistory)}>
-                <History className="h-3.5 w-3.5 mr-1.5" />
-                v{psVersions.length}
-              </Button>
+    <div className="space-y-5">
+      <section className="space-y-2">
+        <p className="text-xs text-muted-foreground">
+          AI synthesizes your evidence, transcripts, and questions into a problem statement. Add
+          a directive below to steer this generation; persistent feedback lives in the box at the
+          bottom of the tab.
+        </p>
+        <Textarea
+          value={userInstructions}
+          onChange={(e) => setUserInstructions(e.target.value)}
+          placeholder="Optional steer for this generation — e.g. 'Focus on the ops team pain'"
+          rows={2}
+          className="text-sm"
+        />
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          {psVersions.length > 0 ? (
+            <button
+              type="button"
+              onClick={() => setHistoryOpen(!historyOpen)}
+              className="flex cursor-pointer items-center gap-1.5 text-[10px] font-medium uppercase tracking-wider text-muted-foreground hover:text-foreground"
+            >
+              <History className="h-3 w-3" />
+              v{psVersions.length} · history
+            </button>
+          ) : (
+            <span />
+          )}
+          <Button onClick={() => void generate()} disabled={generating} size="sm">
+            {generating ? (
+              <>
+                <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+                Generating…
+              </>
+            ) : psVersions.length > 0 ? (
+              "Regenerate"
+            ) : (
+              "Generate"
             )}
-          </div>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <Textarea
-            value={userInstructions}
-            onChange={(e) => setUserInstructions(e.target.value)}
-            placeholder="Optional: guide the AI — e.g., 'Focus on ops team pain points'"
-            rows={2}
-          />
-          <Button onClick={generate} disabled={generatingPS}>
-            <Sparkles className="h-3.5 w-3.5 mr-1.5" />
-            {generatingPS ? "Generating..." : psVersions.length > 0 ? "Regenerate" : "Generate"}
           </Button>
-          {error && <p className="text-sm text-red-500">{error}</p>}
-        </CardContent>
-      </Card>
+        </div>
+        {error && <p className="text-sm text-red-500">{error}</p>}
+      </section>
 
-      {/* Version History */}
-      {showHistory && psVersions.length > 0 && (
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm">Version History</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ScrollArea className="max-h-60">
-              <div className="space-y-2">
-                {psVersions.map((v) => (
-                  <div
-                    key={v.id}
-                    className="flex items-start justify-between p-3 rounded-lg border hover:bg-muted/50 cursor-pointer"
-                    onClick={() => loadVersion(v)}
-                  >
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1">
-                        <Badge variant="secondary" className="text-xs">v{v.version}</Badge>
-                        <span className="text-xs text-muted-foreground">
-                          {new Date(v.created_at).toLocaleDateString()}
-                        </span>
-                      </div>
-                      <p className="text-sm truncate">{v.statement}</p>
-                    </div>
-                    <Button variant="ghost" size="sm" className="ml-2 shrink-0">Load</Button>
-                  </div>
-                ))}
-              </div>
-            </ScrollArea>
-          </CardContent>
-        </Card>
+      {historyOpen && psVersions.length > 0 && (
+        <ScrollArea className="max-h-60 space-y-1">
+          <ul className="space-y-1">
+            {[...psVersions].reverse().map((v) => (
+              <li key={v.id}>
+                <button
+                  type="button"
+                  onClick={() => loadVersion(v)}
+                  className="group flex w-full cursor-pointer items-start gap-2 border-l-2 border-muted py-1 pl-2.5 text-left text-xs transition-colors hover:border-brand/60"
+                >
+                  <Badge variant="secondary" className="shrink-0 text-[10px]">
+                    v{v.version}
+                  </Badge>
+                  <span className="min-w-0 flex-1 space-y-0.5">
+                    <span className="block truncate text-muted-foreground group-hover:text-foreground">
+                      {v.statement}
+                    </span>
+                    <span className="block text-[10px] text-muted-foreground">
+                      {new Date(v.created_at).toLocaleDateString()}
+                    </span>
+                  </span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        </ScrollArea>
       )}
 
-      {/* Editable Statement */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base flex items-center gap-2">
-            <Pencil className="h-4 w-4" />
-            Problem Statement
-          </CardTitle>
-          <CardDescription>
-            Edit the AI-generated statement or write your own.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {statementText && (
-            <>
-              <div className="p-4 rounded-lg bg-amber-500/5 border border-amber-500/20">
-                <p className="text-xs uppercase tracking-wider text-amber-600 font-medium mb-2">
-                  Full Statement {psVersions.length > 0 && `(v${psVersions.length})`}
-                </p>
-                <Textarea
-                  value={statementText}
-                  onChange={(e) => setStatementText(e.target.value)}
-                  className="border-0 bg-transparent p-0 text-sm font-medium leading-relaxed resize-none focus-visible:ring-0"
-                  rows={4}
-                />
-              </div>
-              <Separator />
-            </>
-          )}
-          <div>
-            <label className="text-sm font-medium">Who is affected?</label>
-            <Textarea value={who} onChange={(e) => setWho(e.target.value)}
-              placeholder="e.g., Portfolio managers who execute trades across 3 asset classes" rows={2} />
+      {statementText && (
+        <section className="space-y-1 border-l-2 border-brand/60 pl-4">
+          <div className="flex items-center justify-between gap-2">
+            <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+              Full statement{psVersions.length > 0 && ` · v${psVersions.length}`}
+            </p>
+            <Pencil className="h-3 w-3 text-muted-foreground" aria-hidden />
           </div>
-          <div>
-            <label className="text-sm font-medium">What do they need?</label>
-            <Textarea value={what} onChange={(e) => setWhat(e.target.value)}
-              placeholder="e.g., see real-time portfolio exposure without switching between systems" rows={2} />
-          </div>
-          <div>
-            <label className="text-sm font-medium">Why? (root cause)</label>
-            <Textarea value={why} onChange={(e) => setWhy(e.target.value)}
-              placeholder="e.g., manual cross-referencing of 3 separate ledgers" rows={2} />
-          </div>
-          <div>
-            <label className="text-sm font-medium">Impact if solved</label>
-            <Textarea value={impact} onChange={(e) => setImpact(e.target.value)}
-              placeholder="e.g., reconciliation errors drop by 60%, analysts save 2 hours/day" rows={2} />
-          </div>
-          <div className="flex gap-2">
-            <Button onClick={save} disabled={saving} variant="outline">
-              {saving ? "Saving..." : "Save Problem Statement"}
-            </Button>
-            {(who || what) && (
-              <Button
-                onClick={() => {
-                  setUserInstructions(`Incorporate these edits — Who: ${who}; What: ${what}; Why: ${why}; Impact: ${impact}`);
-                  generate();
-                }}
-                disabled={generatingPS}
-                variant="secondary"
-              >
-                <Sparkles className="h-3.5 w-3.5 mr-1.5" />
-                Regenerate with My Edits
-              </Button>
-            )}
-          </div>
-        </CardContent>
-      </Card>
+          <Textarea
+            value={statementText}
+            onChange={(e) => setStatementText(e.target.value)}
+            rows={4}
+            className="resize-y text-sm font-medium leading-relaxed"
+          />
+        </section>
+      )}
+
+      <section className="grid gap-4 md:grid-cols-2">
+        <Field label="Who is affected?">
+          <Textarea
+            value={who}
+            onChange={(e) => setWho(e.target.value)}
+            placeholder="e.g. Portfolio managers executing trades across 3 asset classes"
+            rows={2}
+            className="text-sm"
+          />
+        </Field>
+        <Field label="What do they need?">
+          <Textarea
+            value={what}
+            onChange={(e) => setWhat(e.target.value)}
+            placeholder="e.g. Real-time portfolio exposure without system switching"
+            rows={2}
+            className="text-sm"
+          />
+        </Field>
+        <Field label="Why? (root cause)">
+          <Textarea
+            value={why}
+            onChange={(e) => setWhy(e.target.value)}
+            placeholder="e.g. Manual cross-referencing of 3 separate ledgers"
+            rows={2}
+            className="text-sm"
+          />
+        </Field>
+        <Field label="Impact if solved">
+          <Textarea
+            value={impact}
+            onChange={(e) => setImpact(e.target.value)}
+            placeholder="e.g. Reconciliation errors drop 60%, analysts save 2 hr/day"
+            rows={2}
+            className="text-sm"
+          />
+        </Field>
+      </section>
+
+      <div className="flex flex-wrap items-center justify-end gap-2 border-t pt-3">
+        {(who || what) && (
+          <Button
+            type="button"
+            onClick={regenerateWithEdits}
+            disabled={generating}
+            variant="outline"
+            size="sm"
+          >
+            Regenerate with my edits
+          </Button>
+        )}
+        <Button onClick={() => void save()} disabled={saving} size="sm">
+          {saving ? "Saving…" : "Save"}
+        </Button>
+      </div>
     </div>
   );
 }
+
+function Field({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="space-y-1">
+      <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+        {label}
+      </p>
+      {children}
+    </div>
+  );
+}
+
