@@ -64,6 +64,7 @@ def create_app() -> FastAPI:
     from app.routers import (
         advisor,
         agents,
+        artifact_threads,
         audit,
         blueprints,
         context_briefs,
@@ -193,6 +194,11 @@ def create_app() -> FastAPI:
     app.include_router(github_auth.router, prefix="/api/github", tags=["github"])
     app.include_router(health_schema.router, prefix="/api/health", tags=["health"])
     app.include_router(synthesis.router, prefix="/api/synthesis", tags=["synthesis"])
+    app.include_router(
+        artifact_threads.router,
+        prefix="/api/synthesis",
+        tags=["synthesis", "threads"],
+    )
     app.include_router(
         engagement_context.router,
         prefix="/api/engagement-context",
