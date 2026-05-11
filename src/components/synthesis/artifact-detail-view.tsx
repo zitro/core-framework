@@ -14,14 +14,16 @@ import type { ReactNode } from "react";
 
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { StoryboardFrames } from "@/components/synthesis/storyboard-frames";
 import type { SynthesisArtifact } from "@/types/synthesis";
 
 interface Props {
   artifact: SynthesisArtifact;
   loading?: boolean;
+  onArtifactUpdate?: (artifact: SynthesisArtifact) => void;
 }
 
-export function ArtifactDetailView({ artifact, loading }: Props) {
+export function ArtifactDetailView({ artifact, loading, onArtifactUpdate }: Props) {
   if (loading) {
     return (
       <div className="flex items-center gap-2 py-6 text-sm text-muted-foreground">
@@ -29,12 +31,24 @@ export function ArtifactDetailView({ artifact, loading }: Props) {
       </div>
     );
   }
-  const entries = Object.entries(artifact.body || {});
+  const entries = Object.entries(artifact.body || {}).filter(
+    // The storyboard component renders ``frames`` (and supporting fields)
+    // itself; suppress them from the generic body so we don't double-render.
+    ([k]) =>
+      artifact.type_id !== "storyboard" ||
+      !["frames", "persona", "takeaway"].includes(k),
+  );
   return (
     <ScrollArea className="h-full pr-3">
       <div className="space-y-4 pt-2">
         {artifact.summary && (
           <p className="text-sm leading-relaxed">{artifact.summary}</p>
+        )}
+        {artifact.type_id === "storyboard" && (
+          <StoryboardFrames
+            artifact={artifact}
+            onUpdate={(updated) => onArtifactUpdate?.(updated)}
+          />
         )}
         {entries.length > 0 && (
           <dl className="space-y-3 text-sm">

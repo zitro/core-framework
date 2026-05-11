@@ -64,6 +64,13 @@ export function ArtifactDetailModal({
   const [regenerating, setRegenerating] = useState(false);
   const [pushing, setPushing] = useState(false);
   const [tab, setTab] = useState<"detail" | "thread" | "chat">("detail");
+  const [liveArtifact, setLiveArtifact] = useState<SynthesisArtifact | null>(
+    artifact,
+  );
+
+  useEffect(() => {
+    setLiveArtifact(artifact);
+  }, [artifact]);
 
   useEffect(() => {
     if (!open || !artifact) return;
@@ -206,7 +213,11 @@ export function ArtifactDetailModal({
             <p className="pb-2 text-[11px] text-muted-foreground">
               The artifact contents — generated from your sources.
             </p>
-            <ArtifactDetailView artifact={artifact} loading={loading} />
+            <ArtifactDetailView
+              artifact={liveArtifact ?? artifact}
+              loading={loading}
+              onArtifactUpdate={setLiveArtifact}
+            />
           </TabsContent>
           <TabsContent value="thread" className="min-h-0 flex-1">
             <p className="pb-2 text-[11px] text-muted-foreground">

@@ -24,6 +24,10 @@ class Settings(BaseSettings):
     azure_openai_api_key: str = ""
     azure_openai_deployment: str = "gpt-4o"
     azure_openai_api_version: str = "2024-12-01-preview"
+    azure_openai_image_deployment: str = "dall-e-3"
+
+    # Image generation: "local" (default, SVG placeholder) | "azure_openai" | "none"
+    image_provider: str = "local"
 
     # OpenAI (direct)
     openai_api_key: str = ""
