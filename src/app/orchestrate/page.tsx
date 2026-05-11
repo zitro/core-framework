@@ -282,10 +282,6 @@ export default function OrchestratePage() {
     return new Map(displayOrder.map((entry, displayIndex) => [entry.index, displayIndex + 1]));
   }, [questionBuckets.answered, questionBuckets.planning, questionBuckets.understanding]);
 
-  const activeQuestionDisplayNumber = activeQuestionEntry
-    ? questionDisplayNumberByIndex.get(activeQuestionEntry.index) ?? activeQuestionEntry.index + 1
-    : 0;
-
   const questionContextBasis = useMemo(() => {
     if (usingStarterQuestions) return "Intro call starter set";
     return previewContextBasis(activeQuestionSet?.context || context);
@@ -682,121 +678,118 @@ export default function OrchestratePage() {
                 {error && <p className="text-sm text-red-500">{error}</p>}
               </div>
 
-              <div className="space-y-4">
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-base flex items-center gap-2">
-                      <ClipboardList className="h-4 w-4" />
-                      Session Starters
-                    </CardTitle>
-                    <CardDescription>
-                      Add useful structure to Working Material or open a starter question queue.
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="grid gap-2">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        className="h-auto w-full justify-start whitespace-normal p-3 text-left"
-                        onClick={applyIntroCallTemplate}
-                      >
-                        <FilePlus2 className="mr-3 h-4 w-4 shrink-0" />
-                        <span className="min-w-0">
-                          <span className="block text-sm font-medium">Intro Call Template</span>
-                          <span className="mt-0.5 block text-xs leading-relaxed text-muted-foreground">
-                            Populate Working Material with a complete discovery-call outline.
-                          </span>
+              <aside className="space-y-4">
+                <div className="space-y-2">
+                  <div className="flex items-center gap-1.5 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+                    <ClipboardList className="h-3 w-3" />
+                    <span>Session Starters</span>
+                  </div>
+                  <div className="space-y-1.5">
+                    <button
+                      type="button"
+                      onClick={applyIntroCallTemplate}
+                      className="group flex w-full cursor-pointer items-start gap-2.5 rounded-md border px-3 py-2.5 text-left transition-colors hover:border-brand/40 hover:bg-muted/40"
+                    >
+                      <FilePlus2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground group-hover:text-brand" />
+                      <span className="min-w-0">
+                        <span className="block text-xs font-medium">Intro Call Template</span>
+                        <span className="mt-0.5 block text-[11px] leading-relaxed text-muted-foreground">
+                          Populate Working Material with a complete discovery-call outline.
                         </span>
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        className="h-auto w-full justify-start whitespace-normal p-3 text-left"
-                        onClick={loadStarterQuestions}
-                      >
-                        <ListChecks className="mr-3 h-4 w-4 shrink-0" />
-                        <span className="min-w-0">
-                          <span className="block text-sm font-medium">Starter Questions</span>
-                          <span className="mt-0.5 block text-xs leading-relaxed text-muted-foreground">
-                            Open a ready-made question queue for an intro discovery call.
-                          </span>
+                      </span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={loadStarterQuestions}
+                      className="group flex w-full cursor-pointer items-start gap-2.5 rounded-md border px-3 py-2.5 text-left transition-colors hover:border-brand/40 hover:bg-muted/40"
+                    >
+                      <ListChecks className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground group-hover:text-brand" />
+                      <span className="min-w-0">
+                        <span className="block text-xs font-medium">Starter Questions</span>
+                        <span className="mt-0.5 block text-[11px] leading-relaxed text-muted-foreground">
+                          Open a ready-made question queue for an intro discovery call.
                         </span>
-                      </Button>
-                    </div>
+                      </span>
+                    </button>
+                  </div>
+                </div>
 
-                    {shortcutMessage && (
-                      <div className="flex items-center gap-2 rounded-md border bg-muted/40 px-3 py-2 text-sm text-muted-foreground">
-                        <CheckCircle2 className="h-4 w-4 shrink-0 text-brand" />
-                        <span>{shortcutMessage}</span>
-                      </div>
-                    )}
+                {shortcutMessage && (
+                  <div className="flex items-center gap-2 rounded-md border bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
+                    <CheckCircle2 className="h-3.5 w-3.5 shrink-0 text-brand" />
+                    <span>{shortcutMessage}</span>
+                  </div>
+                )}
 
-                    {showFocusedSections && (
-                      <div className="space-y-2">
-                        <p className="text-xs font-semibold uppercase text-muted-foreground">Add a focused section</p>
-                        {TOPIC_INSERTS.map((topic) => {
-                          const TopicIcon = topic.icon;
-                          return (
-                            <button
-                              key={topic.label}
-                              type="button"
-                              className="flex w-full items-start gap-3 rounded-md border bg-background p-3 text-left transition-colors hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                              onClick={() => appendTopicBlock(topic.label, topic.body)}
-                            >
-                              <TopicIcon className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
-                              <span className="min-w-0">
-                                <span className="block text-sm font-medium leading-snug">{topic.label}</span>
-                                <span className="mt-0.5 block text-xs leading-relaxed text-muted-foreground">
-                                  {topic.description}
-                                </span>
+                {showFocusedSections && (
+                  <div className="space-y-2">
+                    <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+                      Add a focused section
+                    </p>
+                    <div className="space-y-1">
+                      {TOPIC_INSERTS.map((topic) => {
+                        const TopicIcon = topic.icon;
+                        return (
+                          <button
+                            key={topic.label}
+                            type="button"
+                            className="group flex w-full cursor-pointer items-start gap-2 border-l-2 border-muted py-0.5 pl-2.5 text-left transition-colors hover:border-brand/60"
+                            onClick={() => appendTopicBlock(topic.label, topic.body)}
+                          >
+                            <TopicIcon className="mt-0.5 h-3 w-3 shrink-0 text-muted-foreground group-hover:text-brand" />
+                            <span className="min-w-0">
+                              <span className="block text-xs font-medium leading-snug">{topic.label}</span>
+                              <span className="mt-0.5 block text-[11px] leading-relaxed text-muted-foreground">
+                                {topic.description}
                               </span>
-                            </button>
-                          );
-                        })}
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              </div>
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </aside>
             </div>
           </TabsContent>
 
           <TabsContent value="questions" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <div className="flex flex-wrap items-start justify-between gap-3">
-                  <div>
-                    <CardTitle className="text-base flex items-center gap-2">
-                      <CircleHelp className="h-4 w-4" />
-                      Questions to Resolve
-                      <Badge variant="secondary">{questions.length}</Badge>
-                      {usingStarterQuestions && <Badge variant="outline" className="text-[10px]">Starter set</Badge>}
-                    </CardTitle>
-                    <CardDescription>
-                      Planning prompts and understanding gaps generated from Capture intake and Orchestrate context.
-                    </CardDescription>
-                  </div>
-                  <Button onClick={generateQuestions} disabled={generating} className="gap-2">
-                    <Sparkles className="h-4 w-4" />
-                    {generating ? "Generating..." : "Regenerate From Capture + Context"}
-                  </Button>
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div className="space-y-1">
+                <h2 className="flex items-center gap-2 font-heading text-lg font-semibold tracking-tight">
+                  <CircleHelp className="h-4 w-4 text-muted-foreground" />
+                  Questions to Resolve
+                  <Badge variant="secondary">{questions.length}</Badge>
+                  {usingStarterQuestions && (
+                    <Badge variant="outline" className="text-[10px]">
+                      Starter set
+                    </Badge>
+                  )}
+                </h2>
+                <p className="text-xs text-muted-foreground">
+                  Planning prompts and understanding gaps generated from Capture intake and Orchestrate context.
+                </p>
+              </div>
+              <Button onClick={generateQuestions} disabled={generating} className="gap-2">
+                <Sparkles className="h-4 w-4" />
+                {generating ? "Generating…" : "Regenerate"}
+              </Button>
+            </div>
+
+            <div className="space-y-4">
+              <div className="flex flex-wrap items-center justify-between gap-3 rounded-md border bg-muted/20 px-3 py-2">
+                <div className="flex min-w-0 flex-wrap items-center gap-2 text-xs">
+                  <span className="text-[10px] uppercase tracking-wider text-muted-foreground">Grounded on</span>
+                  <span className="truncate font-medium">{questionContextBasis}</span>
                 </div>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="rounded-md border bg-muted/20 px-4 py-3">
-                  <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
-                    <div className="min-w-0">
-                      <p className="text-xs font-semibold uppercase text-muted-foreground">Basis</p>
-                      <p className="mt-1 truncate text-sm font-medium">{questionContextBasis}</p>
-                    </div>
-                    <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
-                      <span>{captureEvidence.length} Capture items</span>
-                      <span>{targetTechnologies.length} technologies</span>
-                      <span>{groundingQueries.length > 0 ? "Research grounded" : "Context grounded"}</span>
-                    </div>
-                  </div>
+                <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-[11px] text-muted-foreground">
+                  <span>{captureEvidence.length} Capture items</span>
+                  <span>·</span>
+                  <span>{targetTechnologies.length} technologies</span>
+                  <span>·</span>
+                  <span>{groundingQueries.length > 0 ? "Research grounded" : "Context grounded"}</span>
                 </div>
+              </div>
 
                 {questions.length > 0 ? (
                   <>
@@ -830,12 +823,9 @@ export default function OrchestratePage() {
                         <div className="rounded-md border bg-background">
                           <div className="border-b px-5 py-4">
                             <div className="flex flex-wrap items-start justify-between gap-3">
-                              <div className="min-w-0 space-y-2">
-                                <p className="text-xs font-semibold uppercase text-muted-foreground">
-                                  Active Question {activeQuestionDisplayNumber} of {questions.length}
-                                </p>
-                                <h3 className="text-lg font-semibold leading-snug">{activeQuestionEntry.question.text}</h3>
-                              </div>
+                              <h3 className="min-w-0 flex-1 font-heading text-lg font-semibold leading-snug">
+                                {activeQuestionEntry.question.text}
+                              </h3>
                               <Button
                                 type="button"
                                 size="sm"
@@ -943,8 +933,7 @@ export default function OrchestratePage() {
                   </div>
                 )}
                 {error && <p className="text-sm text-red-500">{error}</p>}
-              </CardContent>
-            </Card>
+            </div>
           </TabsContent>
 
           {showTranscriptWorkspace && (
