@@ -1,18 +1,20 @@
-"""Synthesis router — Phase 6C minimal slice.
+"""Synthesis router — 6C minimal slice + 6D critic/signals/compass.
 
 Mounted at ``/api/synthesis``. All project-scoped routes take a
 ``project_id`` path segment so the project comes from the URL — no
 implicit context.
 
-This is the foundation slice. It surfaces:
+Surface so far:
 
   - GET  /catalog                                          → ArtifactType registry
   - GET  /{project_id}/artifacts                           → list saved artifacts
   - POST /{project_id}/synthesize                          → generate critical types
+  - POST /{project_id}/artifacts/{artifact_id}/critique    → run critic (6D)
+  - GET  /{project_id}/signals                             → deterministic signals (6D)
+  - GET  /{project_id}/compass                             → per-category health (6D)
   - POST /{project_id}/artifacts/{type_id}/regenerate      → regenerate one
 
 Deferred to later sub-phases (NOT included here):
-  - critic / detectors / compass     (6D)
   - chat + questions agent           (6E)
   - source connector marketplace     (6F)
   - exporters (docx/pptx)            (6J)
@@ -33,9 +35,12 @@ from app.synthesis.categories import (
     CATEGORY_LABELS,
     CATEGORY_ORDER,
 )
+from app.synthesis.compass import compute_compass
 from app.synthesis.corpus import build_corpus
+from app.synthesis.critic import CRITIQUES_COLLECTION, CriticAgent
+from app.synthesis.detectors import run_detectors
 from app.synthesis.generator import ARTIFACTS_COLLECTION, GeneratorEngine
-from app.synthesis.models import Artifact, ArtifactCreate
+from app.synthesis.models import Artifact, ArtifactCreate, Critique
 from app.synthesis.types import ARTIFACT_TYPES
 
 logger = logging.getLogger(__name__)
@@ -70,6 +75,29 @@ async def _project_artifacts(project_id: str) -> list[Artifact]:
         if items:
             return [Artifact(**i) for i in items]
     return []
+
+
+async def _project_critiques(project_id: str) -> list[Critique]:
+    storage = get_storage_provider()
+    for key in ("project_id", "projectId"):
+        try:
+            items = await storage.list(CRITIQUES_COLLECTION, {key: project_id})
+        except Exception:
+            items = []
+        if items:
+            return [Critique(**i) for i in items]
+    return []
+
+
+async def _load_artifact(project_id: str, artifact_id: str) -> Artifact:
+    storage = get_storage_provider()
+    raw = await storage.get(ARTIFACTS_COLLECTION, artifact_id)
+    if not raw:
+        raise HTTPException(status_code=404, detail="Artifact not found")
+    art = Artifact(**raw)
+    if art.project_id != project_id:
+        raise HTTPException(status_code=404, detail="Artifact not found")
+    return art
 
 
 # ── catalog ─────────────────────────────────────────────────────────────
@@ -156,6 +184,49 @@ async def synthesize(project_id: str, payload: SynthesizePayload | None = None) 
         "artifact_count": len(artifacts),
         "failures": failures,
     }
+
+
+@router.post("/{project_id}/artifacts/{artifact_id}/critique")
+async def critique_artifact(project_id: str, artifact_id: str) -> dict:
+    """Run the critic on an existing artifact. Returns the persisted
+    Critique. LLM-backed; gated behind explicit user action so the
+    no-LLM local provider doesn't silently fail."""
+    project = await _load_project(project_id)
+    artifact = await _load_artifact(project_id, artifact_id)
+    corpus = await build_corpus(project)
+    try:
+        critique = await CriticAgent().critique(artifact, corpus)
+    except Exception as exc:
+        logger.exception("critique: failed for %s", artifact_id)
+        raise HTTPException(status_code=500, detail=f"Critique failed: {exc}") from exc
+    return {"critique": critique.model_dump(mode="json")}
+
+
+@router.get("/{project_id}/signals")
+async def get_signals(project_id: str) -> dict:
+    """Deterministic signals derived from artifacts + critiques + corpus.
+    No LLM call; safe to render on every page load."""
+    project = await _load_project(project_id)
+    artifacts = await _project_artifacts(project_id)
+    critiques = await _project_critiques(project_id)
+    corpus = await build_corpus(project)
+    signals = run_detectors(artifacts, critiques, corpus)
+    return {
+        "signals": [s.model_dump(mode="json") for s in signals],
+    }
+
+
+@router.get("/{project_id}/compass")
+async def get_compass(project_id: str) -> dict:
+    """Per-category health rollup (green / amber / red) derived from
+    artifacts + critiques + deterministic signals. No LLM call."""
+    project = await _load_project(project_id)
+    artifacts = await _project_artifacts(project_id)
+    critiques = await _project_critiques(project_id)
+    corpus = await build_corpus(project)
+    signals = run_detectors(artifacts, critiques, corpus)
+    snapshot = compute_compass(project_id, artifacts, signals)
+    return snapshot.model_dump(mode="json")
 
 
 @router.post("/{project_id}/artifacts/{type_id}/regenerate")
