@@ -1,7 +1,7 @@
 "use client";
 
 import { BookMarked } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+
 import { Badge } from "@/components/ui/badge";
 import { PageHeader } from "@/components/layout/page-header";
 import {
@@ -15,7 +15,7 @@ const PHASES: CorePhase[] = ["capture", "orchestrate", "refine", "execute"];
 
 export default function MethodologyPage() {
   return (
-    <div className="p-6 max-w-5xl mx-auto space-y-6">
+    <div className="mx-auto max-w-5xl space-y-6 p-6">
       <PageHeader
         eyebrow="Tools"
         title="Methodology"
@@ -24,32 +24,40 @@ export default function MethodologyPage() {
         accent="brand"
       />
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Principles we hold to</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <ol className="list-decimal pl-5 space-y-1 text-sm text-muted-foreground">
-            {DT_PRINCIPLES.map((p) => (
-              <li key={p}>{p}</li>
-            ))}
-          </ol>
-        </CardContent>
-      </Card>
+      <section className="space-y-2">
+        <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+          Principles we hold to
+        </p>
+        <ol className="space-y-1">
+          {DT_PRINCIPLES.map((p, i) => (
+            <li
+              key={p}
+              className="flex gap-2 border-l-2 border-muted py-0.5 pl-2.5 text-sm leading-relaxed text-foreground/85"
+            >
+              <span className="shrink-0 font-mono text-[10px] text-muted-foreground">
+                {i + 1}.
+              </span>
+              <span>{p}</span>
+            </li>
+          ))}
+        </ol>
+      </section>
 
       {PHASES.map((phase) => {
         const methods = DT_METHODS.filter((m) => m.phase === phase);
         return (
-          <Card key={phase}>
-            <CardHeader>
-              <div className="flex items-center justify-between gap-2">
-                <CardTitle className="text-base capitalize">{phase}</CardTitle>
-                <Badge variant="outline">{PHASE_TO_DT_STAGE[phase]}</Badge>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-3">
+          <section key={phase} className="space-y-3">
+            <header className="flex items-center justify-between gap-2 border-b pb-2">
+              <h2 className="font-heading text-base font-semibold tracking-tight capitalize">
+                {phase}
+              </h2>
+              <Badge variant="outline" className="text-[10px]">
+                {PHASE_TO_DT_STAGE[phase]}
+              </Badge>
+            </header>
+            <div className="space-y-3">
               {methods.map((m) => (
-                <div key={m.id} className="border-l-2 pl-3 space-y-1">
+                <div key={m.id} className="space-y-1 border-l-2 border-muted pl-3">
                   <div className="flex items-center gap-2">
                     <h3 className="text-sm font-semibold">{m.name}</h3>
                     {m.template && (
@@ -58,14 +66,14 @@ export default function MethodologyPage() {
                       </Badge>
                     )}
                   </div>
-                  <p className="text-sm">{m.oneLiner}</p>
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-sm leading-relaxed">{m.oneLiner}</p>
+                  <p className="text-[11px] leading-relaxed text-muted-foreground">
                     <span className="font-medium">When to use:</span> {m.whenToUse}
                   </p>
                 </div>
               ))}
-            </CardContent>
-          </Card>
+            </div>
+          </section>
         );
       })}
     </div>

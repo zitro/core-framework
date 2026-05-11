@@ -1,11 +1,13 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Link as LinkIcon, X, Loader2 } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { ArrowRight, Link as LinkIcon, X, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { api } from "@/lib/api";
 import { engagementsApi } from "@/lib/api-fde";
+import { useDiscovery } from "@/stores/discovery-store";
 import type { Discovery } from "@/types/core";
 import type { Engagement } from "@/types/fde";
 import { toast } from "sonner";
@@ -16,9 +18,16 @@ interface Props {
 }
 
 export function EngagementDiscoveriesPanel({ engagement, onChanged }: Props) {
+  const router = useRouter();
+  const { setActiveDiscovery } = useDiscovery();
   const [discoveries, setDiscoveries] = useState<Discovery[]>([]);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [pickerOpen, setPickerOpen] = useState(false);
+
+  const openDiscovery = (d: Discovery) => {
+    setActiveDiscovery(d);
+    router.push(`/${d.current_phase}`);
+  };
 
   useEffect(() => {
     api.discoveries.list().then(setDiscoveries).catch(() => {});
@@ -80,19 +89,28 @@ export function EngagementDiscoveriesPanel({ engagement, onChanged }: Props) {
           {attached.map((d) => (
             <li
               key={d.id}
-              className="flex items-center justify-between rounded border bg-muted/30 px-2.5 py-1.5"
+              className="group flex items-center justify-between gap-2 rounded border bg-muted/30 px-2.5 py-1.5 transition-colors hover:border-brand/40 hover:bg-muted/50"
             >
-              <div className="flex items-center gap-2 min-w-0">
+              <button
+                type="button"
+                onClick={() => openDiscovery(d)}
+                className="flex min-w-0 flex-1 cursor-pointer items-center gap-2 text-left"
+              >
                 <Badge variant="outline" className="text-[10px] capitalize">
                   {d.current_phase}
                 </Badge>
-                <span className="text-sm truncate">{d.name}</span>
-              </div>
+                <span className="truncate text-sm group-hover:text-brand">{d.name}</span>
+                <ArrowRight className="ml-auto h-3 w-3 shrink-0 opacity-0 transition-opacity group-hover:opacity-60" />
+              </button>
               <Button
                 size="sm"
                 variant="ghost"
-                onClick={() => detach(d.id)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  void detach(d.id);
+                }}
                 disabled={busyId === d.id}
+                aria-label="Detach discovery"
               >
                 {busyId === d.id ? (
                   <Loader2 className="h-3.5 w-3.5 animate-spin" />

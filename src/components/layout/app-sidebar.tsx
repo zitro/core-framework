@@ -4,7 +4,7 @@ import packageJson from "../../../package.json";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Search, Compass, Lightbulb, Rocket, Home, BookOpen, BookMarked, Building2, Briefcase, ShieldCheck, Settings } from "lucide-react";
+import { Search, Compass, Lightbulb, Rocket, Home, BookMarked, Building2, Briefcase, ShieldCheck, Settings } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -164,12 +164,6 @@ export function AppSidebar() {
                 <SidebarMenuButton render={<Link href="/insights" aria-label="Insights" title="Insights" />} isActive={pathname === "/insights" || pathname.startsWith("/insights?")}>
                   <Compass className="h-4 w-4 text-muted-foreground" />
                   <span>Insights</span>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-              <SidebarMenuItem>
-                <SidebarMenuButton render={<Link href="/evidence" aria-label="All Evidence" title="All Evidence" />} isActive={pathname === "/evidence"}>
-                  <BookOpen className="h-4 w-4 text-muted-foreground" />
-                  <span>All Evidence</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
               <SidebarMenuItem>
