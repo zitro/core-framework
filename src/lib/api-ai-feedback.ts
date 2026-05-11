@@ -13,7 +13,9 @@ export type AiFeedbackSurface =
   | "usecase"
   | "narrative"
   | "grounded"
-  | "questions";
+  | "questions"
+  | "expert_review"
+  | "blueprint";
 
 export interface AiFeedbackRecord {
   id: string;

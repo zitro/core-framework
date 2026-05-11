@@ -11,6 +11,8 @@ import { ExpertReviewWorkshop } from "@/components/refine/expert-review-workshop
 import { SolutionArchitect } from "@/components/refine/solution-architect";
 import { PhaseShell } from "@/components/layout/phase-shell";
 import { DiscoveryRequired } from "@/components/layout/discovery-required";
+import { AiFeedback } from "@/components/orchestrate/ai-feedback";
+import { useTabParam } from "@/lib/use-tab-param";
 
 export default function RefinePage() {
   const { activeDiscovery } = useDiscovery();
@@ -24,6 +26,7 @@ export default function RefinePage() {
 
 function RefineWorkspace({ activeDiscovery }: { activeDiscovery: Discovery }) {
   const discoveryId = activeDiscovery.id;
+  const [activeTab, setActiveTab] = useTabParam("experts");
   const [assumptions, setAssumptions] = useState<Assumption[]>(activeDiscovery.assumptions || []);
 
   const persistAssumptions = useCallback(
@@ -53,8 +56,8 @@ function RefineWorkspace({ activeDiscovery }: { activeDiscovery: Discovery }) {
       showEvidencePanel={false}
       showDtMethodsPanel={false}
     >
-      <Tabs defaultValue="experts" className="space-y-4">
-        <TabsList>
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
+        <TabsList variant="line" className="gap-3 border-b">
           <TabsTrigger value="experts" className="gap-1.5">
             <Users className="h-3.5 w-3.5" />
             Expert Review
@@ -76,6 +79,7 @@ function RefineWorkspace({ activeDiscovery }: { activeDiscovery: Discovery }) {
             assumptions={assumptions}
             onAddAssumptions={handleAddAssumptions}
           />
+          <AiFeedback discoveryId={discoveryId} surface="expert_review" />
         </TabsContent>
 
         <TabsContent value="assumptions" className="space-y-4">
@@ -90,6 +94,7 @@ function RefineWorkspace({ activeDiscovery }: { activeDiscovery: Discovery }) {
             discoveryId={discoveryId}
             providers={activeDiscovery?.solution_providers || []}
           />
+          <AiFeedback discoveryId={discoveryId} surface="blueprint" />
         </TabsContent>
       </Tabs>
     </PhaseShell>

@@ -18,6 +18,7 @@ from app.models.core import (
 )
 from app.providers.llm import get_llm_provider
 from app.providers.storage import get_storage_provider
+from app.utils.ai_feedback import render_feedback_block
 from app.utils.audit import stamp_create
 from app.utils.context import gather_context
 from app.utils.review_gate import auto_request_review
@@ -441,6 +442,10 @@ async def generate_refine_review(request: RefineReviewRequest):
     user_guidance = ""
     if request.user_instructions.strip():
         user_guidance = f"\n\nUser guidance for this review:\n{request.user_instructions.strip()}"
+
+    feedback_block = await render_feedback_block(request.discovery_id, "expert_review")
+    if feedback_block:
+        user_guidance += f"\n\n{feedback_block}"
 
     user_prompt = (
         f"Selected expert agents:\n\n{agent_block}\n\n"
