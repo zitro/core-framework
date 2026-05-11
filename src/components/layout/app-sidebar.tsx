@@ -170,12 +170,6 @@ export function AppSidebar() {
                   <span>Methodology</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
-              <SidebarMenuItem>
-                <SidebarMenuButton render={<Link href="/settings" aria-label="Settings" title="Settings" />} isActive={pathname === "/settings"}>
-                  <Settings className="h-4 w-4 text-muted-foreground" />
-                  <span>Settings</span>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
@@ -226,6 +220,18 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
 
+        <SidebarGroup className="mt-auto">
+          <SidebarGroupContent>
+            <SidebarMenu>
+              <SidebarMenuItem>
+                <SidebarMenuButton render={<Link href="/settings" aria-label="Settings" title="Settings" />} isActive={pathname === "/settings"}>
+                  <Settings className="h-4 w-4 text-muted-foreground" />
+                  <span>Settings</span>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
 
       </SidebarContent>
 
