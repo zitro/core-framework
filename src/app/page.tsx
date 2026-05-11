@@ -1,48 +1,20 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import {
-  Search,
-  Compass,
-  Lightbulb,
-  Rocket,
-  Plus,
-  Pencil,
-  Trash2,
-  LayoutDashboard,
-  Sparkles,
-  type LucideIcon,
-} from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { LayoutDashboard, Plus, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { useDiscovery } from "@/stores/discovery-store";
-import type { CorePhase, DiscoveryMode } from "@/types/core";
-import { MODE_CONFIG, PHASE_CONFIG } from "@/types/core";
+import type { DiscoveryMode } from "@/types/core";
 import { useRouter } from "next/navigation";
-import { DocsPathConfig } from "@/components/settings/docs-path-config";
 import { PageHeader } from "@/components/layout/page-header";
 import { EmptyState } from "@/components/layout/empty-state";
 import { ActiveDiscoveryHero } from "@/components/home/active-discovery-hero";
+import { DiscoveriesGrid } from "@/components/home/discoveries-grid";
+import { EditDiscoveryDialog } from "@/components/home/edit-discovery-dialog";
+import { NewDiscoveryDialog } from "@/components/home/new-discovery-dialog";
 import { PhaseOverview } from "@/components/home/phase-overview";
 import { useProject } from "@/stores/project-store";
-
-const PHASE_ICONS: Record<CorePhase, LucideIcon> = {
-  capture: Search,
-  orchestrate: Compass,
-  refine: Lightbulb,
-  execute: Rocket,
-};
 
 export default function DashboardPage() {
   const {
@@ -208,109 +180,33 @@ export default function DashboardPage() {
         )}
       </section>
 
-      <Dialog open={open} onOpenChange={handleOpenChange}>
-        <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-lg">
-          <DialogHeader>
-            <DialogTitle>Start a new discovery</DialogTitle>
-            <DialogDescription>
-              Choose a discovery mode and describe the engagement.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 pt-2">
-            <div>
-              <label className="text-sm font-medium">Name</label>
-              <Input
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="e.g., Trading Platform Discovery"
-              />
-            </div>
-            <div>
-              <label className="text-sm font-medium">Description</label>
-              <Textarea
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                placeholder="What are you trying to discover?"
-                rows={3}
-                className="max-h-40 resize-y"
-              />
-            </div>
-            <div>
-              <label className="text-sm font-medium">Discovery mode</label>
-              <div className="mt-2 grid grid-cols-1 gap-2">
-                {(Object.entries(MODE_CONFIG) as [DiscoveryMode, typeof MODE_CONFIG.standard][]).map(
-                  ([key, config]) => (
-                    <button
-                      key={key}
-                      onClick={() => setMode(key)}
-                      className={`rounded-lg border p-3 text-left transition-colors ${
-                        mode === key
-                          ? "border-brand bg-brand/5"
-                          : "border-border hover:border-brand/50"
-                      }`}
-                    >
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm font-medium">{config.label}</span>
-                        <Badge variant="outline" className="text-[10px]">
-                          {config.duration}
-                        </Badge>
-                      </div>
-                      <p className="mt-1 text-xs text-muted-foreground">{config.description}</p>
-                    </button>
-                  ),
-                )}
-              </div>
-            </div>
-            <DocsPathConfig value={docsPath} onChange={setDocsPath} />
-            <div>
-              <label className="text-sm font-medium">Engagement repo (optional)</label>
-              <Input
-                value={engagementPath}
-                onChange={(e) => setEngagementPath(e.target.value)}
-                placeholder="/path/to/engagement-repo"
-                className="mt-1"
-              />
-              <p className="mt-1 text-xs text-muted-foreground">
-                Path to a cloned engagement repo for note ingestion.
-              </p>
-            </div>
-            <Button onClick={handleCreate} disabled={!name.trim() || loading} className="w-full">
-              {loading ? "Creating..." : "Start discovery"}
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
+      <NewDiscoveryDialog
+        open={open}
+        onOpenChange={handleOpenChange}
+        name={name}
+        description={description}
+        mode={mode}
+        docsPath={docsPath}
+        engagementPath={engagementPath}
+        loading={loading}
+        onNameChange={setName}
+        onDescriptionChange={setDescription}
+        onModeChange={setMode}
+        onDocsPathChange={setDocsPath}
+        onEngagementPathChange={setEngagementPath}
+        onCreate={handleCreate}
+      />
 
-      <Dialog open={editOpen} onOpenChange={setEditOpen}>
-        <DialogContent className="sm:max-w-lg">
-          <DialogHeader>
-            <DialogTitle>Edit discovery</DialogTitle>
-            <DialogDescription>Update the discovery name and description.</DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 pt-2">
-            <div>
-              <label className="text-sm font-medium">Name</label>
-              <Input
-                value={editName}
-                onChange={(e) => setEditName(e.target.value)}
-                placeholder="e.g., Trading Platform Discovery"
-              />
-            </div>
-            <div>
-              <label className="text-sm font-medium">Description</label>
-              <Textarea
-                value={editDescription}
-                onChange={(e) => setEditDescription(e.target.value)}
-                placeholder="What are you trying to discover?"
-                rows={3}
-              />
-            </div>
-            <Button onClick={handleSaveEdit} disabled={!editName.trim() || savingEdit} className="w-full">
-              {savingEdit ? "Saving..." : "Save changes"}
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
+      <EditDiscoveryDialog
+        open={editOpen}
+        onOpenChange={setEditOpen}
+        name={editName}
+        description={editDescription}
+        saving={savingEdit}
+        onNameChange={setEditName}
+        onDescriptionChange={setEditDescription}
+        onSave={handleSaveEdit}
+      />
 
       <ConfirmDialog
         open={deleteTarget !== null}
@@ -327,90 +223,6 @@ export default function DashboardPage() {
         destructive
         onConfirm={confirmDelete}
       />
-    </div>
-  );
-}
-
-interface DiscoveriesGridProps {
-  discoveries: ReturnType<typeof useDiscovery>["discoveries"];
-  activeId: string | undefined;
-  deletingId: string;
-  onPick: (d: DiscoveriesGridProps["discoveries"][number]) => void;
-  onEdit: (d: DiscoveriesGridProps["discoveries"][number]) => void;
-  onDelete: (d: DiscoveriesGridProps["discoveries"][number]) => void;
-}
-
-function DiscoveriesGrid({ discoveries, activeId, deletingId, onPick, onEdit, onDelete }: DiscoveriesGridProps) {
-  if (discoveries.length === 0) {
-    return (
-      <p className="text-sm text-muted-foreground">
-        No other discoveries — start a new one above to add another track.
-      </p>
-    );
-  }
-  return (
-    <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-      {discoveries.map((d) => {
-        const phaseConfig = PHASE_CONFIG[d.current_phase];
-        const PhaseIcon = PHASE_ICONS[d.current_phase];
-        const isActive = activeId === d.id;
-        return (
-          <Card
-            key={d.id}
-            className={`cursor-pointer transition-shadow hover:shadow-md ${isActive ? "ring-2 ring-brand" : ""}`}
-            onClick={() => onPick(d)}
-          >
-            <CardHeader className="pb-2">
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-base pr-2 leading-snug">{d.name}</CardTitle>
-                <div className="flex items-center gap-1">
-                  <Badge variant="outline" className="flex items-center gap-1 text-[10px]">
-                    <PhaseIcon className="h-3 w-3" aria-hidden />
-                    {phaseConfig.label}
-                  </Badge>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon-xs"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onEdit(d);
-                    }}
-                    aria-label={`Edit ${d.name}`}
-                  >
-                    <Pencil className="h-3 w-3" aria-hidden />
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon-xs"
-                    className="text-destructive hover:text-destructive"
-                    disabled={deletingId === d.id}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onDelete(d);
-                    }}
-                    aria-label={`Delete ${d.name}`}
-                  >
-                    <Trash2 className="h-3 w-3" aria-hidden />
-                  </Button>
-                </div>
-              </div>
-              {d.description && (
-                <p className="line-clamp-2 text-xs text-muted-foreground">{d.description}</p>
-              )}
-            </CardHeader>
-            <CardContent className="pt-0">
-              <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                <Badge variant="secondary" className="text-[10px]">
-                  {MODE_CONFIG[d.mode].label}
-                </Badge>
-                <span>{d.evidence?.length ?? 0} evidence items</span>
-              </div>
-            </CardContent>
-          </Card>
-        );
-      })}
     </div>
   );
 }
