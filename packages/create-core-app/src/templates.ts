@@ -12,6 +12,9 @@ export function composeYaml(o: ScaffoldOptions): string {
 services:
   backend:
     image: ghcr.io/zitro/core-framework-backend:${o.version}
+    # Pinned to amd64 until multi-arch images publish; Apple Silicon
+    # runs via Rosetta in the meantime. Remove once multi-arch lands.
+    platform: linux/amd64
     container_name: core-${o.name}-backend
     restart: unless-stopped
     env_file:
@@ -40,6 +43,7 @@ services:
 
   frontend:
     image: ghcr.io/zitro/core-framework-frontend:${o.version}
+    platform: linux/amd64
     container_name: core-${o.name}-frontend
     restart: unless-stopped
     depends_on:
@@ -98,6 +102,9 @@ AZURE_CLIENT_ID=
 AZURE_CLIENT_SECRET=
 
 # ─── CORS ──────────────────────────────────────────────────────────────
+# Add any dev or staging origins that need to reach this backend.
+# Note: \`docker compose restart\` does NOT reload env_file — use
+# \`docker compose up -d --force-recreate backend\` after editing.
 CORS_ORIGINS=["http://localhost:3000"]
 
 # ─── Project + extension mounts ────────────────────────────────────────
@@ -151,13 +158,7 @@ start http://localhost:3000
 
 ## Adding a project
 
-Drop content into \`projects/<slug>/\`, then register it:
-
-\`\`\`powershell
-$body = @{ name = "My Project"; slug = "my-project"; repo_path = "my-project" } | ConvertTo-Json
-Invoke-RestMethod -Uri http://localhost:8000/api/projects -Method Post \`
-  -ContentType "application/json" -Body $body
-\`\`\`
+The scaffolder seeds your initial customer + first project so the UI is non-empty on first boot. To add more projects later, drop content into \`projects/<slug>/\` and create the project from the UI's **Start New Project** button — it will write the matching engagement record.
 
 ## Updating the framework
 
