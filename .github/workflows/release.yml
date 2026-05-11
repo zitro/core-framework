@@ -81,6 +81,10 @@ jobs:
       - name: Schema-artifact drift (frontend suite only)
         if: matrix.suite == 'frontend'
         run: pnpm check:schemas
+        env:
+          # scripts/gen-schemas.mjs defaults to `uv run python`. CI uses the
+          # plain Python installed above; point the script at it directly.
+          CORE_PYTHON: python
 
       - name: CLI tests (frontend suite only)
         if: matrix.suite == 'frontend'
