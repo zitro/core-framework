@@ -5,6 +5,7 @@ import { existsSync } from "node:fs";
 import { resolve, isAbsolute } from "node:path";
 
 import { readMarker } from "./marker.js";
+import { runBackfill } from "./backfill.js";
 import { scaffold } from "./scaffold.js";
 import { runUpgradeMode, type UpgradeResult } from "./upgrade.js";
 import { LATEST_VERSION } from "./version.js";
@@ -38,6 +39,53 @@ function validateFrameworkVersion(value: string): string | undefined {
 
 async function main(): Promise<void> {
   intro(pc.cyan("◆ create-core-discovery-app"));
+
+  // --backfill <path>: write missing data/customers, data/engagements,
+  // and projects/<name>/project.json into a pre-existing customer repo
+  // that was scaffolded before the seed-on-scaffold fix. Idempotent.
+  if (process.argv[2] === "--backfill") {
+    const targetArg = process.argv[3]?.trim();
+    if (!targetArg) {
+      cancel("Usage: create-core-discovery-app --backfill <path-to-customer-repo>");
+      process.exit(1);
+    }
+    const target = resolve(process.cwd(), targetArg);
+    if (!existsSync(target)) {
+      cancel(`Path does not exist: ${target}`);
+      process.exit(1);
+    }
+    const s = spinner();
+    s.start("Backfilling seed records");
+    try {
+      const report = await runBackfill({ repoPath: target });
+      s.stop("Backfill complete");
+
+      if (report.created.length === 0) {
+        note(pc.dim("Nothing to write — repo is already fully seeded."), "no changes");
+      } else {
+        note(
+          report.created.map((f) => `${pc.green("+")} ${f}`).join("\n"),
+          `wrote ${report.created.length} file(s)`,
+        );
+      }
+      if (report.skipped.length > 0) {
+        note(
+          report.skipped.map((f) => `${pc.dim("·")} ${f}`).join("\n"),
+          `skipped ${report.skipped.length}`,
+        );
+      }
+      for (const w of report.warnings) {
+        note(pc.yellow(w), "warning");
+      }
+
+      outro(pc.green("done"));
+      process.exit(0);
+    } catch (err) {
+      s.stop("Backfill failed");
+      cancel(err instanceof Error ? err.message : String(err));
+      process.exit(1);
+    }
+  }
 
   const argName = process.argv[2]?.trim();
   if (argName !== undefined) {
