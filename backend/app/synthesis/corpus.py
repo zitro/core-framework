@@ -12,7 +12,12 @@ import logging
 from app.providers.storage import get_storage_provider
 from app.synthesis.models import Corpus, SourceDoc
 from app.synthesis.sources.base import SourceAdapter
+from app.synthesis.sources.github import GitHubSourceAdapter
+from app.synthesis.sources.http_json import HttpJsonSourceAdapter
 from app.synthesis.sources.local_dir import LocalDirSourceAdapter
+from app.synthesis.sources.msgraph import MsGraphSourceAdapter
+from app.synthesis.sources.user_notes import UserNotesSourceAdapter
+from app.synthesis.sources.web import WebSourceAdapter
 from app.utils.audit import stamp_create
 
 logger = logging.getLogger(__name__)
@@ -23,11 +28,18 @@ INDEX_COLLECTION = "source_indexes"
 def get_adapters() -> list[SourceAdapter]:
     """Return the active set of source adapters in priority order.
 
-    Phase 6B ships only the local_dir adapter. The full set
-    (engagement-repo / msgraph / github / web / http_json / user_notes)
-    lands in Phase 6F.
+    Adapter execution order is preserved across runs so source IDs
+    that downstream artifacts cite remain stable. Vertex (engagement-
+    repo write-back) lands in Phase 7.
     """
-    return [LocalDirSourceAdapter()]
+    return [
+        LocalDirSourceAdapter(),
+        MsGraphSourceAdapter(),
+        GitHubSourceAdapter(),
+        WebSourceAdapter(),
+        HttpJsonSourceAdapter(),
+        UserNotesSourceAdapter(),
+    ]
 
 
 async def build_corpus(project: dict) -> Corpus:

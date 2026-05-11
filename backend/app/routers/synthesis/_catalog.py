@@ -2,14 +2,13 @@
 
 from __future__ import annotations
 
+from app.routers.synthesis._router import router
 from app.synthesis.categories import (
     CATEGORY_DESCRIPTIONS,
     CATEGORY_LABELS,
     CATEGORY_ORDER,
 )
 from app.synthesis.types import ARTIFACT_TYPES
-
-from app.routers.synthesis._router import router
 
 
 @router.get("/catalog")

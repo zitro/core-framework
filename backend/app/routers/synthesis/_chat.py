@@ -1,7 +1,7 @@
 """Corpus-grounded chat endpoints.
 
-  POST /{project_id}/chat                — one turn, LLM-backed
-  GET  /{project_id}/chat?session_id=…   — list turns
+POST /{project_id}/chat                — one turn, LLM-backed
+GET  /{project_id}/chat?session_id=…   — list turns
 """
 
 from __future__ import annotations
@@ -12,11 +12,10 @@ from fastapi import HTTPException
 from pydantic import BaseModel, Field
 
 from app.providers.storage import get_storage_provider
-from app.synthesis.chat import CHATS_COLLECTION, ChatAgent
-from app.synthesis.corpus import build_corpus
-
 from app.routers.synthesis._helpers import load_project
 from app.routers.synthesis._router import router
+from app.synthesis.chat import CHATS_COLLECTION, ChatAgent
+from app.synthesis.corpus import build_corpus
 
 logger = logging.getLogger(__name__)
 

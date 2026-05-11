@@ -1,8 +1,8 @@
 """Critic + deterministic signals + per-category compass.
 
-  POST /{project_id}/artifacts/{artifact_id}/critique
-  GET  /{project_id}/signals
-  GET  /{project_id}/compass
+POST /{project_id}/artifacts/{artifact_id}/critique
+GET  /{project_id}/signals
+GET  /{project_id}/compass
 """
 
 from __future__ import annotations
@@ -11,11 +11,6 @@ import logging
 
 from fastapi import HTTPException
 
-from app.synthesis.compass import compute_compass
-from app.synthesis.corpus import build_corpus
-from app.synthesis.critic import CriticAgent
-from app.synthesis.detectors import run_detectors
-
 from app.routers.synthesis._helpers import (
     load_artifact,
     load_project,
@@ -23,6 +18,10 @@ from app.routers.synthesis._helpers import (
     project_critiques,
 )
 from app.routers.synthesis._router import router
+from app.synthesis.compass import compute_compass
+from app.synthesis.corpus import build_corpus
+from app.synthesis.critic import CriticAgent
+from app.synthesis.detectors import run_detectors
 
 logger = logging.getLogger(__name__)
 
