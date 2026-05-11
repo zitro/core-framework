@@ -111,7 +111,6 @@ export function ContextBriefBuilder({
   const [showHistory, setShowHistory] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loaded, setLoaded] = useState(false);
-  const [autoChecked, setAutoChecked] = useState(false);
   const [showSourceMaterial, setShowSourceMaterial] = useState(false);
   const reviewNoteRef = useRef<HTMLTextAreaElement | null>(null);
 
@@ -147,7 +146,6 @@ export function ContextBriefBuilder({
   useEffect(() => {
     if (!discoveryId) return;
     setLoaded(false);
-    setAutoChecked(false);
     api.contextBriefs.list(discoveryId).then((items) => {
       setVersions(items);
       setActiveVersion(items.at(-1) ?? null);
@@ -155,11 +153,10 @@ export function ContextBriefBuilder({
       .finally(() => setLoaded(true));
   }, [discoveryId]);
 
-  useEffect(() => {
-    if (!loaded || autoChecked || generating) return;
-    setAutoChecked(true);
-    void generate(false);
-  }, [autoChecked, generate, generating, loaded]);
+  // Auto-fire of generate(false) removed (same reasoning as P5-fix-P0):
+  // contextBriefs.generate hits the LLM-backed /api/context-briefs/generate
+  // endpoint which 502s without an LLM provider. Two explicit buttons
+  // below (Generate Brief / Force Regenerate) give the user control.
 
   const addBriefToContext = () => {
     if (!activeVersion) return;
