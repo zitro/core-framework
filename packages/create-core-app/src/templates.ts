@@ -24,9 +24,12 @@ services:
       LOCAL_STORAGE_PATH: /data/storage
       EXTENSIONS_DIR: /data/extensions
     volumes:
-      # Source of project content. Override via PROJECTS_SOURCE in .env to point
-      # at a engagement-repo repo, a plain folder, or any other host path.
-      - \${PROJECTS_SOURCE:-./projects}:/data/projects:ro
+      # Source of project content. Mounted read-write so synthesis write-back
+      # can materialize generated markdown into the engagement-repo's
+      # \`synthesis/\` subfolder when enabled per-project. Customer-authored
+      # content outside that subfolder is never touched. Override via
+      # PROJECTS_SOURCE in .env to point at any host path.
+      - \${PROJECTS_SOURCE:-./projects}:/data/projects
       - ./config/prompts:/data/prompts:ro
       - ./extensions:/data/extensions:ro
       # Local data folder for persisted state (acts as local backup even when

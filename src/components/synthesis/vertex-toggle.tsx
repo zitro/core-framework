@@ -2,9 +2,7 @@
 
 /**
  * VertexWriteBackToggle — flips the per-project engagement-repo write
- * flag. The backing endpoint (PUT /settings/engagement-repo) is on the
- * Phase 6J shortlist; until it lands the toggle stays disabled with a
- * "coming soon" hint so the UI is wired up but inert.
+ * flag. Backed by PUT /api/synthesis/{projectId}/settings/engagement-repo.
  */
 
 import { useState } from "react";
@@ -18,15 +16,12 @@ interface VertexToggleProps {
   projectId: string;
   enabled: boolean;
   onChange: (enabled: boolean) => void;
-  /** Set true while the Phase 6J backend endpoint isn't shipped yet. */
-  comingSoon?: boolean;
 }
 
 export function VertexWriteBackToggle({
   projectId,
   enabled,
   onChange,
-  comingSoon = false,
 }: VertexToggleProps) {
   const [busy, setBusy] = useState(false);
 
@@ -57,26 +52,17 @@ export function VertexWriteBackToggle({
       variant="outline"
       size="sm"
       onClick={onClick}
-      disabled={busy || comingSoon}
-      title={
-        comingSoon
-          ? "Engagement-repo write-back ships in Phase 6J"
-          : enabled
-            ? "Disable engagement-repo write-back"
-            : "Enable engagement-repo write-back"
-      }
+      disabled={busy}
+      title={enabled ? "Disable engagement-repo write-back" : "Enable engagement-repo write-back"}
     >
       {busy ? (
         <Loader2 className="size-4 mr-2 animate-spin" />
       ) : enabled ? (
         <ToggleRight className="size-4 mr-2 text-foreground" aria-hidden />
       ) : (
-        <ToggleLeft
-          className="size-4 mr-2 text-muted-foreground"
-          aria-hidden
-        />
+        <ToggleLeft className="size-4 mr-2 text-muted-foreground" aria-hidden />
       )}
-      Engagement-repo {comingSoon ? "soon" : enabled ? "ON" : "OFF"}
+      Engagement-repo {enabled ? "ON" : "OFF"}
     </Button>
   );
 }

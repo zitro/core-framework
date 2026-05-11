@@ -22,8 +22,12 @@ Endpoint surface (split across ``_catalog.py``, ``_artifacts.py``,
 Endpoint additions (6J):
   - POST /{project_id}/export/{fmt}                        docx/pptx readout
 
+Endpoint additions (6K):
+  - POST /{project_id}/writeback/engagement-repo           push all artifacts
+  - POST /{project_id}/artifacts/{artifact_id}/push        push single artifact
+  - PUT  /{project_id}/settings/engagement-repo            write-back config
+
 Deferred to later sub-phases:
-  - engagement-repo write-back       (6K)
   - image generation                 (6L)
 """
 
@@ -41,6 +45,7 @@ from app.routers.synthesis import (
     _exports,  # noqa: F401, E402
     _notes,  # noqa: F401, E402
     _questions,  # noqa: F401, E402
+    _writeback,  # noqa: F401, E402
 )
 from app.routers.synthesis._router import router
 
