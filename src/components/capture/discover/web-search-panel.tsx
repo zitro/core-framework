@@ -1,12 +1,19 @@
 "use client";
 
+/**
+ * WebSearchPanel — pulls external web context into discovery.
+ *
+ * Lifted from the deleted ``/search`` route. No persistence — users paste
+ * useful snippets into Capture's Context tab manually.
+ */
+
 import { useState } from "react";
-import { Globe, Loader2, ExternalLink } from "lucide-react";
+import { ExternalLink, Globe, Loader2 } from "lucide-react";
+
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
-import { PageHeader } from "@/components/layout/page-header";
 import { EmptyState } from "@/components/layout/empty-state";
 import { api } from "@/lib/api";
 
@@ -17,7 +24,7 @@ interface SearchResult {
   source: string;
 }
 
-export default function SearchPage() {
+export function WebSearchPanel() {
   const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState<SearchResult[]>([]);
@@ -39,14 +46,7 @@ export default function SearchPage() {
   };
 
   return (
-    <div className="p-6 max-w-5xl mx-auto space-y-6">
-      <PageHeader
-        eyebrow="Tools"
-        title="Web Search"
-        description="Pull external context into discovery. Configure provider via SEARCH_PROVIDER."
-        icon={Globe}
-      />
-
+    <div className="space-y-4">
       <Card>
         <CardContent className="pt-6">
           <form onSubmit={submit} className="flex gap-2">
@@ -95,13 +95,13 @@ export default function SearchPage() {
                     href={r.url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="hover:underline inline-flex items-center gap-1"
+                    className="inline-flex items-center gap-1 hover:underline"
                   >
                     {r.title}
                     <ExternalLink className="h-3 w-3" />
                   </a>
                 </CardTitle>
-                <p className="text-xs text-muted-foreground truncate">{r.url}</p>
+                <p className="truncate text-xs text-muted-foreground">{r.url}</p>
               </CardHeader>
               <CardContent className="pt-0">
                 <p className="text-sm text-muted-foreground">{r.snippet}</p>

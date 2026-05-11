@@ -1,34 +1,49 @@
 "use client";
 
+/**
+ * BrowsePanel — engagement-repo file browser + ingest.
+ *
+ * Lifted from the deleted ``/context`` route. Keeps the route's internal
+ * Browse Content / Ingest New tabs so behavior is unchanged.
+ */
+
 import { useCallback, useEffect, useState } from "react";
 import {
-  FolderGit2,
-  Loader2,
   AlertCircle,
+  BookOpen,
   FileText,
+  FolderGit2,
   FolderOpen,
   Layers,
-  BookOpen,
+  Loader2,
   Plus,
 } from "lucide-react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { PageHeader } from "@/components/layout/page-header";
 import { EmptyState } from "@/components/layout/empty-state";
-import type { EngagementContentResult } from "@/types/core";
-import { api } from "@/lib/api";
-import { useDiscovery } from "@/stores/discovery-store";
 import { EngagementContentViewer } from "@/components/context/engagement-content-viewer";
 import { IngestPanel } from "@/components/context/ingest-panel";
+import { api } from "@/lib/api";
+import { useDiscovery } from "@/stores/discovery-store";
+import type { EngagementContentResult } from "@/types/core";
 
-export default function ContextPage() {
+interface BrowsePanelProps {
+  /** When true, hide the path input — caller is rendering us alongside an
+   * EngagementConfig (Sources tab) that already owns path entry. */
+  hidePathInput?: boolean;
+}
+
+export function BrowsePanel({ hidePathInput = false }: BrowsePanelProps = {}) {
   const { activeDiscovery } = useDiscovery();
   const [path, setPath] = useState(
-    activeDiscovery?.engagement_repo_paths?.[0] || activeDiscovery?.engagement_repo_path || "",
+    activeDiscovery?.engagement_repo_paths?.[0] ||
+      activeDiscovery?.engagement_repo_path ||
+      "",
   );
   const [data, setData] = useState<EngagementContentResult | null>(null);
   const [loading, setLoading] = useState(false);
@@ -50,22 +65,25 @@ export default function ContextPage() {
     }
   }, []);
 
-  // Auto-load when discovery has an engagement path
   useEffect(() => {
     const primaryPath =
-      activeDiscovery?.engagement_repo_paths?.[0] || activeDiscovery?.engagement_repo_path || "";
+      activeDiscovery?.engagement_repo_paths?.[0] ||
+      activeDiscovery?.engagement_repo_path ||
+      "";
     if (primaryPath) {
       setPath(primaryPath);
       loadContent(primaryPath);
     }
-  }, [activeDiscovery?.engagement_repo_path, activeDiscovery?.engagement_repo_paths, loadContent]);
+  }, [
+    activeDiscovery?.engagement_repo_path,
+    activeDiscovery?.engagement_repo_paths,
+    loadContent,
+  ]);
 
-  // Reload after ingest writes a file
   const handleFileWritten = useCallback(() => {
     if (path.trim()) loadContent(path.trim());
   }, [path, loadContent]);
 
-  // Stats for the overview cards
   const stats = data
     ? {
         files: data.content.length,
@@ -75,56 +93,47 @@ export default function ContextPage() {
     : null;
 
   return (
-    <div className="p-6 max-w-6xl mx-auto space-y-6">
-      <PageHeader
-        eyebrow="Tools"
-        title="Engagement Context"
-        description="Browse, search, and ingest content from your engagement knowledge base."
-        icon={FolderGit2}
-        actions={
-          data && (
-            <Badge variant="outline" className="gap-1.5 px-3 py-1 text-sm">
-              <span className="h-2 w-2 animate-pulse rounded-full bg-emerald-500" />
-              Connected
-            </Badge>
-          )
-        }
-      />
-
-      {/* Path Input */}
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-sm">Engagement Repository</CardTitle>
-          <CardDescription>
-            Path to the engagement repo on your filesystem
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form
-            className="flex gap-2"
-            onSubmit={(e) => {
-              e.preventDefault();
-              loadContent(path);
-            }}
-          >
-            <Input
-              placeholder="/path/to/engagement-repo"
-              value={path}
-              onChange={(e) => setPath(e.target.value)}
-              className="flex-1 font-mono text-sm"
-            />
-            <Button type="submit" disabled={loading || !path.trim()}>
-              {loading ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                "Load"
+    <div className="space-y-4">
+      {!hidePathInput && (
+        <Card>
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between gap-2">
+              <div>
+                <CardTitle className="text-sm">Engagement Repository</CardTitle>
+                <CardDescription>
+                  Path to the engagement repo on your filesystem
+                </CardDescription>
+              </div>
+              {data && (
+                <Badge variant="outline" className="gap-1.5 px-2 py-0.5 text-xs">
+                  <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-500" />
+                  Connected
+                </Badge>
               )}
-            </Button>
-          </form>
-        </CardContent>
-      </Card>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <form
+              className="flex gap-2"
+              onSubmit={(e) => {
+                e.preventDefault();
+                loadContent(path);
+              }}
+            >
+              <Input
+                placeholder="/path/to/engagement-repo"
+                value={path}
+                onChange={(e) => setPath(e.target.value)}
+                className="flex-1 font-mono text-sm"
+              />
+              <Button type="submit" disabled={loading || !path.trim()}>
+                {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Load"}
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
+      )}
 
-      {/* Error */}
       {error && (
         <Card className="border-destructive/50 bg-destructive/5">
           <CardContent className="flex items-center gap-2 py-3">
@@ -134,36 +143,18 @@ export default function ContextPage() {
         </Card>
       )}
 
-      {/* Content Area */}
       {data && (
         <>
-          {/* Stats Row */}
           {stats && (
             <div className="grid grid-cols-3 gap-3">
-              <StatCard
-                icon={FileText}
-                label="Files"
-                value={stats.files}
-                color="text-muted-foreground bg-muted"
-              />
-              <StatCard
-                icon={FolderOpen}
-                label="Projects"
-                value={stats.projects}
-                color="text-muted-foreground bg-muted"
-              />
-              <StatCard
-                icon={Layers}
-                label="Content Types"
-                value={stats.types}
-                color="text-muted-foreground bg-muted"
-              />
+              <StatCard icon={FileText} label="Files" value={stats.files} />
+              <StatCard icon={FolderOpen} label="Projects" value={stats.projects} />
+              <StatCard icon={Layers} label="Content Types" value={stats.types} />
             </div>
           )}
 
           <Separator />
 
-          {/* Browse / Ingest Tabs */}
           <Tabs value={activeTab} onValueChange={setActiveTab}>
             <TabsList>
               <TabsTrigger value="browse" className="gap-1.5">
@@ -187,16 +178,15 @@ export default function ContextPage() {
         </>
       )}
 
-      {/* Loading state */}
       {loading && !data && (
         <div className="grid grid-cols-3 gap-3">
           {[0, 1, 2].map((i) => (
             <Card key={i}>
               <CardContent className="flex items-center gap-3 py-3">
-                <div className="h-9 w-9 rounded-lg bg-muted animate-pulse" />
+                <div className="h-9 w-9 animate-pulse rounded-lg bg-muted" />
                 <div className="space-y-1.5">
-                  <div className="h-6 w-10 rounded bg-muted animate-pulse" />
-                  <div className="h-3 w-16 rounded bg-muted animate-pulse" />
+                  <div className="h-6 w-10 animate-pulse rounded bg-muted" />
+                  <div className="h-3 w-16 animate-pulse rounded bg-muted" />
                 </div>
               </CardContent>
             </Card>
@@ -204,7 +194,6 @@ export default function ContextPage() {
         </div>
       )}
 
-      {/* Empty state */}
       {!data && !loading && !error && (
         <EmptyState
           icon={FolderGit2}
@@ -220,21 +209,19 @@ function StatCard({
   icon: Icon,
   label,
   value,
-  color,
 }: {
   icon: typeof FileText;
   label: string;
   value: number;
-  color: string;
 }) {
   return (
     <Card className="transition-shadow duration-200 hover:shadow-md">
       <CardContent className="flex items-center gap-3 py-3">
-        <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${color}`}>
+        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground">
           <Icon className="h-4 w-4" />
         </div>
         <div>
-          <p className="text-2xl font-bold tracking-tight tabular-nums">{value}</p>
+          <p className="text-2xl font-bold tabular-nums tracking-tight">{value}</p>
           <p className="text-xs text-muted-foreground">{label}</p>
         </div>
       </CardContent>
