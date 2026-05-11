@@ -1,26 +1,32 @@
 "use client";
 
+/**
+ * M365Panel — Microsoft Graph (files/messages/meetings) + Dynamics accounts.
+ *
+ * Lifted from the deleted ``/m365`` route. Internal Files/Messages/Meetings/
+ * Accounts tabs are preserved as nested sub-sub-tabs.
+ */
+
 import { useEffect, useState } from "react";
 import {
-  Cloud,
+  Briefcase,
+  Calendar,
   ExternalLink,
   Files,
-  Mail,
-  Calendar,
-  Briefcase,
   Loader2,
+  Mail,
 } from "lucide-react";
+
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { PageHeader } from "@/components/layout/page-header";
 import { m365Api, type GraphMeeting } from "@/lib/api-m365";
 
 type Tab = "files" | "messages" | "meetings" | "accounts";
 
-export default function M365Page() {
+export function M365Panel() {
   const [tab, setTab] = useState<Tab>("files");
   const [graphEnabled, setGraphEnabled] = useState<boolean | null>(null);
   const [crmEnabled, setCrmEnabled] = useState<boolean | null>(null);
@@ -31,41 +37,32 @@ export default function M365Page() {
   }, []);
 
   return (
-    <div className="p-6 max-w-5xl mx-auto space-y-6">
-      <PageHeader
-        eyebrow="Tools"
-        title="Microsoft 365"
-        description="Read-only access to Graph (files, messages, meetings) and Dynamics 365 accounts."
-        icon={Cloud}
-        accent="brand"
-        actions={
-          <div className="flex gap-2 text-xs">
-            <Badge variant={graphEnabled ? "default" : "outline"}>
-              Graph {graphEnabled ? "enabled" : "disabled"}
-            </Badge>
-            <Badge variant={crmEnabled ? "default" : "outline"}>
-              Dynamics {crmEnabled ? "enabled" : "disabled"}
-            </Badge>
-          </div>
-        }
-      />
+    <div className="space-y-4">
+      <div className="flex flex-wrap gap-2 text-xs">
+        <Badge variant={graphEnabled ? "default" : "outline"}>
+          Graph {graphEnabled ? "enabled" : "disabled"}
+        </Badge>
+        <Badge variant={crmEnabled ? "default" : "outline"}>
+          Dynamics {crmEnabled ? "enabled" : "disabled"}
+        </Badge>
+      </div>
 
       <Tabs value={tab} onValueChange={(v) => setTab(v as Tab)}>
         <TabsList>
           <TabsTrigger value="files">
-            <Files className="h-3.5 w-3.5 mr-1.5" />
+            <Files className="mr-1.5 h-3.5 w-3.5" />
             Files
           </TabsTrigger>
           <TabsTrigger value="messages">
-            <Mail className="h-3.5 w-3.5 mr-1.5" />
+            <Mail className="mr-1.5 h-3.5 w-3.5" />
             Messages
           </TabsTrigger>
           <TabsTrigger value="meetings">
-            <Calendar className="h-3.5 w-3.5 mr-1.5" />
+            <Calendar className="mr-1.5 h-3.5 w-3.5" />
             Meetings
           </TabsTrigger>
           <TabsTrigger value="accounts">
-            <Briefcase className="h-3.5 w-3.5 mr-1.5" />
+            <Briefcase className="mr-1.5 h-3.5 w-3.5" />
             Accounts
           </TabsTrigger>
         </TabsList>
@@ -150,7 +147,7 @@ function SearchPanel<T>({
   };
 
   return (
-    <div className="space-y-3 mt-3">
+    <div className="mt-3 space-y-3">
       <div className="flex gap-2">
         <Input
           placeholder={placeholder}
@@ -187,12 +184,12 @@ function MeetingsPanel() {
     }
   };
   useEffect(() => {
-    reload();
+    void reload();
   }, []);
 
   return (
-    <div className="space-y-3 mt-3">
-      <Button size="sm" onClick={reload} disabled={busy}>
+    <div className="mt-3 space-y-3">
+      <Button size="sm" onClick={() => void reload()} disabled={busy}>
         {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Refresh"}
       </Button>
       {items.length === 0 ? (
@@ -244,9 +241,9 @@ function ItemRow({
           )}
         </CardTitle>
       </CardHeader>
-      <CardContent className="text-xs space-y-1">
+      <CardContent className="space-y-1 text-xs">
         {subtitle && <div className="text-muted-foreground">{subtitle}</div>}
-        {snippet && <p className="text-muted-foreground line-clamp-3">{snippet}</p>}
+        {snippet && <p className="line-clamp-3 text-muted-foreground">{snippet}</p>}
       </CardContent>
     </Card>
   );

@@ -1,15 +1,22 @@
 "use client";
 
+/**
+ * GroundedPanel — search-grounded Q&A with inline citations.
+ *
+ * Lifted from the deleted ``/grounding`` route. Ask a question, get an
+ * answer + follow-ups + citation list backed by M365 Graph search.
+ */
+
 import { useState } from "react";
-import { ExternalLink, Loader2, Wand2 } from "lucide-react";
+import { ExternalLink, Loader2 } from "lucide-react";
+
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
-import { PageHeader } from "@/components/layout/page-header";
 import { m365Api, type GroundingResponse } from "@/lib/api-m365";
 
-export default function GroundingPage() {
+export function GroundedPanel() {
   const [q, setQ] = useState("");
   const [busy, setBusy] = useState(false);
   const [resp, setResp] = useState<GroundingResponse | null>(null);
@@ -25,15 +32,7 @@ export default function GroundingPage() {
   };
 
   return (
-    <div className="p-6 max-w-4xl mx-auto space-y-6">
-      <PageHeader
-        eyebrow="Tools"
-        title="Grounded Answers"
-        description="Search-grounded synthesis with inline citations."
-        icon={Wand2}
-        accent="brand"
-      />
-
+    <div className="space-y-4">
       <Card>
         <CardHeader>
           <CardTitle className="text-base">Ask a question</CardTitle>
@@ -45,10 +44,10 @@ export default function GroundingPage() {
             value={q}
             onChange={(e) => setQ(e.target.value)}
           />
-          <Button size="sm" onClick={ask} disabled={busy || !q.trim()}>
+          <Button size="sm" onClick={() => void ask()} disabled={busy || !q.trim()}>
             {busy ? (
               <>
-                <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
+                <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
                 Grounding…
               </>
             ) : (
@@ -73,10 +72,10 @@ export default function GroundingPage() {
 
             {resp.result.follow_ups?.length > 0 && (
               <div>
-                <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1.5">
+                <h3 className="mb-1.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                   Follow-ups
                 </h3>
-                <ul className="list-disc pl-5 space-y-0.5">
+                <ul className="list-disc space-y-0.5 pl-5">
                   {resp.result.follow_ups.map((f, i) => (
                     <li key={i}>{f}</li>
                   ))}
@@ -85,7 +84,7 @@ export default function GroundingPage() {
             )}
 
             <div>
-              <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1.5">
+              <h3 className="mb-1.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                 Citations
               </h3>
               <ul className="space-y-1 text-xs">

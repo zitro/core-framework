@@ -7,7 +7,6 @@ import {
   CheckCircle2,
   CircleHelp,
   ClipboardList,
-  Compass,
   Cpu,
   FilePlus2,
   FileText,
@@ -19,6 +18,7 @@ import {
   Sparkles,
   Target,
   Users,
+  Wand2,
   Workflow,
   type LucideIcon,
 } from "lucide-react";
@@ -32,6 +32,7 @@ import { api } from "@/lib/api";
 import { useDiscovery } from "@/stores/discovery-store";
 import { PhaseShell } from "@/components/layout/phase-shell";
 import { DiscoveryRequired } from "@/components/layout/discovery-required";
+import { GroundedPanel } from "@/components/orchestrate/grounded-panel";
 import { NarrativePanel } from "@/components/orchestrate/narrative-panel";
 import { ProblemStatementBuilder } from "@/components/orchestrate/problem-statement-builder";
 import { UseCaseBuilder } from "@/components/orchestrate/use-case-builder";
@@ -659,6 +660,10 @@ export default function OrchestratePage() {
               <Sparkles className="h-3.5 w-3.5" />
               Narrative
             </TabsTrigger>
+            <TabsTrigger value="grounded" className="gap-1.5">
+              <Wand2 className="h-3.5 w-3.5" />
+              Grounded
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="overview" className="space-y-4">
@@ -1033,6 +1038,14 @@ export default function OrchestratePage() {
               The discovery as a continuous story. Audience, style, and focus shape the same source material — re-generate any time the underlying evidence changes.
             </div>
             <NarrativePanel discovery={activeDiscovery} />
+          </TabsContent>
+
+          <TabsContent value="grounded" className="space-y-4">
+            <div className="rounded-md border bg-muted/30 px-3 py-2 text-sm text-muted-foreground">
+              <Wand2 className="mr-1.5 inline h-3.5 w-3.5" />
+              Ask a question and get a grounded answer with inline citations, pulled from M365 search.
+            </div>
+            <GroundedPanel />
           </TabsContent>
         </Tabs>
       </div>

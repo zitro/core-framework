@@ -4,7 +4,7 @@ import packageJson from "../../../package.json";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Search, Compass, Lightbulb, Rocket, Home, BookOpen, FolderGit2, Globe, BookMarked, Building2, Briefcase, ShieldCheck, Cloud, Wand2, Settings } from "lucide-react";
+import { Search, Compass, Lightbulb, Rocket, Home, BookOpen, BookMarked, Building2, Briefcase, ShieldCheck, Settings } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -161,33 +161,9 @@ export function AppSidebar() {
                 </SidebarMenuButton>
               </SidebarMenuItem>
               <SidebarMenuItem>
-                <SidebarMenuButton render={<Link href="/context" aria-label="Engagement Context" title="Engagement Context" />} isActive={pathname === "/context"}>
-                  <FolderGit2 className="h-4 w-4 text-muted-foreground" />
-                  <span>Engagement Context</span>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-              <SidebarMenuItem>
-                <SidebarMenuButton render={<Link href="/search" aria-label="Web Search" title="Web Search" />} isActive={pathname === "/search"}>
-                  <Globe className="h-4 w-4 text-muted-foreground" />
-                  <span>Web Search</span>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-              <SidebarMenuItem>
                 <SidebarMenuButton render={<Link href="/methodology" aria-label="Methodology" title="Methodology" />} isActive={pathname === "/methodology"}>
                   <BookMarked className="h-4 w-4 text-muted-foreground" />
                   <span>Methodology</span>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-              <SidebarMenuItem>
-                <SidebarMenuButton render={<Link href="/m365" aria-label="Microsoft 365" title="Microsoft 365" />} isActive={pathname === "/m365"}>
-                  <Cloud className="h-4 w-4 text-muted-foreground" />
-                  <span>Microsoft 365</span>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-              <SidebarMenuItem>
-                <SidebarMenuButton render={<Link href="/grounding" aria-label="Grounded Answers" title="Grounded Answers" />} isActive={pathname === "/grounding"}>
-                  <Wand2 className="h-4 w-4 text-muted-foreground" />
-                  <span>Grounded Answers</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
             </SidebarMenu>
@@ -202,12 +178,6 @@ export function AppSidebar() {
                 <SidebarMenuButton render={<Link href="/engagements" aria-label="Engagements" title="Engagements" />} isActive={pathname === "/engagements"}>
                   <Briefcase className="h-4 w-4 text-muted-foreground" />
                   <span>Engagements</span>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-              <SidebarMenuItem>
-                <SidebarMenuButton render={<Link href="/company" aria-label="Company Research" title="Company Research" />} isActive={pathname === "/company"}>
-                  <Building2 className="h-4 w-4 text-muted-foreground" />
-                  <span>Company Research</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
               <SidebarMenuItem>

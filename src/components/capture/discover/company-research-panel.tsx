@@ -1,18 +1,25 @@
 "use client";
 
+/**
+ * CompanyResearchPanel — FDE-style AI research agent.
+ *
+ * Lifted from the deleted ``/company`` route. Input a company name, get a
+ * structured CompanyProfile from web search + active discovery context.
+ */
+
 import { useState } from "react";
-import { Building2, Loader2, ExternalLink } from "lucide-react";
+import { ExternalLink, Loader2 } from "lucide-react";
+
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { PageHeader } from "@/components/layout/page-header";
-import { useDiscovery } from "@/stores/discovery-store";
 import { companyResearcherApi } from "@/lib/api-fde";
+import { useDiscovery } from "@/stores/discovery-store";
 import type { CompanyProfile } from "@/types/fde";
 
-export default function CompanyResearchPage() {
+export function CompanyResearchPanel() {
   const { activeDiscovery } = useDiscovery();
   const [company, setCompany] = useState("");
   const [instructions, setInstructions] = useState("");
@@ -35,15 +42,7 @@ export default function CompanyResearchPage() {
   };
 
   return (
-    <div className="p-6 max-w-5xl mx-auto space-y-6">
-      <PageHeader
-        eyebrow="FDE"
-        title="Company Research"
-        description="Build a structured profile from web search and the active discovery."
-        icon={Building2}
-        accent="brand"
-      />
-
+    <div className="space-y-4">
       <Card>
         <CardHeader>
           <CardTitle className="text-base">Run researcher</CardTitle>
@@ -60,10 +59,10 @@ export default function CompanyResearchPage() {
             value={instructions}
             onChange={(e) => setInstructions(e.target.value)}
           />
-          <Button size="sm" onClick={run} disabled={busy || !company.trim()}>
+          <Button size="sm" onClick={() => void run()} disabled={busy || !company.trim()}>
             {busy ? (
               <>
-                <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
+                <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
                 Researching…
               </>
             ) : (
@@ -78,9 +77,7 @@ export default function CompanyResearchPage() {
           <CardHeader>
             <div className="flex items-center justify-between gap-2">
               <CardTitle className="text-base">{profile.company}</CardTitle>
-              {profile.industry && (
-                <Badge variant="outline">{profile.industry}</Badge>
-              )}
+              {profile.industry && <Badge variant="outline">{profile.industry}</Badge>}
             </div>
           </CardHeader>
           <CardContent className="space-y-4 text-sm">
@@ -93,7 +90,7 @@ export default function CompanyResearchPage() {
 
             {profile.recent_news?.length > 0 && (
               <div>
-                <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1.5">
+                <h3 className="mb-1.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                   Recent news
                 </h3>
                 <ul className="space-y-1.5">
@@ -108,9 +105,7 @@ export default function CompanyResearchPage() {
                         {n.title}
                         <ExternalLink className="h-3 w-3" />
                       </a>
-                      {n.date && (
-                        <span className="text-muted-foreground"> · {n.date}</span>
-                      )}
+                      {n.date && <span className="text-muted-foreground"> · {n.date}</span>}
                     </li>
                   ))}
                 </ul>
@@ -119,7 +114,7 @@ export default function CompanyResearchPage() {
 
             {profile.sources?.length > 0 && (
               <div>
-                <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1.5">
+                <h3 className="mb-1.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                   Sources
                 </h3>
                 <ul className="space-y-1 text-xs">
@@ -149,10 +144,10 @@ function Section({ title, items }: { title: string; items: string[] }) {
   if (!items || items.length === 0) return null;
   return (
     <div>
-      <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1.5">
+      <h3 className="mb-1.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
         {title}
       </h3>
-      <ul className="list-disc pl-5 space-y-0.5">
+      <ul className="list-disc space-y-0.5 pl-5">
         {items.map((it, i) => (
           <li key={i}>{it}</li>
         ))}

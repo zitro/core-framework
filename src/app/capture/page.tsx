@@ -14,7 +14,6 @@ import {
   Pencil,
   Plus,
   Quote,
-  Search,
   Trash2,
   X,
 } from "lucide-react";
@@ -33,6 +32,10 @@ import { useDiscovery } from "@/stores/discovery-store";
 import { PhaseShell } from "@/components/layout/phase-shell";
 import { DiscoveryRequired } from "@/components/layout/discovery-required";
 import { EngagementConfig } from "@/components/settings/engagement-config";
+import { BrowsePanel } from "@/components/capture/discover/browse-panel";
+import { CompanyResearchPanel } from "@/components/capture/discover/company-research-panel";
+import { M365Panel } from "@/components/capture/discover/m365-panel";
+import { WebSearchPanel } from "@/components/capture/discover/web-search-panel";
 import { methodsForPhase } from "@/lib/dt-methods";
 
 interface CaptureDraft {
@@ -610,6 +613,7 @@ export default function CapturePage() {
           <TabsTrigger value="context">Context</TabsTrigger>
           <TabsTrigger value="technologies">Technologies</TabsTrigger>
           <TabsTrigger value="transcript">Transcript</TabsTrigger>
+          <TabsTrigger value="discover">Discover</TabsTrigger>
         </TabsList>
 
         <TabsContent value="sources" className="space-y-4">
@@ -621,6 +625,7 @@ export default function CapturePage() {
               }).catch(() => {});
             }}
           />
+          <BrowsePanel hidePathInput />
         </TabsContent>
 
         <TabsContent value="context" className="space-y-4">
@@ -1023,6 +1028,25 @@ export default function CapturePage() {
               {error && <p className="text-sm text-red-500 mt-2">{error}</p>}
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="discover" className="space-y-4">
+          <Tabs defaultValue="web" className="space-y-4">
+            <TabsList>
+              <TabsTrigger value="web">Web Search</TabsTrigger>
+              <TabsTrigger value="m365">Microsoft 365</TabsTrigger>
+              <TabsTrigger value="company">Company Research</TabsTrigger>
+            </TabsList>
+            <TabsContent value="web">
+              <WebSearchPanel />
+            </TabsContent>
+            <TabsContent value="m365">
+              <M365Panel />
+            </TabsContent>
+            <TabsContent value="company">
+              <CompanyResearchPanel />
+            </TabsContent>
+          </Tabs>
         </TabsContent>
       </Tabs>
     </PhaseShell>
