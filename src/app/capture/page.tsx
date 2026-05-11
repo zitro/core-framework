@@ -6,6 +6,7 @@ import {
   CheckCircle2,
   Eye,
   FileText,
+  FolderGit2,
   HelpCircle,
   Lightbulb,
   Link as LinkIcon,
@@ -14,6 +15,7 @@ import {
   Pencil,
   Plus,
   Quote,
+  ScrollText,
   Trash2,
   X,
 } from "lucide-react";
@@ -28,6 +30,7 @@ import type {
   TechnologyTarget,
 } from "@/types/core";
 import { api } from "@/lib/api";
+import { useTabParam } from "@/lib/use-tab-param";
 import { useDiscovery } from "@/stores/discovery-store";
 import { PhaseShell } from "@/components/layout/phase-shell";
 import { DiscoveryRequired } from "@/components/layout/discovery-required";
@@ -39,7 +42,6 @@ import { WebSearchPanel } from "@/components/capture/discover/web-search-panel";
 import { methodsForPhase } from "@/lib/dt-methods";
 
 interface CaptureDraft {
-  transcript: string;
   quickNote: string;
   captureItemType: CaptureItemType;
   captureReference: string;
@@ -57,6 +59,7 @@ type CaptureItemType =
   | "assumption"
   | "question"
   | "decision"
+  | "transcript"
   | "document"
   | "presentation"
   | "recording"
@@ -167,6 +170,17 @@ const CONTEXT_OPTIONS: ContextOption[] = [
     methodIds: [],
   },
   {
+    value: "transcript",
+    label: "Transcript",
+    description: "Meeting notes, interview transcripts, calls, or workshops.",
+    placeholder: "Paste the full transcript here. Source / speaker goes in the reference field below.",
+    source: "Transcript",
+    evidenceType: "general",
+    tags: ["transcript", "raw-context"],
+    icon: ScrollText,
+    methodIds: ["stakeholder-interviews"],
+  },
+  {
     value: "document",
     label: "Document",
     description: "Docs, PDFs, spreadsheets, exports, or reference files.",
@@ -234,10 +248,8 @@ export default function CapturePage() {
   // State and refs
   const { activeDiscovery, setActiveDiscovery } = useDiscovery();
   const discoveryId = activeDiscovery?.id || "";
+  const [activeTab, setActiveTab] = useTabParam("sources");
 
-  const [transcript, setTranscript] = useState("");
-  const [transcriptSource, setTranscriptSource] = useState("");
-  const [savingTranscript, setSavingTranscript] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [captureEvidence, setCaptureEvidence] = useState<Evidence[]>([]);
   const [editingEvidenceId, setEditingEvidenceId] = useState<string | null>(null);
@@ -312,7 +324,6 @@ export default function CapturePage() {
       if (!raw) return null;
       const parsed = JSON.parse(raw) as CaptureDraft;
       return {
-        transcript: parsed.transcript || "",
         quickNote: parsed.quickNote || "",
         captureItemType: (parsed.captureItemType as CaptureItemType) || "note",
         captureReference: parsed.captureReference || "",
@@ -345,7 +356,6 @@ export default function CapturePage() {
           ? providerFallbackTargets
           : (draft?.technologyTargets ?? []);
 
-    setTranscript(draft?.transcript || "");
     setQuickNote(draft?.quickNote || "");
     setCaptureItemType(draft?.captureItemType || "note");
     setCaptureReference(draft?.captureReference || "");
@@ -364,7 +374,6 @@ export default function CapturePage() {
   useEffect(() => {
     if (!activeDiscovery || !draftHydrated || typeof window === "undefined") return;
     const payload: CaptureDraft = {
-      transcript,
       quickNote,
       captureItemType,
       captureReference,
@@ -387,7 +396,6 @@ export default function CapturePage() {
     technologyFocusInput,
     technologyInput,
     technologyTargets,
-    transcript,
   ]);
 
   const loadSavedData = useCallback(async () => {
@@ -543,31 +551,6 @@ export default function CapturePage() {
     });
   };
 
-  const saveTranscript = async () => {
-    if (!transcript.trim()) return;
-    setSavingTranscript(true);
-    setError(null);
-    try {
-      const created = await api.evidence.create({
-        discovery_id: discoveryId,
-        phase: "capture",
-        content: transcript.trim(),
-        source: transcriptSource.trim() || "Transcript",
-        evidence_type: "general",
-        tags: ["transcript", "raw-context"],
-      });
-      setCaptureEvidence((prev) => [...prev, created]);
-      setTranscript("");
-      setTranscriptSource("");
-    } catch (e) {
-      setError(
-        e instanceof Error ? e.message : "Failed to save transcript",
-      );
-    } finally {
-      setSavingTranscript(false);
-    }
-  };
-
   const startEditingEvidence = (item: Evidence) => {
     setEditingEvidenceId(item.id);
     setEditingEvidenceContent(item.content);
@@ -607,16 +590,31 @@ export default function CapturePage() {
       showEvidencePanel={false}
       showDtMethodsPanel={false}
     >
-      <Tabs defaultValue="sources" className="space-y-4">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
         <TabsList className="h-auto w-full justify-start gap-1 overflow-x-auto overflow-y-hidden whitespace-nowrap [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           <TabsTrigger value="sources">Sources</TabsTrigger>
           <TabsTrigger value="context">Context</TabsTrigger>
-          <TabsTrigger value="technologies">Technologies</TabsTrigger>
-          <TabsTrigger value="transcript">Transcript</TabsTrigger>
           <TabsTrigger value="discover">Discover</TabsTrigger>
+          <TabsTrigger value="technologies">Technologies</TabsTrigger>
         </TabsList>
 
         <TabsContent value="sources" className="space-y-4">
+          <section className="relative overflow-hidden rounded-xl border bg-card">
+            <div className="absolute inset-y-0 left-0 w-1 rounded-l-xl bg-brand" aria-hidden />
+            <div className="space-y-2 px-6 py-5 sm:px-8">
+              <div className="flex items-center gap-2 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+                <FolderGit2 className="h-3.5 w-3.5" />
+                <span>Anchor — start here</span>
+              </div>
+              <h2 className="font-heading text-xl font-semibold tracking-tight sm:text-2xl">
+                Connect your engagement repo
+              </h2>
+              <p className="max-w-2xl text-sm text-muted-foreground">
+                Sources is where CORE gets its facts. Point it at the engagement repo, register external connectors,
+                and the rest of Capture, Orchestrate, Refine, and Execute work from that ground truth.
+              </p>
+            </div>
+          </section>
           <EngagementConfig
             discovery={activeDiscovery}
             onUpdate={(patch) => {
@@ -998,34 +996,6 @@ export default function CapturePage() {
                   ))}
                 </div>
               )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="transcript" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Paste Transcript</CardTitle>
-              <CardDescription>
-                Paste meeting notes, interview notes, call transcripts, or workshop transcripts as raw context.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <Input
-                value={transcriptSource}
-                onChange={(e) => setTranscriptSource(e.target.value)}
-                placeholder="Source, meeting, speaker, or transcript label"
-              />
-              <Textarea
-                value={transcript}
-                onChange={(e) => setTranscript(e.target.value)}
-                placeholder="Paste your meeting transcript here..."
-                rows={8}
-              />
-              <Button onClick={saveTranscript} disabled={savingTranscript || !transcript.trim()}>
-                {savingTranscript ? "Saving..." : "Save Transcript"}
-              </Button>
-              {error && <p className="text-sm text-red-500 mt-2">{error}</p>}
             </CardContent>
           </Card>
         </TabsContent>
