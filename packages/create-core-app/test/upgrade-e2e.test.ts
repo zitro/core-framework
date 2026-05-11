@@ -6,6 +6,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { readMarker } from "../src/marker.js";
 import { scaffold, type ScaffoldOptions } from "../src/scaffold.js";
 import { runUpgradeMode } from "../src/upgrade.js";
+import { CLI_VERSION } from "../src/version.js";
 
 function baseOpts(target: string): ScaffoldOptions {
   return {
@@ -84,7 +85,9 @@ describe("upgrade end-to-end", () => {
       confirm: () => Promise.resolve(true),
     });
     const marker = await readMarker(target);
-    expect(marker!.cli_version_last_upgrade).toBe("1.3.1");
+    // Stamp matches whatever CLI_VERSION currently exports — not a
+    // hard-coded literal that breaks on every version bump.
+    expect(marker!.cli_version_last_upgrade).toBe(CLI_VERSION);
     expect(typeof marker!.last_upgrade_at).toBe("string");
     expect(marker!.last_upgrade_at).not.toBeNull();
   });
