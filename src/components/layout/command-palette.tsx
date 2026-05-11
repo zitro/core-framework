@@ -47,7 +47,6 @@ const TOOLS: NavItem[] = [
   { label: "Dashboard", href: "/", icon: Home },
   { label: "All Evidence", href: "/evidence", icon: BookOpen },
   { label: "Engagement Context", href: "/context", icon: FolderGit2 },
-  { label: "Narrative", href: "/narrative", icon: Sparkles },
   { label: "Web Search", href: "/search", icon: Globe },
   { label: "Methodology", href: "/methodology", icon: BookMarked },
   { label: "Settings", href: "/settings", icon: Settings, keywords: ["sources", "config"] },

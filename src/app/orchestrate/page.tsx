@@ -32,6 +32,7 @@ import { api } from "@/lib/api";
 import { useDiscovery } from "@/stores/discovery-store";
 import { PhaseShell } from "@/components/layout/phase-shell";
 import { DiscoveryRequired } from "@/components/layout/discovery-required";
+import { NarrativePanel } from "@/components/orchestrate/narrative-panel";
 import { ProblemStatementBuilder } from "@/components/orchestrate/problem-statement-builder";
 import { UseCaseBuilder } from "@/components/orchestrate/use-case-builder";
 import { ContextBriefBuilder } from "@/components/orchestrate/context-brief-builder";
@@ -654,6 +655,10 @@ export default function OrchestratePage() {
               <Briefcase className="h-3.5 w-3.5" />
               Use Case Draft
             </TabsTrigger>
+            <TabsTrigger value="narrative" className="gap-1.5">
+              <Sparkles className="h-3.5 w-3.5" />
+              Narrative
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="overview" className="space-y-4">
@@ -1020,6 +1025,14 @@ export default function OrchestratePage() {
               Draft use cases belong here as working synthesis. Refine is where priorities, scope, and final recommendations are locked.
             </div>
           <UseCaseBuilder discoveryId={discoveryId} />
+          </TabsContent>
+
+          <TabsContent value="narrative" className="space-y-4">
+            <div className="rounded-md border bg-muted/30 px-3 py-2 text-sm text-muted-foreground">
+              <Sparkles className="mr-1.5 inline h-3.5 w-3.5" />
+              The discovery as a continuous story. Audience, style, and focus shape the same source material — re-generate any time the underlying evidence changes.
+            </div>
+            <NarrativePanel discovery={activeDiscovery} />
           </TabsContent>
         </Tabs>
       </div>

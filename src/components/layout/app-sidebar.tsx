@@ -3,7 +3,7 @@
 import packageJson from "../../../package.json";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Search, Compass, Lightbulb, Rocket, Home, BookOpen, FolderGit2, Sparkles, Globe, BookMarked, Building2, Briefcase, ShieldCheck, Cloud, Wand2, Settings } from "lucide-react";
+import { Search, Compass, Lightbulb, Rocket, Home, BookOpen, FolderGit2, Globe, BookMarked, Building2, Briefcase, ShieldCheck, Cloud, Wand2, Settings } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -150,12 +150,6 @@ export function AppSidebar() {
                 <SidebarMenuButton render={<Link href="/context" aria-label="Engagement Context" title="Engagement Context" />} isActive={pathname === "/context"}>
                   <FolderGit2 className="h-4 w-4 text-muted-foreground" />
                   <span>Engagement Context</span>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-              <SidebarMenuItem>
-                <SidebarMenuButton render={<Link href="/narrative" aria-label="Narrative" title="Narrative" />} isActive={pathname === "/narrative"}>
-                  <Sparkles className="h-4 w-4 text-muted-foreground" />
-                  <span>Narrative</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
               <SidebarMenuItem>
