@@ -136,3 +136,26 @@ export async function request<T>(
   }
   return res.json();
 }
+
+/** Fetch a binary payload (e.g. .docx, .pptx). Returns the blob and the
+ * server-suggested filename if one was supplied via Content-Disposition. */
+export async function requestBlob(
+  path: string,
+  options?: RequestInit,
+): Promise<{ blob: Blob; filename: string | null }> {
+  let res = await fetchWithAuth(path, options, false);
+  if (res.status === 401 && tokenGetter()) {
+    res = await fetchWithAuth(path, options, true);
+    if (res.status === 401) signInRequired();
+  }
+  if (!res.ok) {
+    const error = await res.json().catch(() => ({ detail: res.statusText }));
+    const message = normalizeErrorDetail(error.detail);
+    if (res.status !== 401) toast.error(message);
+    throw new Error(message);
+  }
+  const blob = await res.blob();
+  const cd = res.headers.get("content-disposition") ?? "";
+  const match = /filename="?([^";]+)"?/.exec(cd);
+  return { blob, filename: match ? match[1] : null };
+}

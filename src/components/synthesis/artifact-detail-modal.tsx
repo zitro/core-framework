@@ -39,6 +39,7 @@ import type {
 
 import { ArtifactChatPanel } from "@/components/synthesis/artifact-chat-panel";
 import { ArtifactDetailView } from "@/components/synthesis/artifact-detail-view";
+import { ExportButtons } from "@/components/synthesis/export-buttons";
 import { ThreadPanel } from "@/components/synthesis/thread-panel";
 
 /** Set true once the Phase 6J push-to-engagement-repo backend lands. */
@@ -134,20 +135,23 @@ export function ArtifactDetailModal({
             <Badge variant="outline">{artifact.type_id}</Badge>
             <span>v{artifact.version}</span>
             <span>· {artifact.status}</span>
-            <Button
-              variant="outline"
-              size="sm"
-              className="ml-auto h-7 text-xs"
-              disabled={!PUSH_ENABLED}
-              title={
-                PUSH_ENABLED
-                  ? "Push this artifact to the engagement-repo"
-                  : "Push-to-engagement-repo ships in Phase 6J"
-              }
-            >
-              <UploadCloud className="mr-1.5 h-3 w-3" />
-              Push to engagement-repo
-            </Button>
+            <div className="ml-auto flex items-center gap-1.5">
+              <ExportButtons projectId={projectId} />
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-7 text-xs"
+                disabled={!PUSH_ENABLED}
+                title={
+                  PUSH_ENABLED
+                    ? "Push this artifact to the engagement-repo"
+                    : "Push-to-engagement-repo ships in Phase 6K"
+                }
+              >
+                <UploadCloud className="mr-1.5 h-3 w-3" />
+                Push to engagement-repo
+              </Button>
+            </div>
           </DialogDescription>
         </DialogHeader>
         <Tabs

@@ -52,12 +52,12 @@ export const synthesisApi = {
   connectors: connectorsApi.connectors,
   updateConnectorConfig: connectorsApi.updateConnectorConfig,
 
-  // sources + write-back + exports (some endpoints land in Phase 6J)
+  // sources + write-back + exports
   sources: sourcesApi.sources,
   refreshSources: sourcesApi.refreshSources,
   writebackVertex: sourcesApi.writebackVertex,
-  exportDocxUrl: sourcesApi.exportDocxUrl,
-  exportPptxUrl: sourcesApi.exportPptxUrl,
+  exportDocx: sourcesApi.exportDocx,
+  exportPptx: sourcesApi.exportPptx,
   updateVertexSettings: sourcesApi.updateVertexSettings,
   updateOperationalSettings: sourcesApi.updateOperationalSettings,
 

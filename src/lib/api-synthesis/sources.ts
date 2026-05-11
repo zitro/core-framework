@@ -1,13 +1,11 @@
 /**
  * Source corpus + write-back + export endpoints.
  *
- * NOTE: the sources/refresh, writeback, settings, and export endpoints
- * are scheduled for Phase 6J on main. The client methods are defined
- * here for shape parity with master; callers must render "coming soon"
- * disabled states (or skip the action entirely) until the backend ships.
+ * Export (docx/pptx) is wired to the Phase 6J backend; sources-refresh,
+ * writeback, and settings endpoints land in Phase 6K.
  */
 
-import { request } from "@/lib/http";
+import { request, requestBlob } from "@/lib/http";
 import type {
   SynthesisRefreshResponse,
   SynthesisSources,
@@ -15,6 +13,28 @@ import type {
 } from "@/types/synthesis";
 
 const pid = (id: string) => encodeURIComponent(id);
+
+function triggerBrowserDownload(blob: Blob, filename: string): void {
+  const url = URL.createObjectURL(blob);
+  try {
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  } finally {
+    URL.revokeObjectURL(url);
+  }
+}
+
+async function downloadExport(projectId: string, fmt: "docx" | "pptx"): Promise<void> {
+  const { blob, filename } = await requestBlob(
+    `/api/synthesis/${pid(projectId)}/export/${fmt}`,
+    { method: "POST" },
+  );
+  triggerBrowserDownload(blob, filename ?? `synthesis.${fmt}`);
+}
 
 export const sourcesApi = {
   sources: (projectId: string) =>
@@ -32,11 +52,8 @@ export const sourcesApi = {
       { method: "POST" },
     ),
 
-  exportDocxUrl: (projectId: string) =>
-    `/api/synthesis/${pid(projectId)}/export/docx`,
-
-  exportPptxUrl: (projectId: string) =>
-    `/api/synthesis/${pid(projectId)}/export/pptx`,
+  exportDocx: (projectId: string) => downloadExport(projectId, "docx"),
+  exportPptx: (projectId: string) => downloadExport(projectId, "pptx"),
 
   updateVertexSettings: (
     projectId: string,

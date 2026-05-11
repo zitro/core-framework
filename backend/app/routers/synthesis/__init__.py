@@ -19,10 +19,12 @@ Endpoint surface (split across ``_catalog.py``, ``_artifacts.py``,
   - GET  /{project_id}/questions                           list customer questions (6E)
   - POST /{project_id}/artifacts/{type_id}/regenerate      regenerate one
 
+Endpoint additions (6J):
+  - POST /{project_id}/export/{fmt}                        docx/pptx readout
+
 Deferred to later sub-phases:
-  - source connector marketplace     (6F)
-  - exporters (docx/pptx)            (6J)
-  - engagement-repo write-back       (Phase 7)
+  - engagement-repo write-back       (6K)
+  - image generation                 (6L)
 """
 
 from __future__ import annotations
@@ -36,6 +38,7 @@ from app.routers.synthesis import (
     _chat,  # noqa: F401, E402
     _connectors,  # noqa: F401, E402
     _critic,  # noqa: F401, E402
+    _exports,  # noqa: F401, E402
     _notes,  # noqa: F401, E402
     _questions,  # noqa: F401, E402
 )
