@@ -147,7 +147,6 @@ export function OutputCommandCenter({
   const [generated, setGenerated] = useState<Record<string, ExecuteOutputVersion>>({});
   const [generatingOutputIds, setGeneratingOutputIds] = useState<string[]>([]);
   const [hydratingOutputs, setHydratingOutputs] = useState(true);
-  const [autoGenerating, setAutoGenerating] = useState(false);
   const [blueprints, setBlueprints] = useState<SolutionBlueprint[]>([]);
   const [blueprintBusy, setBlueprintBusy] = useState(false);
   const [publishBusy, setPublishBusy] = useState(false);
@@ -182,39 +181,23 @@ export function OutputCommandCenter({
 
     const hydrateOutputs = async () => {
       setHydratingOutputs(true);
-      setAutoGenerating(false);
       setGeneratingOutputIds([]);
       setError(null);
       setGenerated({});
 
-      let savedById: Record<string, ExecuteOutputVersion> = {};
       try {
         const savedOutputs = await api.executeOutputs.list(discovery.id);
-        savedById = latestOutputsById(savedOutputs);
-        if (!cancelled) setGenerated(savedById);
+        if (!cancelled) setGenerated(latestOutputsById(savedOutputs));
       } catch {
         if (!cancelled) setGenerated({});
       }
 
-      if (!cancelled) {
-        setHydratingOutputs(false);
-        setAutoGenerating(true);
-        setGeneratingOutputIds(OUTPUTS.filter((definition) => !savedById[definition.id]).map((definition) => definition.id));
-      }
-
-      try {
-        const ensuredOutputs = await api.executeOutputs.ensure({ discovery_id: discovery.id });
-        if (!cancelled) setGenerated(latestOutputsById(ensuredOutputs));
-      } catch (event) {
-        if (!cancelled) {
-          setError(event instanceof Error ? event.message : "Failed to auto-generate Execute outputs");
-        }
-      } finally {
-        if (!cancelled) {
-          setGeneratingOutputIds([]);
-          setAutoGenerating(false);
-        }
-      }
+      // Auto-ensure removed on purpose: it silently hits the LLM-backed
+      // /api/execute-outputs/ensure endpoint on every mount, which 502s
+      // when no LLM provider is configured (the v1.3.1 default). The
+      // per-output Generate buttons below give the user explicit
+      // control; nothing fires until they ask.
+      if (!cancelled) setHydratingOutputs(false);
     };
 
     void hydrateOutputs();
@@ -313,9 +296,7 @@ export function OutputCommandCenter({
               <CardDescription>
                 {hydratingOutputs
                   ? "Loading saved final materials."
-                  : autoGenerating
-                    ? "Checking latest discovery context and filling any missing final materials."
-                    : "Final materials generated from Capture, Orchestrate, Refine, and Execute context."}
+                  : "Final materials generated from Capture, Orchestrate, Refine, and Execute context."}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
