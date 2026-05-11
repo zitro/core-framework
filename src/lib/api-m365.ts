@@ -83,9 +83,9 @@ export const m365Api = {
       `/api/dynamics/accounts?q=${encodeURIComponent(q)}&limit=${limit}`,
     ),
 
-  ground: (question: string, limit = 6) =>
+  ground: (question: string, limit = 6, discoveryId?: string) =>
     request<GroundingResponse>("/api/grounding/answer", {
       method: "POST",
-      body: JSON.stringify({ question, limit }),
+      body: JSON.stringify({ question, limit, discovery_id: discoveryId ?? "" }),
     }),
 };

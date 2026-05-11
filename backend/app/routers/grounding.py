@@ -10,6 +10,7 @@ from pydantic import BaseModel, Field
 from app.dependencies import get_current_user
 from app.providers.llm import get_llm_provider
 from app.providers.search import get_search_provider
+from app.utils.ai_feedback import render_feedback_block
 
 logger = logging.getLogger(__name__)
 
@@ -34,6 +35,7 @@ SYSTEM = (
 class GroundingRequest(BaseModel):
     question: str = Field(min_length=1)
     limit: int = 6
+    discovery_id: str = ""
 
 
 @router.post("/answer")
@@ -63,6 +65,11 @@ async def answer(req: GroundingRequest) -> dict:
         f"Question: {req.question}\n\nSnippets:\n{snippet_block}\n\n"
         "Answer the question using only these snippets and cite them inline."
     )
+
+    if req.discovery_id:
+        feedback_block = await render_feedback_block(req.discovery_id, "grounded")
+        if feedback_block:
+            user_prompt = f"{user_prompt}\n\n{feedback_block}"
 
     try:
         result = await get_llm_provider().complete_json(SYSTEM, user_prompt, max_tokens=1200)

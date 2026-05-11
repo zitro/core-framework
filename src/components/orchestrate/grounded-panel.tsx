@@ -16,7 +16,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { m365Api, type GroundingResponse } from "@/lib/api-m365";
 
-export function GroundedPanel() {
+interface Props {
+  discoveryId?: string;
+}
+
+export function GroundedPanel({ discoveryId }: Props = {}) {
   const [q, setQ] = useState("");
   const [busy, setBusy] = useState(false);
   const [resp, setResp] = useState<GroundingResponse | null>(null);
@@ -25,7 +29,7 @@ export function GroundedPanel() {
     if (!q.trim()) return;
     setBusy(true);
     try {
-      setResp(await m365Api.ground(q, 6));
+      setResp(await m365Api.ground(q, 6, discoveryId));
     } finally {
       setBusy(false);
     }

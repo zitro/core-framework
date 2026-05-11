@@ -1056,7 +1056,7 @@ export default function OrchestratePage() {
             <p className="text-xs text-muted-foreground">
               Ask a question and get a grounded answer with inline citations, pulled from M365 search.
             </p>
-            <GroundedPanel />
+            <GroundedPanel discoveryId={discoveryId} />
             <AiFeedback discoveryId={discoveryId} surface="grounded" />
           </TabsContent>
         </Tabs>
