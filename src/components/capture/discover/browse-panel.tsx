@@ -21,7 +21,6 @@ import {
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -93,54 +92,51 @@ export function BrowsePanel({ hidePathInput = false }: BrowsePanelProps = {}) {
     : null;
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
       {!hidePathInput && (
-        <Card>
-          <CardHeader className="pb-3">
-            <div className="flex items-center justify-between gap-2">
-              <div>
-                <CardTitle className="text-sm">Engagement Repository</CardTitle>
-                <CardDescription>
-                  Path to the engagement repo on your filesystem
-                </CardDescription>
+        <section className="space-y-2">
+          <div className="flex items-center justify-between gap-2">
+            <div className="space-y-0.5">
+              <div className="flex items-center gap-1.5 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+                <FolderGit2 className="h-3 w-3" />
+                <span>Engagement repository</span>
               </div>
-              {data && (
-                <Badge variant="outline" className="gap-1.5 px-2 py-0.5 text-xs">
-                  <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-500" />
-                  Connected
-                </Badge>
-              )}
+              <p className="text-xs text-muted-foreground">
+                Path to the engagement repo on your filesystem.
+              </p>
             </div>
-          </CardHeader>
-          <CardContent>
-            <form
-              className="flex gap-2"
-              onSubmit={(e) => {
-                e.preventDefault();
-                loadContent(path);
-              }}
-            >
-              <Input
-                placeholder="/path/to/engagement-repo"
-                value={path}
-                onChange={(e) => setPath(e.target.value)}
-                className="flex-1 font-mono text-sm"
-              />
-              <Button type="submit" disabled={loading || !path.trim()}>
-                {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Load"}
-              </Button>
-            </form>
-          </CardContent>
-        </Card>
+            {data && (
+              <Badge variant="outline" className="gap-1.5 text-[10px]">
+                <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-brand" />
+                Connected
+              </Badge>
+            )}
+          </div>
+          <form
+            className="flex gap-2"
+            onSubmit={(e) => {
+              e.preventDefault();
+              loadContent(path);
+            }}
+          >
+            <Input
+              placeholder="/path/to/engagement-repo"
+              value={path}
+              onChange={(e) => setPath(e.target.value)}
+              className="flex-1 font-mono text-sm"
+            />
+            <Button type="submit" size="sm" disabled={loading || !path.trim()}>
+              {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Load"}
+            </Button>
+          </form>
+        </section>
       )}
 
       {error && (
-        <Card className="border-destructive/50 bg-destructive/5">
-          <CardContent className="flex items-center gap-2 py-3">
-            <AlertCircle className="h-4 w-4 text-destructive" />
-            <span className="text-sm text-destructive">{error}</span>
-          </CardContent>
-        </Card>
+        <div className="flex items-center gap-2 rounded-md border border-destructive/50 bg-destructive/5 px-3 py-2 text-sm text-destructive">
+          <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+          <span>{error}</span>
+        </div>
       )}
 
       {data && (
@@ -149,21 +145,21 @@ export function BrowsePanel({ hidePathInput = false }: BrowsePanelProps = {}) {
             <div className="grid grid-cols-3 gap-3">
               <StatCard icon={FileText} label="Files" value={stats.files} />
               <StatCard icon={FolderOpen} label="Projects" value={stats.projects} />
-              <StatCard icon={Layers} label="Content Types" value={stats.types} />
+              <StatCard icon={Layers} label="Content types" value={stats.types} />
             </div>
           )}
 
           <Separator />
 
           <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList>
+            <TabsList variant="line" className="gap-3 border-b">
               <TabsTrigger value="browse" className="gap-1.5">
                 <BookOpen className="h-3.5 w-3.5" />
-                Browse Content
+                Browse content
               </TabsTrigger>
               <TabsTrigger value="ingest" className="gap-1.5">
                 <Plus className="h-3.5 w-3.5" />
-                Ingest New
+                Ingest new
               </TabsTrigger>
             </TabsList>
 
@@ -181,15 +177,16 @@ export function BrowsePanel({ hidePathInput = false }: BrowsePanelProps = {}) {
       {loading && !data && (
         <div className="grid grid-cols-3 gap-3">
           {[0, 1, 2].map((i) => (
-            <Card key={i}>
-              <CardContent className="flex items-center gap-3 py-3">
-                <div className="h-9 w-9 animate-pulse rounded-lg bg-muted" />
-                <div className="space-y-1.5">
-                  <div className="h-6 w-10 animate-pulse rounded bg-muted" />
-                  <div className="h-3 w-16 animate-pulse rounded bg-muted" />
-                </div>
-              </CardContent>
-            </Card>
+            <div
+              key={i}
+              className="flex items-center gap-3 rounded-md border px-3 py-2"
+            >
+              <div className="h-7 w-7 animate-pulse rounded-md bg-muted" />
+              <div className="space-y-1.5">
+                <div className="h-5 w-10 animate-pulse rounded bg-muted" />
+                <div className="h-3 w-16 animate-pulse rounded bg-muted" />
+              </div>
+            </div>
           ))}
         </div>
       )}
@@ -215,16 +212,14 @@ function StatCard({
   value: number;
 }) {
   return (
-    <Card className="transition-shadow duration-200 hover:shadow-md">
-      <CardContent className="flex items-center gap-3 py-3">
-        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground">
-          <Icon className="h-4 w-4" />
-        </div>
-        <div>
-          <p className="text-2xl font-bold tabular-nums tracking-tight">{value}</p>
-          <p className="text-xs text-muted-foreground">{label}</p>
-        </div>
-      </CardContent>
-    </Card>
+    <div className="flex items-center gap-3 rounded-md border px-3 py-2 transition-colors hover:border-brand/40">
+      <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground">
+        <Icon className="h-3.5 w-3.5" />
+      </div>
+      <div>
+        <p className="font-heading text-xl font-semibold tabular-nums leading-none">{value}</p>
+        <p className="text-[10px] uppercase tracking-wider text-muted-foreground">{label}</p>
+      </div>
+    </div>
   );
 }

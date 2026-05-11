@@ -19,7 +19,6 @@ import {
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { m365Api, type GraphMeeting } from "@/lib/api-m365";
@@ -223,29 +222,27 @@ function ItemRow({
   href?: string;
 }) {
   return (
-    <Card>
-      <CardHeader className="pb-2">
-        <CardTitle className="text-sm">
-          {href ? (
-            <a
-              href={href}
-              target="_blank"
-              rel="noreferrer"
-              className="inline-flex items-center gap-1 hover:underline"
-            >
-              {title}
-              <ExternalLink className="h-3 w-3" />
-            </a>
-          ) : (
-            title
-          )}
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-1 text-xs">
-        {subtitle && <div className="text-muted-foreground">{subtitle}</div>}
-        {snippet && <p className="line-clamp-3 text-muted-foreground">{snippet}</p>}
-      </CardContent>
-    </Card>
+    <div className="border-l-2 border-muted py-0.5 pl-3 transition-colors hover:border-brand/60">
+      {href ? (
+        <a
+          href={href}
+          target="_blank"
+          rel="noreferrer"
+          className="inline-flex items-center gap-1 text-sm font-medium hover:text-brand hover:underline"
+        >
+          {title}
+          <ExternalLink className="h-3 w-3" />
+        </a>
+      ) : (
+        <span className="text-sm font-medium">{title}</span>
+      )}
+      {subtitle && <div className="mt-0.5 text-[10px] text-muted-foreground">{subtitle}</div>}
+      {snippet && (
+        <p className="mt-0.5 line-clamp-3 text-xs leading-relaxed text-muted-foreground">
+          {snippet}
+        </p>
+      )}
+    </div>
   );
 }
 
