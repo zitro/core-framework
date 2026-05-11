@@ -1,19 +1,28 @@
 "use client";
 
-import { useEffect, useState } from "react";
+/**
+ * /engagements — grouped by Customer → Engagement → Discovery.
+ *
+ * Purpose: the single nav entry point for finding work. Customers cluster
+ * at the top level (most teams work with a small number); each customer's
+ * engagements stack underneath; each engagement's attached discoveries
+ * are clickable and load straight into their current phase.
+ */
+
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Briefcase, Plus, Trash2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Briefcase, ChevronRight, Plus, Trash2 } from "lucide-react";
+import { toast } from "sonner";
+
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { toast } from "sonner";
-import { engagementsApi } from "@/lib/api-fde";
-import { EngagementDiscoveriesPanel } from "@/components/engagements/engagement-discoveries-panel";
-import { PageHeader } from "@/components/layout/page-header";
 import { EmptyState } from "@/components/layout/empty-state";
-import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { PageHeader } from "@/components/layout/page-header";
+import { EngagementDiscoveriesPanel } from "@/components/engagements/engagement-discoveries-panel";
+import { engagementsApi } from "@/lib/api-fde";
 import {
   ENGAGEMENT_STATUS_LABELS,
   type Engagement,
@@ -28,17 +37,20 @@ const STATUSES: EngagementStatus[] = [
   "cancelled",
 ];
 
+const UNSPECIFIED_CUSTOMER = "Unspecified";
+
 export default function EngagementsPage() {
   const router = useRouter();
   const [items, setItems] = useState<Engagement[]>([]);
+  const [creatorOpen, setCreatorOpen] = useState(false);
   const [name, setName] = useState("");
   const [customer, setCustomer] = useState("");
   const [industry, setIndustry] = useState("");
   const [summary, setSummary] = useState("");
   const [busy, setBusy] = useState(false);
+  const [removeTarget, setRemoveTarget] = useState<string | null>(null);
 
-  const reload = () =>
-    engagementsApi.list().then(setItems).catch(() => {});
+  const reload = () => engagementsApi.list().then(setItems).catch(() => {});
 
   useEffect(() => {
     reload();
@@ -56,6 +68,7 @@ export default function EngagementsPage() {
       setCustomer("");
       setIndustry("");
       setSummary("");
+      setCreatorOpen(false);
       await reload();
       toast.success("Engagement created");
     } finally {
@@ -68,12 +81,6 @@ export default function EngagementsPage() {
     await reload();
   };
 
-  const [removeTarget, setRemoveTarget] = useState<string | null>(null);
-
-  const remove = (id: string) => {
-    setRemoveTarget(id);
-  };
-
   const confirmRemove = async () => {
     if (!removeTarget) return;
     await engagementsApi.delete(removeTarget);
@@ -81,27 +88,45 @@ export default function EngagementsPage() {
     await reload();
   };
 
+  // Group by customer, alphabetical with Unspecified last.
+  const groupedByCustomer = useMemo(() => {
+    const groups = new Map<string, Engagement[]>();
+    for (const e of items) {
+      const key = e.customer?.trim() || UNSPECIFIED_CUSTOMER;
+      const bucket = groups.get(key);
+      if (bucket) bucket.push(e);
+      else groups.set(key, [e]);
+    }
+    const sorted = [...groups.entries()].sort(([a], [b]) => {
+      if (a === UNSPECIFIED_CUSTOMER) return 1;
+      if (b === UNSPECIFIED_CUSTOMER) return -1;
+      return a.localeCompare(b);
+    });
+    return sorted;
+  }, [items]);
+
   return (
-    <div className="p-6 max-w-5xl mx-auto space-y-6">
+    <div className="mx-auto max-w-5xl space-y-6 p-6">
       <PageHeader
         title="Engagements"
-        description="Group discoveries under a customer engagement."
+        description="Customers → engagements → discoveries. Click a discovery to load it."
         icon={Briefcase}
         accent="brand"
+        actions={
+          <Button size="sm" onClick={() => setCreatorOpen((v) => !v)}>
+            <Plus className="mr-1.5 h-3.5 w-3.5" />
+            New engagement
+          </Button>
+        }
       />
 
-
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">New engagement</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-            <Input
-              placeholder="Name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-            />
+      {creatorOpen && (
+        <section className="space-y-3 rounded-md border bg-card p-4">
+          <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+            New engagement
+          </p>
+          <div className="grid grid-cols-1 gap-2 md:grid-cols-3">
+            <Input placeholder="Name" value={name} onChange={(e) => setName(e.target.value)} />
             <Input
               placeholder="Customer"
               value={customer}
@@ -119,85 +144,76 @@ export default function EngagementsPage() {
             onChange={(e) => setSummary(e.target.value)}
             rows={2}
           />
-          <Button size="sm" onClick={create} disabled={busy}>
-            <Plus className="h-3.5 w-3.5 mr-1.5" />
-            Create
-          </Button>
-        </CardContent>
-      </Card>
+          <div className="flex justify-end gap-2">
+            <Button size="sm" variant="outline" onClick={() => setCreatorOpen(false)}>
+              Cancel
+            </Button>
+            <Button size="sm" onClick={() => void create()} disabled={busy}>
+              Create
+            </Button>
+          </div>
+        </section>
+      )}
 
-      <div className="space-y-3">
-        {items.length === 0 ? (
-          <EmptyState
-            icon={Briefcase}
-            title="No engagements yet"
-            description="Create one above to group discoveries under a customer engagement, or start a new project from the dashboard."
-            actions={
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => {
-                  if (typeof window !== "undefined") {
-                    window.dispatchEvent(new CustomEvent("core:start-new-discovery"));
-                  }
-                  router.push("/?newDiscovery=1");
-                }}
-              >
-                <Plus className="mr-1 h-3.5 w-3.5" aria-hidden />
-                Start a new project
-              </Button>
-            }
-          />
-        ) : (
-          items.map((e) => (
-            <Card key={e.id}>
-              <CardHeader>
-                <div className="flex items-center justify-between gap-2">
-                  <CardTitle className="text-base">{e.name}</CardTitle>
-                  <div className="flex items-center gap-2">
-                    <Badge variant="outline">
-                      {ENGAGEMENT_STATUS_LABELS[e.status]}
-                    </Badge>
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={() => remove(e.id)}
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </Button>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-3 text-sm">
-                <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
-                  {e.customer && <span>Customer: {e.customer}</span>}
-                  {e.industry && <span>· Industry: {e.industry}</span>}
-                  <span>· {e.discovery_ids.length} discoveries</span>
-                </div>
-                {e.summary && <p>{e.summary}</p>}
-                <EngagementDiscoveriesPanel
-                  engagement={e}
-                  onChanged={(next) =>
-                    setItems((curr) => curr.map((x) => (x.id === next.id ? next : x)))
-                  }
-                />
-                <div className="flex flex-wrap gap-1.5">
-                  {STATUSES.map((s) => (
-                    <Button
-                      key={s}
-                      size="sm"
-                      variant={e.status === s ? "default" : "outline"}
-                      onClick={() => setStatus(e.id, s)}
-                    >
-                      {ENGAGEMENT_STATUS_LABELS[s]}
-                    </Button>
+      {items.length === 0 ? (
+        <EmptyState
+          icon={Briefcase}
+          title="No engagements yet"
+          description="Create one to group discoveries under a customer, or start a new project from the dashboard."
+          actions={
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => {
+                if (typeof window !== "undefined") {
+                  window.dispatchEvent(new CustomEvent("core:start-new-discovery"));
+                }
+                router.push("/?newDiscovery=1");
+              }}
+            >
+              <Plus className="mr-1 h-3.5 w-3.5" aria-hidden />
+              Start a new project
+            </Button>
+          }
+        />
+      ) : (
+        <div className="space-y-6">
+          {groupedByCustomer.map(([customer, engagements]) => {
+            const totalDiscoveries = engagements.reduce(
+              (acc, e) => acc + (e.discovery_ids?.length ?? 0),
+              0,
+            );
+            return (
+              <section key={customer} className="space-y-3">
+                <header className="flex items-baseline gap-2 border-b pb-1.5">
+                  <h2 className="font-heading text-base font-semibold tracking-tight">
+                    {customer}
+                  </h2>
+                  <span className="text-[11px] text-muted-foreground">
+                    {engagements.length} engagement{engagements.length === 1 ? "" : "s"} ·{" "}
+                    {totalDiscoveries} discover{totalDiscoveries === 1 ? "y" : "ies"}
+                  </span>
+                </header>
+
+                <div className="space-y-2.5 pl-3">
+                  {engagements.map((e) => (
+                    <EngagementCard
+                      key={e.id}
+                      engagement={e}
+                      onChanged={(next) =>
+                        setItems((curr) => curr.map((x) => (x.id === next.id ? next : x)))
+                      }
+                      onSetStatus={setStatus}
+                      onRemove={() => setRemoveTarget(e.id)}
+                    />
                   ))}
                 </div>
-              </CardContent>
-            </Card>
-          ))
-        )}
-      </div>
+              </section>
+            );
+          })}
+        </div>
+      )}
+
       <ConfirmDialog
         open={removeTarget !== null}
         onOpenChange={(open) => {
@@ -210,5 +226,85 @@ export default function EngagementsPage() {
         onConfirm={confirmRemove}
       />
     </div>
+  );
+}
+
+interface EngagementCardProps {
+  engagement: Engagement;
+  onChanged: (next: Engagement) => void;
+  onSetStatus: (id: string, status: EngagementStatus) => void;
+  onRemove: () => void;
+}
+
+function EngagementCard({
+  engagement,
+  onChanged,
+  onSetStatus,
+  onRemove,
+}: EngagementCardProps) {
+  const [expanded, setExpanded] = useState(false);
+  const discoveryCount = engagement.discovery_ids?.length ?? 0;
+
+  return (
+    <article className="rounded-md border bg-card transition-colors hover:border-brand/30">
+      <header className="flex items-start justify-between gap-3 px-4 py-3">
+        <button
+          type="button"
+          onClick={() => setExpanded((v) => !v)}
+          className="flex min-w-0 flex-1 cursor-pointer items-start gap-2 text-left"
+          aria-expanded={expanded}
+        >
+          <ChevronRight
+            className={`mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground transition-transform ${
+              expanded ? "rotate-90" : ""
+            }`}
+          />
+          <div className="min-w-0 flex-1 space-y-0.5">
+            <p className="truncate text-sm font-medium">{engagement.name}</p>
+            <div className="flex flex-wrap items-center gap-1.5 text-[11px] text-muted-foreground">
+              <Badge variant="outline" className="text-[10px]">
+                {ENGAGEMENT_STATUS_LABELS[engagement.status]}
+              </Badge>
+              {engagement.industry && <span>{engagement.industry}</span>}
+              <span>·</span>
+              <span>
+                {discoveryCount} discover{discoveryCount === 1 ? "y" : "ies"}
+              </span>
+            </div>
+          </div>
+        </button>
+        <Button
+          size="sm"
+          variant="ghost"
+          className="shrink-0"
+          onClick={onRemove}
+          aria-label="Delete engagement"
+        >
+          <Trash2 className="h-3.5 w-3.5" />
+        </Button>
+      </header>
+
+      {expanded && (
+        <div className="space-y-3 border-t bg-muted/20 px-4 py-3 text-sm">
+          {engagement.summary && (
+            <p className="text-xs leading-relaxed text-muted-foreground">{engagement.summary}</p>
+          )}
+          <EngagementDiscoveriesPanel engagement={engagement} onChanged={onChanged} />
+          <div className="flex flex-wrap gap-1.5 border-t pt-3">
+            {STATUSES.map((s) => (
+              <Button
+                key={s}
+                size="sm"
+                variant={engagement.status === s ? "default" : "outline"}
+                onClick={() => onSetStatus(engagement.id, s)}
+                className="h-7 text-[11px]"
+              >
+                {ENGAGEMENT_STATUS_LABELS[s]}
+              </Button>
+            ))}
+          </div>
+        </div>
+      )}
+    </article>
   );
 }
