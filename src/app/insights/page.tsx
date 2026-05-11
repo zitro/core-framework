@@ -18,6 +18,7 @@
  */
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ActivityFeed } from "@/components/insights/activity-feed";
 import { CoverageMap } from "@/components/insights/coverage-map";
 import { Inbox } from "@/components/insights/inbox";
 import { DiscoveryRequired } from "@/components/layout/discovery-required";
@@ -49,9 +50,7 @@ export default function InsightsPage() {
           <TabsTrigger value="search" disabled>
             Search
           </TabsTrigger>
-          <TabsTrigger value="activity" disabled>
-            Activity
-          </TabsTrigger>
+          <TabsTrigger value="activity">Activity</TabsTrigger>
           <TabsTrigger value="inbox">Inbox</TabsTrigger>
           <TabsTrigger value="decisions" disabled>
             Decisions
@@ -63,6 +62,10 @@ export default function InsightsPage() {
 
         <TabsContent value="coverage">
           <CoverageMap discoveryId={activeDiscovery.id} />
+        </TabsContent>
+
+        <TabsContent value="activity">
+          <ActivityFeed discoveryId={activeDiscovery.id} />
         </TabsContent>
 
         <TabsContent value="inbox">
