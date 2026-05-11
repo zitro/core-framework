@@ -18,7 +18,12 @@
  */
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ActivityFeed } from "@/components/insights/activity-feed";
 import { CoverageMap } from "@/components/insights/coverage-map";
+import { DecisionsLog } from "@/components/insights/decisions-log";
+import { Inbox } from "@/components/insights/inbox";
+import { SearchPanel } from "@/components/insights/search-panel";
+import { StakeholderMap } from "@/components/insights/stakeholder-map";
 import { DiscoveryRequired } from "@/components/layout/discovery-required";
 import { PageHeader } from "@/components/layout/page-header";
 import { useDiscovery } from "@/stores/discovery-store";
@@ -45,25 +50,35 @@ export default function InsightsPage() {
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
         <TabsList variant="line" className="gap-3 border-b">
           <TabsTrigger value="coverage">Coverage</TabsTrigger>
-          <TabsTrigger value="search" disabled>
-            Search
-          </TabsTrigger>
-          <TabsTrigger value="activity" disabled>
-            Activity
-          </TabsTrigger>
-          <TabsTrigger value="inbox" disabled>
-            Inbox
-          </TabsTrigger>
-          <TabsTrigger value="decisions" disabled>
-            Decisions
-          </TabsTrigger>
-          <TabsTrigger value="stakeholders" disabled>
-            Stakeholders
-          </TabsTrigger>
+          <TabsTrigger value="search">Search</TabsTrigger>
+          <TabsTrigger value="activity">Activity</TabsTrigger>
+          <TabsTrigger value="inbox">Inbox</TabsTrigger>
+          <TabsTrigger value="decisions">Decisions</TabsTrigger>
+          <TabsTrigger value="stakeholders">Stakeholders</TabsTrigger>
         </TabsList>
 
         <TabsContent value="coverage">
           <CoverageMap discoveryId={activeDiscovery.id} />
+        </TabsContent>
+
+        <TabsContent value="search">
+          <SearchPanel discoveryId={activeDiscovery.id} />
+        </TabsContent>
+
+        <TabsContent value="activity">
+          <ActivityFeed discoveryId={activeDiscovery.id} />
+        </TabsContent>
+
+        <TabsContent value="inbox">
+          <Inbox discoveryId={activeDiscovery.id} />
+        </TabsContent>
+
+        <TabsContent value="decisions">
+          <DecisionsLog discoveryId={activeDiscovery.id} />
+        </TabsContent>
+
+        <TabsContent value="stakeholders">
+          <StakeholderMap discoveryId={activeDiscovery.id} />
         </TabsContent>
       </Tabs>
     </div>

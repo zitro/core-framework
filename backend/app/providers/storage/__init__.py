@@ -24,6 +24,11 @@ KNOWN_COLLECTIONS: list[str] = [
     "reviews",
     "audit",
     "ai_feedback",
+    "artifacts",
+    "artifact_threads",
+    "artifact_comments",
+    "engagement_contexts",
+    "source_indexes",
 ]
 
 # Collections partitioned by ``project_id`` when

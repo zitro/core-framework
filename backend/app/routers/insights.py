@@ -3,10 +3,12 @@
 Read-side aggregations that span phases. Each tool gets its own endpoint
 so the frontend can lazy-load only the panel that's currently open.
 
-  GET /api/insights/coverage?discovery_id=...   coverage heatmap data
-
-The frontend page at /insights houses every tool as a tab; this router
-will grow as we add Activity / Decision log / Stakeholder map / etc.
+  GET /api/insights/coverage?discovery_id=...     coverage heatmap
+  GET /api/insights/inbox?discovery_id=...        actionable open items
+  GET /api/insights/activity?discovery_id=...     recent events
+  GET /api/insights/stakeholders?discovery_id=…   stakeholder roll-up
+  GET /api/insights/decisions?discovery_id=…      decision log
+  GET /api/insights/search?discovery_id=…&q=…     full-text search
 """
 
 from __future__ import annotations
@@ -121,3 +123,585 @@ async def coverage(discovery_id: str = Query(...)) -> CoverageResponse:
         cells=cells,
         totals=totals,
     )
+
+
+# ── inbox ──────────────────────────────────────────────────────────────
+
+
+class InboxQuestion(BaseModel):
+    text: str
+    purpose: str = ""
+    set_id: str
+    set_phase: str
+    created_at: str = ""
+
+
+class InboxAssumption(BaseModel):
+    id: str
+    statement: str
+    confidence: str
+    impact: str = ""
+
+
+class InboxComment(BaseModel):
+    id: str
+    thread_id: str
+    artifact_id: str
+    project_id: str
+    role: str
+    author: str
+    body: str
+    created_at: str
+
+
+class InboxResponse(BaseModel):
+    open_questions: list[InboxQuestion]
+    unvalidated_assumptions: list[InboxAssumption]
+    recent_comments: list[InboxComment]
+
+
+@router.get("/inbox", response_model=InboxResponse)
+async def inbox(discovery_id: str = Query(...)) -> InboxResponse:
+    """Return actionable open items for a discovery.
+
+    Combines three streams:
+      - Open questions from question_sets (questions without a saved answer
+        in the matching evidence record — best-effort: returns *all*
+        questions and lets the UI filter)
+      - Assumptions not yet validated (confidence != "validated")
+      - Recent thread comments (last 10 across all artifacts for any
+        engagements referencing this discovery)
+    """
+    storage = get_storage_provider()
+    disc = await storage.get("discoveries", discovery_id)
+    if not disc:
+        raise HTTPException(status_code=404, detail="Discovery not found")
+
+    # ── open questions ────────────────────────────────────────────────
+    questions: list[InboxQuestion] = []
+    sets: list[dict] = []
+    for key in ("discovery_id", "discoveryId"):
+        try:
+            sets = await storage.list("question_sets", {key: discovery_id})
+        except Exception:
+            sets = []
+        if sets:
+            break
+
+    # Pull the latest set per phase so the user isn't drowning in old questions.
+    latest_by_phase: dict[str, dict] = {}
+    for s in sets:
+        phase = s.get("phase") or "orchestrate"
+        prev = latest_by_phase.get(phase)
+        if not prev or (s.get("created_at", "") > prev.get("created_at", "")):
+            latest_by_phase[phase] = s
+    for phase, s in latest_by_phase.items():
+        for q in s.get("questions") or []:
+            questions.append(
+                InboxQuestion(
+                    text=str(q.get("text") or ""),
+                    purpose=str(q.get("purpose") or ""),
+                    set_id=str(s.get("id") or ""),
+                    set_phase=phase,
+                    created_at=str(s.get("created_at") or ""),
+                )
+            )
+
+    # ── unvalidated assumptions ───────────────────────────────────────
+    assumptions: list[InboxAssumption] = []
+    for a in disc.get("assumptions") or []:
+        conf = (a.get("confidence") or "").lower()
+        if conf == "validated":
+            continue
+        assumptions.append(
+            InboxAssumption(
+                id=str(a.get("id") or ""),
+                statement=str(a.get("statement") or ""),
+                confidence=conf or "unknown",
+                impact=str(a.get("impact") or ""),
+            )
+        )
+
+    # ── recent comments ───────────────────────────────────────────────
+    # Comments are scoped by project_id, not discovery_id. Discovery has
+    # an engagement_id which is the project_id for artifact threads.
+    comments_out: list[InboxComment] = []
+    project_id = str(disc.get("engagement_id") or disc.get("project_id") or "")
+    if project_id:
+        try:
+            raw = await storage.list("artifact_comments", {"project_id": project_id})
+        except Exception:
+            raw = []
+        raw.sort(key=lambda c: c.get("created_at", ""), reverse=True)
+        for c in raw[:10]:
+            comments_out.append(
+                InboxComment(
+                    id=str(c.get("id") or ""),
+                    thread_id=str(c.get("thread_id") or ""),
+                    artifact_id=str(c.get("artifact_id") or ""),
+                    project_id=project_id,
+                    role=str(c.get("role") or "user"),
+                    author=str(c.get("author") or ""),
+                    body=str(c.get("body") or ""),
+                    created_at=str(c.get("created_at") or ""),
+                )
+            )
+
+    return InboxResponse(
+        open_questions=questions,
+        unvalidated_assumptions=assumptions,
+        recent_comments=comments_out,
+    )
+
+
+# ── activity feed ──────────────────────────────────────────────────────
+
+
+class ActivityEvent(BaseModel):
+    kind: str
+    title: str
+    summary: str = ""
+    surface: str
+    created_at: str
+
+
+class ActivityResponse(BaseModel):
+    events: list[ActivityEvent]
+
+
+def _shorten(text: str, n: int = 140) -> str:
+    s = (text or "").strip().replace("\n", " ")
+    return s if len(s) <= n else s[: n - 1].rstrip() + "…"
+
+
+@router.get("/activity", response_model=ActivityResponse)
+async def activity(
+    discovery_id: str = Query(...),
+    limit: int = Query(30, ge=1, le=100),
+) -> ActivityResponse:
+    """Return a discovery's recent events, newest-first.
+
+    Pulls from every collection that grows when work happens: evidence,
+    context_briefs, problem_statements, use_cases, refine_reviews,
+    solution_blueprints, and artifact_comments (via the engagement_id).
+    """
+    storage = get_storage_provider()
+    disc = await storage.get("discoveries", discovery_id)
+    if not disc:
+        raise HTTPException(status_code=404, detail="Discovery not found")
+
+    events: list[ActivityEvent] = []
+
+    async def _list_disc(collection: str) -> list[dict]:
+        for key in ("discovery_id", "discoveryId"):
+            try:
+                items = await storage.list(collection, {key: discovery_id})
+            except Exception:
+                items = []
+            if items:
+                return items
+        return []
+
+    for ev in await _list_disc("evidence"):
+        events.append(
+            ActivityEvent(
+                kind="evidence",
+                title=f"{ev.get('evidence_type', 'evidence')} captured",
+                summary=_shorten(ev.get("content", "")),
+                surface=f"/{ev.get('phase', 'capture')}",
+                created_at=str(ev.get("created_at") or ""),
+            )
+        )
+
+    for b in await _list_disc("context_briefs"):
+        events.append(
+            ActivityEvent(
+                kind="brief",
+                title=f"Brief v{b.get('version', '?')}: {b.get('title', '(untitled)')}",
+                summary=_shorten(b.get("summary", "")),
+                surface="/orchestrate?tab=overview",
+                created_at=str(b.get("created_at") or ""),
+            )
+        )
+
+    for ps in await _list_disc("problem_statements"):
+        events.append(
+            ActivityEvent(
+                kind="problem",
+                title=f"Problem statement v{ps.get('version', '?')}",
+                summary=_shorten(ps.get("statement", "")),
+                surface="/orchestrate?tab=drafts",
+                created_at=str(ps.get("created_at") or ""),
+            )
+        )
+
+    for uc in await _list_disc("use_cases"):
+        events.append(
+            ActivityEvent(
+                kind="usecase",
+                title=f"Use case v{uc.get('version', '?')}: {uc.get('title', '(untitled)')}",
+                summary=_shorten(uc.get("summary", "")),
+                surface="/orchestrate?tab=drafts",
+                created_at=str(uc.get("created_at") or ""),
+            )
+        )
+
+    for r in await _list_disc("refine_reviews"):
+        events.append(
+            ActivityEvent(
+                kind="review",
+                title=f"Expert review v{r.get('version', '?')}",
+                summary=_shorten(r.get("synthesis", "")),
+                surface="/refine?tab=experts",
+                created_at=str(r.get("created_at") or ""),
+            )
+        )
+
+    for bp in await _list_disc("solution_blueprints"):
+        events.append(
+            ActivityEvent(
+                kind="blueprint",
+                title=f"Blueprint v{bp.get('version', '?')}: {bp.get('title', '(untitled)')}",
+                summary=_shorten(bp.get("summary", "")),
+                surface="/refine?tab=architect",
+                created_at=str(bp.get("created_at") or ""),
+            )
+        )
+
+    project_id = str(disc.get("engagement_id") or disc.get("project_id") or "")
+    if project_id:
+        try:
+            comments = await storage.list("artifact_comments", {"project_id": project_id})
+        except Exception:
+            comments = []
+        for c in comments:
+            author = str(c.get("author") or c.get("role") or "user")
+            events.append(
+                ActivityEvent(
+                    kind="comment",
+                    title=f"{author} commented",
+                    summary=_shorten(c.get("body", "")),
+                    surface="/orchestrate",
+                    created_at=str(c.get("created_at") or ""),
+                )
+            )
+
+    events.sort(key=lambda e: e.created_at, reverse=True)
+    return ActivityResponse(events=events[:limit])
+
+
+# ── stakeholders ───────────────────────────────────────────────────────
+
+
+class Stakeholder(BaseModel):
+    name: str
+    role: str = ""
+    org: str = ""
+    influence: str = ""
+    source: str  # "discovery" | "engagement_context"
+
+
+class StakeholdersResponse(BaseModel):
+    by_org: dict[str, list[Stakeholder]]
+    total: int
+
+
+@router.get("/stakeholders", response_model=StakeholdersResponse)
+async def stakeholders(discovery_id: str = Query(...)) -> StakeholdersResponse:
+    """Roll-up of every stakeholder mentioned for the discovery's project.
+
+    Pulls from two sources, de-duplicated by name+role:
+      - Discovery.stakeholders (Capture-era list on the discovery itself)
+      - EngagementContext.stakeholders (the engagement-context record,
+        keyed by project_id from discovery.engagement_id)
+
+    Grouped by org so the UI can render a card per org with the people in it.
+    """
+    storage = get_storage_provider()
+    disc = await storage.get("discoveries", discovery_id)
+    if not disc:
+        raise HTTPException(status_code=404, detail="Discovery not found")
+
+    seen: set[tuple[str, str]] = set()
+    rolled: list[Stakeholder] = []
+
+    for s in disc.get("stakeholders") or []:
+        name = str(s.get("name") or "").strip()
+        role = str(s.get("role") or "").strip()
+        if not name:
+            continue
+        key = (name.lower(), role.lower())
+        if key in seen:
+            continue
+        seen.add(key)
+        rolled.append(
+            Stakeholder(
+                name=name,
+                role=role,
+                org=str(s.get("org") or ""),
+                influence=str(s.get("influence") or ""),
+                source="discovery",
+            )
+        )
+
+    project_id = str(disc.get("engagement_id") or disc.get("project_id") or "")
+    if project_id:
+        try:
+            ctxs = await storage.list("engagement_contexts", {"project_id": project_id})
+        except Exception:
+            ctxs = []
+        if ctxs:
+            ec = ctxs[0]
+            for s in ec.get("stakeholders") or []:
+                name = str(s.get("name") or "").strip()
+                role = str(s.get("role") or "").strip()
+                if not name:
+                    continue
+                key = (name.lower(), role.lower())
+                if key in seen:
+                    continue
+                seen.add(key)
+                rolled.append(
+                    Stakeholder(
+                        name=name,
+                        role=role,
+                        org=str(s.get("org") or ""),
+                        influence=str(s.get("influence") or ""),
+                        source="engagement_context",
+                    )
+                )
+
+    by_org: dict[str, list[Stakeholder]] = {}
+    for s in rolled:
+        bucket = s.org or "Unspecified"
+        by_org.setdefault(bucket, []).append(s)
+
+    return StakeholdersResponse(by_org=by_org, total=len(rolled))
+
+
+# ── decisions log ──────────────────────────────────────────────────────
+
+
+class Decision(BaseModel):
+    id: str
+    text: str
+    source: str = ""
+    phase: str
+    rationale: str = ""
+    tags: list[str]
+    created_at: str
+
+
+class DecisionsResponse(BaseModel):
+    decisions: list[Decision]
+    total: int
+
+
+@router.get("/decisions", response_model=DecisionsResponse)
+async def decisions(discovery_id: str = Query(...)) -> DecisionsResponse:
+    """Return decisions captured for a discovery, newest-first.
+
+    Decisions live as evidence items tagged ``"decision"`` (per the
+    Capture tab's Decision capture type config). This endpoint pulls
+    every evidence row across phases that carries that tag.
+    """
+    storage = get_storage_provider()
+    disc = await storage.get("discoveries", discovery_id)
+    if not disc:
+        raise HTTPException(status_code=404, detail="Discovery not found")
+
+    rows: list[dict] = []
+    for key in ("discovery_id", "discoveryId"):
+        try:
+            rows = await storage.list("evidence", {key: discovery_id})
+        except Exception:
+            rows = []
+        if rows:
+            break
+
+    out: list[Decision] = []
+    for r in rows:
+        tags = [str(t).lower() for t in (r.get("tags") or [])]
+        if "decision" not in tags:
+            continue
+        out.append(
+            Decision(
+                id=str(r.get("id") or ""),
+                text=str(r.get("content") or ""),
+                source=str(r.get("source") or ""),
+                phase=str(r.get("phase") or ""),
+                rationale="",
+                tags=tags,
+                created_at=str(r.get("created_at") or ""),
+            )
+        )
+
+    out.sort(key=lambda d: d.created_at, reverse=True)
+    return DecisionsResponse(decisions=out, total=len(out))
+
+
+# ── search ─────────────────────────────────────────────────────────────
+
+
+class SearchHit(BaseModel):
+    kind: str  # "evidence" | "brief" | "problem" | "usecase" | "review" | "blueprint" | "comment"
+    title: str
+    snippet: str
+    surface: str
+    score: int
+
+
+class SearchResponse(BaseModel):
+    query: str
+    hits: list[SearchHit]
+    total: int
+
+
+def _snippet_around(text: str, needle: str, width: int = 160) -> str:
+    """Return a short snippet of ``text`` centered around the first
+    case-insensitive occurrence of ``needle``."""
+    if not text:
+        return ""
+    haystack = text.lower()
+    needle_l = needle.lower()
+    idx = haystack.find(needle_l)
+    if idx < 0:
+        # No exact match — return the start of the text.
+        return _shorten(text, width)
+    half = max(0, width // 2 - len(needle))
+    start = max(0, idx - half)
+    end = min(len(text), idx + len(needle) + half)
+    snippet = text[start:end].strip().replace("\n", " ")
+    if start > 0:
+        snippet = "…" + snippet
+    if end < len(text):
+        snippet = snippet + "…"
+    return snippet
+
+
+def _score_text(text: str, terms: list[str]) -> int:
+    """Sum of case-insensitive occurrences of each term in text."""
+    if not text:
+        return 0
+    lower = text.lower()
+    return sum(lower.count(t.lower()) for t in terms)
+
+
+@router.get("/search", response_model=SearchResponse)
+async def search(
+    discovery_id: str = Query(...),
+    q: str = Query(..., min_length=1, max_length=200),
+    limit: int = Query(30, ge=1, le=100),
+) -> SearchResponse:
+    """Naive full-text search across the discovery's data.
+
+    Splits the query into terms, scans every relevant collection,
+    scores each row by total term occurrences, and returns the top N
+    ranked hits with snippets. Substring-only — no stemming, no
+    synonyms. Good enough for "where did I see X?" lookups.
+    """
+    storage = get_storage_provider()
+    disc = await storage.get("discoveries", discovery_id)
+    if not disc:
+        raise HTTPException(status_code=404, detail="Discovery not found")
+
+    terms = [t for t in q.split() if t.strip()]
+    if not terms:
+        return SearchResponse(query=q, hits=[], total=0)
+
+    hits: list[SearchHit] = []
+
+    async def _list_disc(collection: str) -> list[dict]:
+        for key in ("discovery_id", "discoveryId"):
+            try:
+                items = await storage.list(collection, {key: discovery_id})
+            except Exception:
+                items = []
+            if items:
+                return items
+        return []
+
+    for ev in await _list_disc("evidence"):
+        text = str(ev.get("content") or "")
+        score = _score_text(text, terms) + _score_text(str(ev.get("source") or ""), terms)
+        if score:
+            hits.append(
+                SearchHit(
+                    kind="evidence",
+                    title=f"{ev.get('evidence_type', 'evidence')} · {ev.get('source', '')}".strip(" ·"),
+                    snippet=_snippet_around(text, terms[0]),
+                    surface=f"/{ev.get('phase', 'capture')}",
+                    score=score,
+                )
+            )
+
+    for b in await _list_disc("context_briefs"):
+        text = f"{b.get('title', '')}\n{b.get('summary', '')}\n{b.get('evidence_summary', '')}"
+        score = _score_text(text, terms)
+        if score:
+            hits.append(
+                SearchHit(
+                    kind="brief",
+                    title=f"Brief v{b.get('version', '?')}: {b.get('title', '(untitled)')}",
+                    snippet=_snippet_around(text, terms[0]),
+                    surface="/orchestrate?tab=overview",
+                    score=score,
+                )
+            )
+
+    for ps in await _list_disc("problem_statements"):
+        text = " ".join(
+            str(ps.get(k) or "")
+            for k in ("statement", "who", "what", "why", "impact")
+        )
+        score = _score_text(text, terms)
+        if score:
+            hits.append(
+                SearchHit(
+                    kind="problem",
+                    title=f"Problem statement v{ps.get('version', '?')}",
+                    snippet=_snippet_around(text, terms[0]),
+                    surface="/orchestrate?tab=drafts",
+                    score=score,
+                )
+            )
+
+    for uc in await _list_disc("use_cases"):
+        text = " ".join(
+            str(uc.get(k) or "")
+            for k in ("title", "summary", "goal", "current_state", "desired_state", "business_value")
+        )
+        score = _score_text(text, terms)
+        if score:
+            hits.append(
+                SearchHit(
+                    kind="usecase",
+                    title=f"Use case v{uc.get('version', '?')}: {uc.get('title', '(untitled)')}",
+                    snippet=_snippet_around(text, terms[0]),
+                    surface="/orchestrate?tab=drafts",
+                    score=score,
+                )
+            )
+
+    project_id = str(disc.get("engagement_id") or disc.get("project_id") or "")
+    if project_id:
+        try:
+            comments = await storage.list("artifact_comments", {"project_id": project_id})
+        except Exception:
+            comments = []
+        for c in comments:
+            text = str(c.get("body") or "")
+            score = _score_text(text, terms)
+            if score:
+                hits.append(
+                    SearchHit(
+                        kind="comment",
+                        title=f"{c.get('author') or c.get('role') or 'user'} commented",
+                        snippet=_snippet_around(text, terms[0]),
+                        surface="/orchestrate",
+                        score=score,
+                    )
+                )
+
+    hits.sort(key=lambda h: h.score, reverse=True)
+    return SearchResponse(query=q, hits=hits[:limit], total=len(hits))
