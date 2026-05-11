@@ -34,6 +34,7 @@ import { DocsPathConfig } from "@/components/settings/docs-path-config";
 import { PageHeader } from "@/components/layout/page-header";
 import { EmptyState } from "@/components/layout/empty-state";
 import { ActiveDiscoveryHero } from "@/components/home/active-discovery-hero";
+import { PhaseOverview } from "@/components/home/phase-overview";
 import { useProject } from "@/stores/project-store";
 
 const PHASE_ICONS: Record<CorePhase, LucideIcon> = {
@@ -161,6 +162,8 @@ export default function DashboardPage() {
       />
 
       {activeDiscovery && <ActiveDiscoveryHero discovery={activeDiscovery} />}
+
+      <PhaseOverview />
 
       <section className="space-y-4">
         <div className="flex items-center justify-between">
