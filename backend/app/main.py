@@ -72,6 +72,7 @@ def create_app() -> FastAPI:
         dt_templates,
         dynamics,
         engagement,
+        engagement_context,
         engagements,
         evidence,
         execute_outputs,
@@ -192,6 +193,11 @@ def create_app() -> FastAPI:
     app.include_router(github_auth.router, prefix="/api/github", tags=["github"])
     app.include_router(health_schema.router, prefix="/api/health", tags=["health"])
     app.include_router(synthesis.router, prefix="/api/synthesis", tags=["synthesis"])
+    app.include_router(
+        engagement_context.router,
+        prefix="/api/engagement-context",
+        tags=["engagement-context"],
+    )
 
     from app.utils.telemetry import configure_telemetry
 
