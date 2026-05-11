@@ -34,6 +34,7 @@ import { PhaseShell } from "@/components/layout/phase-shell";
 import { DiscoveryRequired } from "@/components/layout/discovery-required";
 import { GroundedPanel } from "@/components/orchestrate/grounded-panel";
 import { NarrativePanel } from "@/components/orchestrate/narrative-panel";
+import { useTabParam } from "@/lib/use-tab-param";
 import { ProblemStatementBuilder } from "@/components/orchestrate/problem-statement-builder";
 import { UseCaseBuilder } from "@/components/orchestrate/use-case-builder";
 import { ContextBriefBuilder } from "@/components/orchestrate/context-brief-builder";
@@ -201,7 +202,7 @@ export default function OrchestratePage() {
   const discoveryId = activeDiscovery?.id || "";
   const [questions, setQuestions] = useState<Question[]>([]);
   const [savedQuestionSets, setSavedQuestionSets] = useState<QuestionSet[]>([]);
-  const [activeTab, setActiveTab] = useState("overview");
+  const [activeTab, setActiveTab] = useTabParam("overview");
   const [context, setContext] = useState("");
   const [workingNotes, setWorkingNotes] = useState("");
   const [shortcutMessage, setShortcutMessage] = useState("");
