@@ -1,6 +1,6 @@
 "use client";
 
-import { Plus } from "lucide-react";
+import { Plus, Search } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { SidebarTrigger } from "@/components/ui/sidebar";
@@ -39,6 +39,24 @@ export function AppHeader() {
       </Button>
 
       <div className="ml-auto flex items-center gap-3">
+        <button
+          type="button"
+          onClick={() => {
+            if (typeof window !== "undefined") {
+              window.dispatchEvent(
+                new KeyboardEvent("keydown", { key: "k", metaKey: true }),
+              );
+            }
+          }}
+          className="hidden h-7 items-center gap-2 rounded-md border border-input bg-background px-2 text-xs text-muted-foreground hover:text-foreground sm:flex"
+          aria-label="Open command palette"
+        >
+          <Search className="h-3.5 w-3.5" aria-hidden />
+          <span>Search…</span>
+          <kbd className="ml-1 inline-flex items-center gap-0.5 rounded border bg-muted px-1 py-0.5 text-[10px]">
+            <span>⌘</span>K
+          </kbd>
+        </button>
         <AuthButton />
       </div>
     </header>
