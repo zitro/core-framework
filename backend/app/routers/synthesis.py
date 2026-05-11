@@ -1,4 +1,4 @@
-"""Synthesis router — 6C minimal slice + 6D critic/signals/compass.
+"""Synthesis router — 6C/6D/6E surface.
 
 Mounted at ``/api/synthesis``. All project-scoped routes take a
 ``project_id`` path segment so the project comes from the URL — no
@@ -12,10 +12,13 @@ Surface so far:
   - POST /{project_id}/artifacts/{artifact_id}/critique    → run critic (6D)
   - GET  /{project_id}/signals                             → deterministic signals (6D)
   - GET  /{project_id}/compass                             → per-category health (6D)
+  - POST /{project_id}/chat                                → corpus-grounded chat (6E)
+  - GET  /{project_id}/chat                                → list chat turns (6E)
+  - POST /{project_id}/questions/refresh                   → regenerate questions (6E)
+  - GET  /{project_id}/questions                           → list customer questions (6E)
   - POST /{project_id}/artifacts/{type_id}/regenerate      → regenerate one
 
 Deferred to later sub-phases (NOT included here):
-  - chat + questions agent           (6E)
   - source connector marketplace     (6F)
   - exporters (docx/pptx)            (6J)
   - engagement-repo write-back       (Phase 7)
@@ -35,12 +38,14 @@ from app.synthesis.categories import (
     CATEGORY_LABELS,
     CATEGORY_ORDER,
 )
+from app.synthesis.chat import CHATS_COLLECTION, ChatAgent
 from app.synthesis.compass import compute_compass
 from app.synthesis.corpus import build_corpus
 from app.synthesis.critic import CRITIQUES_COLLECTION, CriticAgent
 from app.synthesis.detectors import run_detectors
 from app.synthesis.generator import ARTIFACTS_COLLECTION, GeneratorEngine
-from app.synthesis.models import Artifact, ArtifactCreate, Critique
+from app.synthesis.models import Artifact, ArtifactCreate, Critique, Question
+from app.synthesis.question_agent import QUESTIONS_COLLECTION, QuestionAgent
 from app.synthesis.types import ARTIFACT_TYPES
 
 logger = logging.getLogger(__name__)
@@ -227,6 +232,108 @@ async def get_compass(project_id: str) -> dict:
     signals = run_detectors(artifacts, critiques, corpus)
     snapshot = compute_compass(project_id, artifacts, signals)
     return snapshot.model_dump(mode="json")
+
+
+class ChatPayload(BaseModel):
+    session_id: str = Field(..., min_length=1)
+    message: str = Field(..., min_length=1, max_length=10_000)
+
+
+@router.post("/{project_id}/chat")
+async def chat(project_id: str, payload: ChatPayload) -> dict:
+    """Send a user message in a session, get a corpus-grounded reply.
+    LLM-backed; user-initiated, never auto-fired."""
+    project = await _load_project(project_id)
+    corpus = await build_corpus(project)
+
+    # Reconstruct session history from previously-persisted turns.
+    storage = get_storage_provider()
+    raw_turns: list[dict] = []
+    for key in ("project_id", "projectId"):
+        try:
+            raw_turns = await storage.list(
+                CHATS_COLLECTION,
+                {key: project_id, "session_id": payload.session_id},
+            )
+        except Exception:
+            raw_turns = []
+        if raw_turns:
+            break
+    history = [
+        {"role": t.get("role", "user"), "content": t.get("content", "")}
+        for t in sorted(raw_turns, key=lambda t: t.get("created_at", ""))
+    ]
+
+    try:
+        result = await ChatAgent().reply(
+            project, payload.session_id, payload.message, corpus, history
+        )
+    except Exception as exc:
+        logger.exception("chat: failed for session=%s", payload.session_id)
+        raise HTTPException(status_code=500, detail=f"Chat failed: {exc}") from exc
+    return result
+
+
+@router.get("/{project_id}/chat")
+async def list_chat_turns(project_id: str, session_id: str | None = None) -> dict:
+    """List chat turns for a project, optionally filtered to one session."""
+    await _load_project(project_id)
+    storage = get_storage_provider()
+    filters: dict = {"project_id": project_id}
+    if session_id:
+        filters["session_id"] = session_id
+    for key in ("project_id", "projectId"):
+        try:
+            items = await storage.list(CHATS_COLLECTION, {**filters, key: project_id})
+        except Exception:
+            items = []
+        if items:
+            break
+    items.sort(key=lambda t: t.get("created_at", ""))
+    return {"turns": items}
+
+
+# ── questions ──────────────────────────────────────────────────────────
+
+
+async def _project_questions(project_id: str) -> list[Question]:
+    storage = get_storage_provider()
+    for key in ("project_id", "projectId"):
+        try:
+            items = await storage.list(QUESTIONS_COLLECTION, {key: project_id})
+        except Exception:
+            items = []
+        if items:
+            items.sort(
+                key=lambda q: (
+                    bool(q.get("answered")),
+                    int(q.get("priority", 3)),
+                )
+            )
+            return [Question(**i) for i in items]
+    return []
+
+
+@router.post("/{project_id}/questions/refresh")
+async def refresh_questions(project_id: str) -> dict:
+    """Regenerate the customer-questions list. LLM-backed; user-initiated."""
+    project = await _load_project(project_id)
+    artifacts = await _project_artifacts(project_id)
+    corpus = await build_corpus(project)
+    questions = await QuestionAgent().generate(project, artifacts, corpus)
+    return {
+        "project_id": project_id,
+        "question_count": len(questions),
+        "questions": [q.model_dump(mode="json") for q in questions],
+    }
+
+
+@router.get("/{project_id}/questions")
+async def list_questions(project_id: str) -> dict:
+    """Saved customer questions for the project."""
+    await _load_project(project_id)
+    questions = await _project_questions(project_id)
+    return {"questions": [q.model_dump(mode="json") for q in questions]}
 
 
 @router.post("/{project_id}/artifacts/{type_id}/regenerate")
