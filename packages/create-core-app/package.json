@@ -1,6 +1,6 @@
 {
   "name": "create-core-discovery-app",
-  "version": "1.5.1",
+  "version": "1.5.2",
   "description": "Scaffold a new CORE Discovery customer repository (compose-based deploy of zitro/core-framework)",
   "keywords": [
     "core-discovery",

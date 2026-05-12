@@ -16,9 +16,21 @@ export interface StagedItem {
 }
 
 async function fsyncPath(path: string): Promise<void> {
-  const handle = await open(path, "r");
+  // Best-effort: Windows + macOS reject fsync on directory handles
+  // (EPERM), and a handful of network/sandboxed filesystems return
+  // ENOSYS. The rename is atomic at the inode level regardless; we
+  // only lose the post-crash durability guarantee.
+  let handle;
+  try {
+    handle = await open(path, "r");
+  } catch {
+    return;
+  }
   try {
     await handle.sync();
+  } catch (err) {
+    const code = (err as NodeJS.ErrnoException).code;
+    if (code !== "EPERM" && code !== "ENOSYS" && code !== "EINVAL") throw err;
   } finally {
     await handle.close();
   }

@@ -7,9 +7,21 @@ import { mkdir, open, rename, unlink } from "node:fs/promises";
 import { dirname } from "node:path";
 
 async function fsyncDir(path: string): Promise<void> {
-  const handle = await open(path, "r");
+  // Best-effort: macOS rejects fsync on read-only directory handles
+  // with EPERM, and a handful of network/sandboxed filesystems return
+  // ENOSYS. The rename is atomic at the inode level on APFS/ext4
+  // regardless; we only lose the post-crash durability guarantee.
+  let handle;
+  try {
+    handle = await open(path, "r");
+  } catch {
+    return;
+  }
   try {
     await handle.sync();
+  } catch (err) {
+    const code = (err as NodeJS.ErrnoException).code;
+    if (code !== "EPERM" && code !== "ENOSYS" && code !== "EINVAL") throw err;
   } finally {
     await handle.close();
   }
