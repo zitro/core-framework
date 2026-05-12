@@ -74,9 +74,6 @@ function deriveCtx(marker: CoreDiscoveryMarker): ScaffoldOptions {
     openaiTranscriptionBaseUrl: "",
     storage: "local",
     auth: "none",
-    contentSource: "local",
-    projectsSource: "./projects",
-    localDataPath: "./data",
   };
 }
 

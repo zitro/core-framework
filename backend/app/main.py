@@ -102,7 +102,7 @@ def create_app() -> FastAPI:
 
     app = FastAPI(
         title=settings.app_name,
-        version="1.5.3",
+        version="1.5.4",
         description="CORE Discovery Framework API",
         lifespan=_lifespan,
     )
@@ -232,6 +232,7 @@ def create_app() -> FastAPI:
         return {
             "status": "healthy",
             "version": app.version,
+            "customer_slug": settings.customer_slug,
             "providers": {
                 "llm": settings.llm_provider,
                 "storage": settings.storage_provider,

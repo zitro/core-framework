@@ -7,6 +7,12 @@ class Settings(BaseSettings):
     app_name: str = "CORE Discovery API"
     debug: bool = False
 
+    # Stable identifier of this customer install — written to .env by
+    # the CLI scaffolder, exposed via /api/health, used by the frontend
+    # to namespace localStorage so two customer instances on the same
+    # browser don't cross-contaminate cached project/discovery state.
+    customer_slug: str = ""
+
     # Provider selection: "azure" | "local" | "openai"
     llm_provider: str = "local"
     storage_provider: str = "local"

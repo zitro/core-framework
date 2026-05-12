@@ -12,6 +12,7 @@ import { AppHeader } from "@/components/layout/app-header";
 import { CommandPalette } from "@/components/layout/command-palette";
 import { ProjectBootstrap } from "@/components/layout/project-bootstrap";
 import { UpdateBanner } from "@/components/layout/update-banner";
+import { InstallGuard } from "@/components/layout/install-guard";
 import "./globals.css";
 import "highlight.js/styles/github-dark.min.css";
 
@@ -52,27 +53,29 @@ export default function RootLayout({
     >
       <body className="min-h-full flex flex-col">
         <ThemeProvider>
-          <AuthProvider>
-            <ProjectProvider>
-              <DiscoveryProvider>
-                <ProjectBootstrap />
-                <CommandPalette />
-                <TooltipProvider>
-                  <SidebarProvider>
-                    <AppSidebar />
-                    <div className="flex-1 flex flex-col overflow-hidden">
-                      <UpdateBanner />
-                      <AppHeader />
-                      <main className="flex-1 overflow-auto">
-                        {children}
-                      </main>
-                    </div>
-                  </SidebarProvider>
-                </TooltipProvider>
-                <Toaster richColors position="bottom-right" />
-              </DiscoveryProvider>
-            </ProjectProvider>
-          </AuthProvider>
+          <InstallGuard>
+            <AuthProvider>
+              <ProjectProvider>
+                <DiscoveryProvider>
+                  <ProjectBootstrap />
+                  <CommandPalette />
+                  <TooltipProvider>
+                    <SidebarProvider>
+                      <AppSidebar />
+                      <div className="flex-1 flex flex-col overflow-hidden">
+                        <UpdateBanner />
+                        <AppHeader />
+                        <main className="flex-1 overflow-auto">
+                          {children}
+                        </main>
+                      </div>
+                    </SidebarProvider>
+                  </TooltipProvider>
+                  <Toaster richColors position="bottom-right" />
+                </DiscoveryProvider>
+              </ProjectProvider>
+            </AuthProvider>
+          </InstallGuard>
         </ThemeProvider>
       </body>
     </html>

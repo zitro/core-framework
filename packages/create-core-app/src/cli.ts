@@ -269,23 +269,26 @@ async function main(): Promise<void> {
     process.exit(0);
   }
 
-  const displayName = await prompt(text({
-    message: "Display name (shown in UI / README):",
-    placeholder: name.charAt(0).toUpperCase() + name.slice(1),
-    initialValue: name.charAt(0).toUpperCase() + name.slice(1),
-  }));
+  // Display name is just the title-cased slug — no prompt for it.
+  // Folders (./data, ./projects) always live inside this customer repo,
+  // resolved relative to compose.yaml at runtime. Both are created
+  // unconditionally during scaffold. Framework version pins silently
+  // to LATEST_VERSION.
+  const displayName = name.charAt(0).toUpperCase() + name.slice(1);
+  const version = LATEST_VERSION;
 
   const setupMode = (await prompt(select({
-    message: "Initial setup mode:",
+    message: "Setup mode:",
     options: [
       {
         value: "local-only",
-        label: "Local-only (no Azure/external services)",
-        hint: "recommended for quick start",
+        label: "Local-only",
+        hint: "no Azure/external services — recommended for quick start",
       },
       {
         value: "service-integrated",
-        label: "Service-integrated (configure AI/storage/auth providers)",
+        label: "Service-integrated",
+        hint: "configure AI / storage / auth providers (Azure or OpenAI-compatible)",
       },
     ],
     initialValue: "local-only" as "local-only" | "service-integrated",
@@ -299,102 +302,67 @@ async function main(): Promise<void> {
   let openaiTranscriptionBaseUrl = "";
   let storage: "local" | "azure" = "local";
   let auth: "none" | "azure" = "none";
-  let localDataPath = "./data";
-  let createLocalDataFolder = true;
 
-  if (setupMode === "local-only") {
-    note(
-      [
-        "Using local defaults:",
-        "- LLM_PROVIDER=local",
-        "- STORAGE_PROVIDER=local",
-        "- AUTH_PROVIDER=none",
-        "- SPEECH_PROVIDER=none",
-      ].join("\n"),
-      "Local-only profile",
-    );
-  } else {
+  let azureOpenAIEndpoint = "";
+  let azureOpenAIKey = "";
+  let azureOpenAIDeployment = "";
+  let cosmosEndpoint = "";
+  let cosmosKey = "";
+  let cosmosDatabase = "";
+  let azureSpeechKey = "";
+  let azureSpeechRegion = "";
+  let azureTenantId = "";
+  let azureClientId = "";
+  let azureClientSecret = "";
+
+  if (setupMode === "service-integrated") {
     llm = (await prompt(select({
       message: "AI provider:",
       options: [
-        { value: "local", label: "local (Ollama / dev)", hint: "no Azure required" },
-        { value: "azure", label: "azure (Azure OpenAI)" },
-        { value: "openai", label: "openai-compatible API", hint: "OpenAI, Claude, Gemini, Grok, or custom endpoint" },
+        { value: "azure", label: "Azure OpenAI" },
+        { value: "openai", label: "OpenAI-compatible", hint: "OpenAI / Claude / Gemini / Grok / custom" },
+        { value: "local", label: "local", hint: "Ollama for dev" },
       ],
       initialValue: "azure" as "local" | "azure" | "openai",
     }))) as "local" | "azure" | "openai";
 
     if (llm === "openai") {
       const llmPreset = (await prompt(select({
-        message: "Select model family:",
+        message: "Model family:",
         options: [
           { value: "openai", label: "OpenAI", hint: "api.openai.com" },
-          { value: "claude", label: "Claude", hint: "via OpenRouter-compatible endpoint" },
-          { value: "gemini", label: "Gemini", hint: "via Gemini OpenAI compatibility endpoint" },
+          { value: "claude", label: "Claude", hint: "via OpenRouter" },
+          { value: "gemini", label: "Gemini", hint: "Gemini OpenAI-compat endpoint" },
           { value: "grok", label: "Grok", hint: "xAI endpoint" },
-          { value: "custom", label: "Custom", hint: "any OpenAI-compatible provider" },
+          { value: "custom", label: "Custom", hint: "any OpenAI-compatible endpoint" },
         ],
         initialValue: "openai" as "openai" | "claude" | "gemini" | "grok" | "custom",
       }))) as "openai" | "claude" | "gemini" | "grok" | "custom";
 
-      if (llmPreset === "openai") {
-        openaiModel = "gpt-4o";
-        openaiBaseUrl = "";
-      } else if (llmPreset === "claude") {
-        openaiModel = "anthropic/claude-3.5-sonnet";
-        openaiBaseUrl = "https://openrouter.ai/api/v1";
-      } else if (llmPreset === "gemini") {
-        openaiModel = "gemini-1.5-pro";
-        openaiBaseUrl = "https://generativelanguage.googleapis.com/v1beta/openai";
-      } else if (llmPreset === "grok") {
-        openaiModel = "grok-2-latest";
-        openaiBaseUrl = "https://api.x.ai/v1";
+      if (llmPreset === "openai") { openaiModel = "gpt-4o"; openaiBaseUrl = ""; }
+      else if (llmPreset === "claude") { openaiModel = "anthropic/claude-3.5-sonnet"; openaiBaseUrl = "https://openrouter.ai/api/v1"; }
+      else if (llmPreset === "gemini") { openaiModel = "gemini-1.5-pro"; openaiBaseUrl = "https://generativelanguage.googleapis.com/v1beta/openai"; }
+      else if (llmPreset === "grok") { openaiModel = "grok-2-latest"; openaiBaseUrl = "https://api.x.ai/v1"; }
+      else {
+        openaiModel = (await prompt(text({
+          message: "Model ID:",
+          placeholder: "gpt-4o",
+          initialValue: "gpt-4o",
+          validate: (v) => (!v ? "Model ID required" : undefined),
+        }))) as string;
+        openaiBaseUrl = (await prompt(text({
+          message: "Base URL:",
+          placeholder: "https://api.openai.com/v1",
+          initialValue: "",
+        }))) as string;
       }
-
-      openaiModel = (await prompt(text({
-        message: "Model ID:",
-        placeholder: openaiModel,
-        initialValue: openaiModel,
-        validate: (v) => (!v ? "Model ID required" : undefined),
-      }))) as string;
-
-      openaiBaseUrl = (await prompt(text({
-        message: "Base URL (blank for OpenAI default):",
-        placeholder: "https://api.openai.com/v1",
-        initialValue: openaiBaseUrl,
-      }))) as string;
-    }
-
-    speech = (await prompt(select({
-      message: "Speech transcription provider:",
-      options: [
-        { value: "none", label: "none", hint: "recordings save as media evidence without transcription" },
-        { value: "azure", label: "azure (Azure Speech)", hint: "recommended for Azure-integrated deployments" },
-        { value: "openai", label: "openai-compatible", hint: "choose any transcription model/endpoint" },
-      ],
-      initialValue: "none" as "none" | "azure" | "openai",
-    }))) as "none" | "azure" | "openai";
-
-    if (speech === "openai") {
-      openaiTranscriptionModel = (await prompt(text({
-        message: "Transcription model ID:",
-        placeholder: openaiTranscriptionModel,
-        initialValue: openaiTranscriptionModel,
-        validate: (v) => (!v ? "Transcription model ID required" : undefined),
-      }))) as string;
-
-      openaiTranscriptionBaseUrl = (await prompt(text({
-        message: "Transcription base URL (blank for OpenAI default):",
-        placeholder: "https://api.openai.com/v1",
-        initialValue: openaiTranscriptionBaseUrl,
-      }))) as string;
     }
 
     storage = (await prompt(select({
       message: "Storage provider:",
       options: [
-        { value: "local", label: "local (filesystem JSON)", hint: "no Cosmos required" },
-        { value: "azure", label: "azure (Cosmos DB)" },
+        { value: "azure", label: "Azure Cosmos DB" },
+        { value: "local", label: "local filesystem", hint: "no Cosmos required" },
       ],
       initialValue: "azure" as "local" | "azure",
     }))) as "local" | "azure";
@@ -402,144 +370,110 @@ async function main(): Promise<void> {
     auth = (await prompt(select({
       message: "Auth provider:",
       options: [
+        { value: "azure", label: "Microsoft Entra ID" },
         { value: "none", label: "none (open)", hint: "local dev" },
-        { value: "azure", label: "azure (Entra ID)" },
       ],
-      initialValue: "none" as "none" | "azure",
+      initialValue: "azure" as "none" | "azure",
     }))) as "none" | "azure";
 
-    const setupBackupFolder = await prompt(confirm({
-      message: "Set up a local backup storage folder (recommended)?",
-      initialValue: true,
-    }));
+    speech = (await prompt(select({
+      message: "Speech transcription:",
+      options: [
+        { value: "azure", label: "Azure Speech" },
+        { value: "openai", label: "OpenAI-compatible", hint: "Whisper / gpt-4o-transcribe / custom" },
+        { value: "none", label: "none", hint: "recordings save as media without transcription" },
+      ],
+      initialValue: "azure" as "none" | "azure" | "openai",
+    }))) as "none" | "azure" | "openai";
 
-    if (setupBackupFolder) {
-      localDataPath = await prompt(text({
-        message: "Local backup storage folder path:",
-        placeholder: "./data",
-        initialValue: "./data",
-        validate: (v) => (!v ? "Path required" : undefined),
-      }));
+    if (speech === "openai") {
+      const speechPreset = (await prompt(select({
+        message: "Transcription model:",
+        options: [
+          { value: "openai", label: "OpenAI default", hint: "gpt-4o-transcribe via api.openai.com" },
+          { value: "custom", label: "Custom", hint: "any OpenAI-compatible transcription endpoint" },
+        ],
+        initialValue: "openai" as "openai" | "custom",
+      }))) as "openai" | "custom";
 
-      const resolvedLocalDataPath = isAbsolute(localDataPath)
-        ? localDataPath
-        : resolve(target, localDataPath);
-      const confirmBackupFolderPath = await prompt(confirm({
-        message: `Use local backup storage folder ${pc.bold(resolvedLocalDataPath)}?`,
-        initialValue: true,
-      }));
-      if (!confirmBackupFolderPath) {
+      if (speechPreset === "openai") { openaiTranscriptionModel = "gpt-4o-transcribe"; openaiTranscriptionBaseUrl = ""; }
+      else {
+        openaiTranscriptionModel = (await prompt(text({
+          message: "Transcription model ID:",
+          placeholder: "whisper-1",
+          initialValue: "gpt-4o-transcribe",
+          validate: (v) => (!v ? "Model ID required" : undefined),
+        }))) as string;
+        openaiTranscriptionBaseUrl = (await prompt(text({
+          message: "Transcription base URL:",
+          placeholder: "https://api.openai.com/v1",
+          initialValue: "",
+        }))) as string;
+      }
+    }
+
+    // Azure auto-discovery sub-flow runs once if any provider is azure.
+    const needsAzure = llm === "azure" || storage === "azure" || auth === "azure" || speech === "azure";
+    if (needsAzure) {
+      const onCancel = (): never => {
         cancel("Aborted.");
         process.exit(0);
+      };
+      const { initAzureContext, gatherAzureOpenAI, gatherCosmos, gatherAzureSpeech, gatherEntra } =
+        await import("./azure-setup.js");
+      let azCtx = await initAzureContext(onCancel);
+
+      if (llm === "azure") {
+        const r = await gatherAzureOpenAI(azCtx, onCancel);
+        azCtx = r.ctx;
+        azureOpenAIEndpoint = r.config.endpoint;
+        azureOpenAIKey = r.config.apiKey;
+        azureOpenAIDeployment = r.config.deployment;
       }
-
-      createLocalDataFolder = true;
-    } else {
-      createLocalDataFolder = false;
+      if (storage === "azure") {
+        const r = await gatherCosmos(azCtx, onCancel);
+        azCtx = r.ctx;
+        cosmosEndpoint = r.config.endpoint;
+        cosmosKey = r.config.apiKey;
+        cosmosDatabase = r.config.database;
+      }
+      if (speech === "azure") {
+        const r = await gatherAzureSpeech(azCtx, onCancel);
+        azCtx = r.ctx;
+        azureSpeechKey = r.config.apiKey;
+        azureSpeechRegion = r.config.region;
+      }
+      if (auth === "azure") {
+        const r = await gatherEntra(azCtx, onCancel);
+        azCtx = r.ctx;
+        azureTenantId = r.config.tenantId;
+        azureClientId = r.config.clientId;
+        azureClientSecret = r.config.clientSecret;
+      }
     }
   }
 
-  if (setupMode === "local-only") {
-    localDataPath = await prompt(text({
-      message: "Local storage folder path:",
-      placeholder: "./data",
-      initialValue: "./data",
-      validate: (v) => (!v ? "Path required" : undefined),
-    }));
-
-    const resolvedLocalDataPath = isAbsolute(localDataPath)
-      ? localDataPath
-      : resolve(target, localDataPath);
-    const confirmLocalDataPath = await prompt(confirm({
-      message: `Use local storage folder ${pc.bold(resolvedLocalDataPath)}?`,
-      initialValue: true,
-    }));
-    if (!confirmLocalDataPath) {
-      cancel("Aborted.");
-      process.exit(0);
-    }
-    createLocalDataFolder = true;
-  }
-
-  const version = await prompt(text({
-    message: "Pin to framework version:",
-    placeholder: LATEST_VERSION,
-    initialValue: LATEST_VERSION,
-    validate: validateFrameworkVersion,
-  }));
-
-  const initialProject = await prompt(text({
-    message: "Initial project slug (optional, blank to skip):",
+  const initialProject = (await prompt(text({
+    message: "Initial discovery slug (optional):",
     placeholder: "discovery-1",
     initialValue: "",
-  }));
+  }))) as string;
 
-  let contentSource: "local" | "engagement-repo" | "custom" = "local";
-  let projectsSource = "./projects";
-  let createProjectsSourceFolder = false;
-
-  if (setupMode === "local-only") {
-    const createFolder = await prompt(confirm({
-      message: "Create a local content folder now for this instance?",
-      initialValue: true,
-    }));
-
-    if (createFolder) {
-      projectsSource = await prompt(text({
-        message: "Local content folder path (mounted as /data/projects):",
-        placeholder: "./projects",
-        initialValue: "./projects",
-        validate: (v) => (!v ? "Path required" : undefined),
-      }));
-
-      const resolvedProjectsSource = isAbsolute(projectsSource)
-        ? projectsSource
-        : resolve(target, projectsSource);
-      const confirmFolderPath = await prompt(confirm({
-        message: `Create local content folder at ${pc.bold(resolvedProjectsSource)}?`,
-        initialValue: true,
-      }));
-      if (!confirmFolderPath) {
-        cancel("Aborted.");
-        process.exit(0);
-      }
-
-      createProjectsSourceFolder = true;
-      contentSource = projectsSource === "./projects" ? "local" : "custom";
-    } else {
-      contentSource = "local";
-      projectsSource = "./projects";
-    }
-  } else {
-    contentSource = (await prompt(select({
-      message: "Where will this customer's content live?",
-      options: [
-        { value: "local", label: "local folder in this repo (./projects)", hint: "default — drop markdown right here" },
-        { value: "engagement-repo", label: "engagement-repo repo (sibling clone of org/<customer>)", hint: "git-backed shared notes" },
-        { value: "custom", label: "custom host path (any folder of markdown)" },
-      ],
-      initialValue: "local" as "local" | "engagement-repo" | "custom",
-    }))) as "local" | "engagement-repo" | "custom";
-
-    if (contentSource === "engagement-repo") {
-      const engagementRepoDefault = `../${name}-content`;
-      projectsSource = (await prompt(text({
-        message: "Host path to engagement-repo clone (mounted as /data/projects):",
-        placeholder: engagementRepoDefault,
-        initialValue: engagementRepoDefault,
-        validate: (v) => (!v ? "Path required" : undefined),
-      }))) as string;
-    } else if (contentSource === "custom") {
-      projectsSource = (await prompt(text({
-        message: "Host path to mount as /data/projects (absolute or relative to this repo):",
-        placeholder: "../my-customer-content",
-        validate: (v) => (!v ? "Path required" : undefined),
-      }))) as string;
-    }
-  }
+  note(
+    [
+      `${pc.dim("Customer:")} ${pc.bold(name)} (${displayName})`,
+      `${pc.dim("Version:")}  v${version}`,
+      `${pc.dim("LLM:")}      ${llm}`,
+      `${pc.dim("Storage:")}  ${storage}`,
+      `${pc.dim("Auth:")}     ${auth}`,
+      `${pc.dim("Speech:")}   ${speech}`,
+      `${pc.dim("Layout:")}   ./data + ./projects inside this repo`,
+    ].join("\n"),
+    "Review",
+  );
 
   const proceed = await prompt(confirm({
-    message: `Create ${pc.bold("./" + name)} pinned to v${version}?`,
+    message: `Create ${pc.bold("./" + name)}?`,
     initialValue: true,
   }));
   if (!proceed) {
@@ -553,20 +487,26 @@ async function main(): Promise<void> {
     await scaffold({
       target,
       name,
-      displayName: displayName as string,
-      version: version as string,
+      displayName,
+      version,
       llm, storage, auth,
       openaiModel,
       openaiBaseUrl,
       speech,
       openaiTranscriptionModel,
       openaiTranscriptionBaseUrl,
-      initialProject: (initialProject as string).trim() || undefined,
-      contentSource,
-      projectsSource,
-      createProjectsSourceFolder,
-      localDataPath,
-      createLocalDataFolder,
+      initialProject: initialProject.trim() || undefined,
+      azureOpenAIEndpoint,
+      azureOpenAIKey,
+      azureOpenAIDeployment,
+      cosmosEndpoint,
+      cosmosKey,
+      cosmosDatabase,
+      azureSpeechKey,
+      azureSpeechRegion,
+      azureTenantId,
+      azureClientId,
+      azureClientSecret,
     });
     s.stop("Scaffolded ✔");
   } catch (err) {
@@ -578,16 +518,6 @@ async function main(): Promise<void> {
   const nextSteps = [
     `${pc.bold("cd")} ${name}`,
   ];
-  if (contentSource === "engagement-repo") {
-    // The PROJECTS_SOURCE path was just captured into .env. The
-    // engagement-repo clone has to live there relative to the
-    // scaffolded customer directory for the compose mount to resolve.
-    const cloneTarget = projectsSource;
-    nextSteps.push(
-      pc.dim(`# clone the engagement-repo at the path PROJECTS_SOURCE points to:`),
-      `${pc.bold(`git clone https://github.com/<org>/${name}.git ${cloneTarget}`)}`,
-    );
-  }
   nextSteps.push(
     `${pc.bold("docker compose pull")}`,
     `${pc.bold("docker compose up -d")}`,

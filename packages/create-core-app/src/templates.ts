@@ -24,17 +24,14 @@ services:
       LOCAL_STORAGE_PATH: /data/storage
       EXTENSIONS_DIR: /data/extensions
     volumes:
-      # Source of project content. Mounted read-write so synthesis write-back
-      # can materialize generated markdown into the engagement-repo's
-      # \`synthesis/\` subfolder when enabled per-project. Customer-authored
-      # content outside that subfolder is never touched. Override via
-      # PROJECTS_SOURCE in .env to point at any host path.
-      - \${PROJECTS_SOURCE:-./projects}:/data/projects
+      # Bind mounts are resolved relative to this compose file's location,
+      # so ./projects and ./data always point INSIDE this customer repo —
+      # never to the shell's cwd. Edit these paths if you genuinely need
+      # to relocate content (rare; most customers leave them).
+      - ./projects:/data/projects
       - ./config/prompts:/data/prompts:ro
       - ./extensions:/data/extensions:ro
-      # Local data folder for persisted state (acts as local backup even when
-      # Azure storage is enabled).
-      - \${LOCAL_DATA_PATH:-./data}:/data/storage
+      - ./data:/data/storage
     ports:
       - "8000:8000"
     healthcheck:
@@ -61,16 +58,22 @@ services:
 
 export function envExample(o: ScaffoldOptions): string {
   const partition = o.storage === "azure" ? "project_id" : "id";
-  return `# ─── Provider selection ────────────────────────────────────────────────
+  return `# ─── Install identity ──────────────────────────────────────────────────
+# Stable slug for this customer install. Surfaces in /api/health and is
+# used by the frontend to namespace localStorage so two installs on the
+# same browser don't cross-contaminate cached state.
+CUSTOMER_SLUG=${o.name}
+
+# ─── Provider selection ────────────────────────────────────────────────
 LLM_PROVIDER=${o.llm}
 STORAGE_PROVIDER=${o.storage}
 AUTH_PROVIDER=${o.auth}
 SPEECH_PROVIDER=${o.speech}
 
 # ─── Azure OpenAI (LLM_PROVIDER=azure) ─────────────────────────────────
-AZURE_OPENAI_ENDPOINT=
-AZURE_OPENAI_API_KEY=
-AZURE_OPENAI_DEPLOYMENT=gpt-4o
+AZURE_OPENAI_ENDPOINT=${o.azureOpenAIEndpoint ?? ""}
+AZURE_OPENAI_API_KEY=${o.azureOpenAIKey ?? ""}
+AZURE_OPENAI_DEPLOYMENT=${o.azureOpenAIDeployment ?? "gpt-4o"}
 AZURE_OPENAI_API_VERSION=2024-12-01-preview
 
 # ─── OpenAI-compatible APIs (LLM_PROVIDER=openai) ─────────────────────
@@ -87,22 +90,22 @@ OPENAI_TRANSCRIPTION_MODEL=${o.openaiTranscriptionModel}
 OPENAI_TRANSCRIPTION_BASE_URL=${o.openaiTranscriptionBaseUrl ?? ""}
 
 # ─── Azure Speech (SPEECH_PROVIDER=azure) ─────────────────────────────
-AZURE_SPEECH_KEY=
-AZURE_SPEECH_REGION=eastus
+AZURE_SPEECH_KEY=${o.azureSpeechKey ?? ""}
+AZURE_SPEECH_REGION=${o.azureSpeechRegion ?? "eastus"}
 AZURE_SPEECH_RESOURCE_ID=
 
 # ─── Cosmos DB (STORAGE_PROVIDER=azure) ────────────────────────────────
-COSMOS_ENDPOINT=
-COSMOS_KEY=
-COSMOS_DATABASE=core-discovery
+COSMOS_ENDPOINT=${o.cosmosEndpoint ?? ""}
+COSMOS_KEY=${o.cosmosKey ?? ""}
+COSMOS_DATABASE=${o.cosmosDatabase ?? "core-discovery"}
 COSMOS_ENSURE_COLLECTIONS=true
 # IMMUTABLE per Cosmos container — set before first ensure_collections run.
 COSMOS_PARTITION_STRATEGY=${partition}
 
 # ─── Entra ID (AUTH_PROVIDER=azure) ────────────────────────────────────
-AZURE_TENANT_ID=
-AZURE_CLIENT_ID=
-AZURE_CLIENT_SECRET=
+AZURE_TENANT_ID=${o.azureTenantId ?? ""}
+AZURE_CLIENT_ID=${o.azureClientId ?? ""}
+AZURE_CLIENT_SECRET=${o.azureClientSecret ?? ""}
 
 # ─── CORS ──────────────────────────────────────────────────────────────
 # Add any dev or staging origins that need to reach this backend.
@@ -113,8 +116,6 @@ CORS_ORIGINS=["http://localhost:3000"]
 # ─── Project + extension mounts ────────────────────────────────────────
 PROJECTS_ROOT=/data/projects
 EXTENSIONS_DIR=/data/extensions
-LOCAL_DATA_PATH=${o.localDataPath}
-PROJECTS_SOURCE=${o.projectsSource}
 `;
 }
 

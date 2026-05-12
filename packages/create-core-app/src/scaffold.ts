@@ -1,6 +1,6 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import { randomUUID } from "node:crypto";
-import { isAbsolute, join, resolve } from "node:path";
+import { join } from "node:path";
 
 import { atomicWrite } from "./atomic.js";
 import { writeMarker, type CoreDiscoveryMarker } from "./marker.js";
@@ -29,24 +29,34 @@ export interface ScaffoldOptions {
   storage: "local" | "azure";
   auth: "none" | "azure";
   initialProject?: string;
-  contentSource: "local" | "engagement-repo" | "custom";
-  projectsSource: string;
-  createProjectsSourceFolder?: boolean;
-  localDataPath: string;
-  createLocalDataFolder?: boolean;
+  // Resolved Azure resource values. Populated by the Azure setup wizard
+  // when the corresponding provider is "azure"; empty otherwise. The
+  // env template lets blanks fall through, so callers can leave them
+  // unset for local-only scaffolds.
+  azureOpenAIEndpoint?: string;
+  azureOpenAIKey?: string;
+  azureOpenAIDeployment?: string;
+  cosmosEndpoint?: string;
+  cosmosKey?: string;
+  cosmosDatabase?: string;
+  azureSpeechKey?: string;
+  azureSpeechRegion?: string;
+  azureTenantId?: string;
+  azureClientId?: string;
+  azureClientSecret?: string;
 }
 
 /** Write the customer-repo scaffold to disk. */
 export async function scaffold(o: ScaffoldOptions): Promise<void> {
+  // data/* and projects/ always live inside the customer repo. compose.yaml
+  // mounts ./data and ./projects with relative paths so they resolve against
+  // the compose file's location — bind mounts never drift to the shell's cwd.
   const dirs = [
     "",
     "projects",
     "extensions",
     "config/prompts",
     "infra",
-    // data/ subdirs the v1.3.1 backend reads from on first boot. Pre-creating
-    // them lets us seed customer + engagement records so the UI loads with
-    // content instead of an empty "No project selected" state.
     "data/customers",
     "data/engagements",
     "data/discoveries",
@@ -55,20 +65,6 @@ export async function scaffold(o: ScaffoldOptions): Promise<void> {
 
   for (const d of dirs) {
     await mkdir(join(o.target, d), { recursive: true });
-  }
-
-  if (o.createProjectsSourceFolder) {
-    const projectsPath = isAbsolute(o.projectsSource)
-      ? o.projectsSource
-      : resolve(o.target, o.projectsSource);
-    await mkdir(projectsPath, { recursive: true });
-  }
-
-  if (o.createLocalDataFolder) {
-    const dataPath = isAbsolute(o.localDataPath)
-      ? o.localDataPath
-      : resolve(o.target, o.localDataPath);
-    await mkdir(dataPath, { recursive: true });
   }
 
   // Files the CLI is responsible for under upgrade mode. .env is
@@ -100,11 +96,11 @@ export async function scaffold(o: ScaffoldOptions): Promise<void> {
   //   - .env: holds the user's secrets; must never be overwritten
   //     by upgrade.
   //   - .env.example: depends on every provider knob (llm, storage,
-  //     auth, speech, openai*, localDataPath, projectsSource) which
-  //     the marker doesn't store. Re-rendering against marker-only
-  //     context would produce false-positive diffs for any customer
-  //     who customized providers. Users compare their .env against
-  //     a fresh scaffold by hand when new fields ship.
+  //     auth, speech, openai*, azure*) which the marker doesn't
+  //     store. Re-rendering against marker-only context would
+  //     produce false-positive diffs for any customer who
+  //     customized providers. Users compare their .env against a
+  //     fresh scaffold by hand when new fields ship.
   await atomicWrite(join(o.target, ".env"), envExample(o));
   await atomicWrite(join(o.target, ".env.example"), envExample(o));
 
