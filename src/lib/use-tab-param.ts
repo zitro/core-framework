@@ -3,31 +3,23 @@
 /**
  * useTabParam — bind a controlled <Tabs> value to a ?tab=… URL search param.
  *
- * Reads the initial tab from the URL (falling back to ``defaultTab``) and
- * writes back to the URL on change without a scroll jump or full reload.
+ * Reads the active tab from the URL on every render (falling back to
+ * ``defaultTab``). Writing pushes the change back to the URL without a
+ * scroll jump or full reload; the next render picks it up automatically.
  */
 
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback } from "react";
 
 export function useTabParam(defaultTab: string, paramName = "tab") {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
-  const [tab, setTab] = useState<string>(
-    searchParams.get(paramName) || defaultTab,
-  );
-
-  // Mirror future URL changes (e.g. back/forward) into local state.
-  useEffect(() => {
-    const next = searchParams.get(paramName) || defaultTab;
-    setTab((prev) => (prev === next ? prev : next));
-  }, [searchParams, paramName, defaultTab]);
+  const tab = searchParams.get(paramName) || defaultTab;
 
   const setTabValue = useCallback(
     (next: string) => {
-      setTab(next);
       const params = new URLSearchParams(searchParams.toString());
       if (next === defaultTab) params.delete(paramName);
       else params.set(paramName, next);

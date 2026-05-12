@@ -41,13 +41,11 @@ export default function MethodologyPage() {
   const [allInstances, setAllInstances] = useState<MethodologyArtifact[]>([]);
 
   useEffect(() => {
-    if (!discoveryId) {
-      setAllInstances([]);
-      return;
-    }
     let cancelled = false;
-    methodologyApi
-      .list(discoveryId)
+    const fetcher = discoveryId
+      ? methodologyApi.list(discoveryId)
+      : Promise.resolve<MethodologyArtifact[]>([]);
+    fetcher
       .then((rows) => {
         if (!cancelled) setAllInstances(rows);
       })
@@ -87,7 +85,7 @@ export default function MethodologyPage() {
 
         <TabsContent value="templates" className="space-y-6">
           <p className="max-w-2xl text-sm text-muted-foreground">
-            Fillable templates for this discovery. Generate from the corpus you've captured, or
+            Fillable templates for this discovery. Generate from the corpus you&apos;ve captured, or
             add your own — everything you save feeds into every CORE synthesis prompt and shows up
             on the Orchestrate Personas tab.
           </p>
@@ -126,7 +124,7 @@ export default function MethodologyPage() {
                 Design Thinking through CORE
               </h2>
               <p className="max-w-2xl text-sm text-muted-foreground">
-                The five DT stages map onto CORE's four phases. Reach for these methods at the
+                The five DT stages map onto CORE&apos;s four phases. Reach for these methods at the
                 right time, not all at once.
               </p>
             </header>
@@ -165,7 +163,7 @@ export default function MethodologyPage() {
               </h2>
               <p className="max-w-2xl text-sm text-muted-foreground">
                 Design Thinking frames the work; FDE ships it. These practices overlay every CORE
-                phase — they're how a small team gets to working software in days, not months.
+                phase — they&apos;re how a small team gets to working software in days, not months.
               </p>
             </header>
 

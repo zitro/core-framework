@@ -59,7 +59,7 @@ export function UpdateBanner() {
     <div className="flex items-center gap-2 border-b border-brand/30 bg-brand/5 px-4 py-2 text-xs">
       <span className="font-medium text-brand">CORE v{info.latest} available</span>
       <span className="text-muted-foreground">
-        You're on v{info.running}. Run{" "}
+        You&apos;re on v{info.running}. Run{" "}
         <code className="rounded bg-muted px-1 font-mono text-[11px]">
           npx create-core-discovery-app@latest
         </code>{" "}

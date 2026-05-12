@@ -50,13 +50,17 @@ const KIND_ICON: Record<string, typeof BookOpen> = {
 
 export function ActivityFeed({ discoveryId }: Props) {
   const [events, setEvents] = useState<ActivityEvent[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(Boolean(discoveryId));
   const [error, setError] = useState<string | null>(null);
+  const [trackedId, setTrackedId] = useState(discoveryId);
+  if (trackedId !== discoveryId) {
+    setTrackedId(discoveryId);
+    setLoading(Boolean(discoveryId));
+  }
 
   useEffect(() => {
     if (!discoveryId) return;
     let cancelled = false;
-    setLoading(true);
     request<ActivityResponse>(
       `/api/insights/activity?discovery_id=${encodeURIComponent(discoveryId)}`,
     )

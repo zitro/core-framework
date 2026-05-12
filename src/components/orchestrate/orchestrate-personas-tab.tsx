@@ -16,14 +16,14 @@ export function OrchestratePersonasTab({ discoveryId }: Props) {
     <div className="space-y-6">
       <p className="text-xs text-muted-foreground">
         Personas, empathy maps, and journey maps for this discovery. Generate them from the
-        corpus you've captured, or add your own. Everything here also lives on the Methodology
+        corpus you&apos;ve captured, or add your own. Everything here also lives on the Methodology
         page and folds into every CORE synthesis prompt.
       </p>
 
       <section className="space-y-2">
         <header className="space-y-0.5">
           <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
-            Who we're designing for
+            Who we&apos;re designing for
           </p>
           <h3 className="font-heading text-base font-semibold tracking-tight">Personas</h3>
         </header>

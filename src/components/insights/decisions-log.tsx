@@ -35,13 +35,17 @@ interface Props {
 
 export function DecisionsLog({ discoveryId }: Props) {
   const [data, setData] = useState<DecisionsResponse | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(Boolean(discoveryId));
   const [error, setError] = useState<string | null>(null);
+  const [trackedId, setTrackedId] = useState(discoveryId);
+  if (trackedId !== discoveryId) {
+    setTrackedId(discoveryId);
+    setLoading(Boolean(discoveryId));
+  }
 
   useEffect(() => {
     if (!discoveryId) return;
     let cancelled = false;
-    setLoading(true);
     request<DecisionsResponse>(
       `/api/insights/decisions?discovery_id=${encodeURIComponent(discoveryId)}`,
     )

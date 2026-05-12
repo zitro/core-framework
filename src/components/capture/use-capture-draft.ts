@@ -38,6 +38,11 @@ export function useCaptureDraft(activeDiscovery: Discovery | null): CaptureDraft
   const [technologyFocusInput, setTechnologyFocusInput] = useState("");
   const [technologyTargets, setTechnologyTargets] = useState<TechnologyTarget[]>([]);
   const [hydrated, setHydrated] = useState(false);
+  const [trackedDiscoveryId, setTrackedDiscoveryId] = useState<string | undefined>(activeDiscovery?.id);
+  if (trackedDiscoveryId !== activeDiscovery?.id) {
+    setTrackedDiscoveryId(activeDiscovery?.id);
+    setHydrated(false);
+  }
 
   const draftKey = useMemo(
     () => `core:capture-draft:${discoveryId || projectId || "global"}`,
@@ -64,10 +69,8 @@ export function useCaptureDraft(activeDiscovery: Discovery | null): CaptureDraft
   }, [draftKey]);
 
   useEffect(() => {
-    if (!activeDiscovery) {
-      setHydrated(false);
-      return;
-    }
+    if (!activeDiscovery) return;
+    let cancelled = false;
 
     const draft = readDraft();
     const persistedTargets = activeDiscovery.target_technologies ?? [];
@@ -83,13 +86,20 @@ export function useCaptureDraft(activeDiscovery: Discovery | null): CaptureDraft
           ? providerFallbackTargets
           : (draft?.technologyTargets ?? []);
 
-    setQuickNote(draft?.quickNote || "");
-    setCaptureItemType(draft?.captureItemType || "note");
-    setCaptureReference(draft?.captureReference || "");
-    setTechnologyInput(draft?.technologyInput || "");
-    setTechnologyFocusInput(draft?.technologyFocusInput || "");
-    setTechnologyTargets(nextTargets);
-    setHydrated(true);
+    Promise.resolve().then(() => {
+      if (cancelled) return;
+      setQuickNote(draft?.quickNote || "");
+      setCaptureItemType(draft?.captureItemType || "note");
+      setCaptureReference(draft?.captureReference || "");
+      setTechnologyInput(draft?.technologyInput || "");
+      setTechnologyFocusInput(draft?.technologyFocusInput || "");
+      setTechnologyTargets(nextTargets);
+      setHydrated(true);
+    });
+
+    return () => {
+      cancelled = true;
+    };
   }, [
     activeDiscovery,
     activeDiscovery?.id,

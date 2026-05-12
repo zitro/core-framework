@@ -36,13 +36,17 @@ const PHASE_HREF: Record<InsightPhase, string> = {
 
 export function CoverageMap({ discoveryId }: Props) {
   const [data, setData] = useState<CoverageResponse | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(Boolean(discoveryId));
   const [error, setError] = useState<string | null>(null);
+  const [trackedId, setTrackedId] = useState(discoveryId);
+  if (trackedId !== discoveryId) {
+    setTrackedId(discoveryId);
+    setLoading(Boolean(discoveryId));
+  }
 
   useEffect(() => {
     if (!discoveryId) return;
     let cancelled = false;
-    setLoading(true);
     insightsApi
       .coverage(discoveryId)
       .then((next) => {

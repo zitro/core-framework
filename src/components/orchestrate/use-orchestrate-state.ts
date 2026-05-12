@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { Evidence, Question, QuestionSet, TranscriptAnalysis } from "@/types/core";
 import { api } from "@/lib/api";
 import { useDiscovery } from "@/stores/discovery-store";
@@ -156,27 +156,22 @@ export function useOrchestrateState() {
 
   const showTranscriptWorkspace = transcriptEvidence.length > 0 || savedAnalyses.length > 0 || Boolean(analysisResult);
 
-  const loadCaptureEvidence = useCallback(async () => {
-    if (!discoveryId) return [];
-    const items = await api.evidence.list(discoveryId, "capture");
-    setCaptureEvidence(items);
-    return items;
-  }, [discoveryId]);
-
   useEffect(() => {
-    loadCaptureEvidence().catch(() => { /* non-critical */ });
-  }, [loadCaptureEvidence]);
+    if (!discoveryId) return;
+    api.evidence
+      .list(discoveryId, "capture")
+      .then((items) => setCaptureEvidence(items))
+      .catch(() => { /* non-critical */ });
+  }, [discoveryId]);
 
   useEffect(() => {
     if (!discoveryId) return;
     api.transcripts.list(discoveryId).then(setSavedAnalyses).catch(() => { /* non-critical */ });
   }, [discoveryId]);
 
-  useEffect(() => {
-    if (!selectedTranscriptId && transcriptEvidence.length > 0) {
-      setSelectedTranscriptId(transcriptEvidence[0].id);
-    }
-  }, [selectedTranscriptId, transcriptEvidence]);
+  if (!selectedTranscriptId && transcriptEvidence.length > 0) {
+    setSelectedTranscriptId(transcriptEvidence[0].id);
+  }
 
   useEffect(() => {
     if (!discoveryId) return;
@@ -194,16 +189,19 @@ export function useOrchestrateState() {
     }).catch(() => { /* non-critical */ });
   }, [discoveryId]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  useEffect(() => {
-    if (questions.length === 0) {
-      setSelectedQuestionIndex(null);
-      return;
-    }
-    setSelectedQuestionIndex((current) => {
-      if (current !== null && questions[current]) return current;
-      return questionBuckets.understanding[0]?.index ?? questionBuckets.planning[0]?.index ?? questionBuckets.answered[0]?.index ?? 0;
-    });
-  }, [questionBuckets.answered, questionBuckets.planning, questionBuckets.understanding, questions]);
+  const desiredSelectedQuestionIndex = (() => {
+    if (questions.length === 0) return null;
+    if (selectedQuestionIndex !== null && questions[selectedQuestionIndex]) return selectedQuestionIndex;
+    return (
+      questionBuckets.understanding[0]?.index ??
+      questionBuckets.planning[0]?.index ??
+      questionBuckets.answered[0]?.index ??
+      0
+    );
+  })();
+  if (desiredSelectedQuestionIndex !== selectedQuestionIndex) {
+    setSelectedQuestionIndex(desiredSelectedQuestionIndex);
+  }
 
   return {
     activeDiscovery,

@@ -54,13 +54,17 @@ interface Props {
 
 export function Inbox({ discoveryId }: Props) {
   const [data, setData] = useState<InboxResponse | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(Boolean(discoveryId));
   const [error, setError] = useState<string | null>(null);
+  const [trackedId, setTrackedId] = useState(discoveryId);
+  if (trackedId !== discoveryId) {
+    setTrackedId(discoveryId);
+    setLoading(Boolean(discoveryId));
+  }
 
   useEffect(() => {
     if (!discoveryId) return;
     let cancelled = false;
-    setLoading(true);
     request<InboxResponse>(
       `/api/insights/inbox?discovery_id=${encodeURIComponent(discoveryId)}`,
     )
