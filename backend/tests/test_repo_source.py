@@ -81,7 +81,7 @@ def test_ensure_github_repo_source_downloads_and_extracts(tmp_path: Path, monkey
                 return _FakeResponse(zip_bytes)
             raise AssertionError(f"Unexpected URL: {url}")
 
-        monkeypatch.setattr("app.utils.repo_source.urlopen", fake_urlopen)
+        monkeypatch.setattr("app.utils.repo_source_archive.urlopen", fake_urlopen)
 
         materialized = ensure_github_repo_source("https://github.com/octocat/Hello-World")
 
@@ -104,7 +104,7 @@ def test_ensure_github_repo_source_rejects_non_zip_payload(tmp_path: Path, monke
                 return _FakeResponse(json.dumps({"default_branch": "main"}).encode("utf-8"))
             return _FakeResponse(b"not-a-zip")
 
-        monkeypatch.setattr("app.utils.repo_source.urlopen", fake_urlopen)
+        monkeypatch.setattr("app.utils.repo_source_archive.urlopen", fake_urlopen)
 
         with pytest.raises(RepoSourceError):
             ensure_github_repo_source("https://github.com/octocat/Hello-World")
@@ -121,7 +121,7 @@ def test_private_repo_message_mentions_auth(tmp_path: Path, monkeypatch) -> None
         def fake_urlopen(req, timeout=0):  # noqa: ANN001
             raise HTTPError(req.full_url, 404, "Not Found", hdrs=None, fp=None)
 
-        monkeypatch.setattr("app.utils.repo_source.urlopen", fake_urlopen)
+        monkeypatch.setattr("app.utils.repo_source_archive.urlopen", fake_urlopen)
 
         with pytest.raises(RepoSourceError) as exc:
             ensure_github_repo_source("https://github.com/octocat/Hello-World")
