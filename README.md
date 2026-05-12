@@ -1,8 +1,12 @@
 ---
 title: CORE Discovery Framework
-description: An AI-powered product discovery coaching platform built on the CORE methodology (Capture, Orient, Refine, Execute) with a Next.js frontend, FastAPI backend, pluggable AI agents, audited human-in-the-loop review gates, and bidirectional engagement repo integration.
-ms.date: 2026-04-21
+description: An AI-powered product discovery coaching platform built on the CORE methodology (Capture, Orchestrate, Refine, Execute) with a Next.js frontend, FastAPI backend, pluggable AI agents, audited human-in-the-loop review gates, and bidirectional engagement repo integration.
+ms.date: 2026-05-11
 ---
+
+<p align="center">
+  <img src="https://raw.githubusercontent.com/zitro/core-framework/main/public/brand/core_logoText_nobg.png" alt="CORE Discovery" width="420" />
+</p>
 
 [![Release](https://img.shields.io/github/v/tag/zitro/core-framework?label=release)](https://github.com/zitro/core-framework/releases)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
@@ -19,9 +23,9 @@ The four phases work together:
 
 1. Capture: Probe the system, gather evidence, map stakeholders. Generate tailored interview questions
    and analyze meeting transcripts. Extracted evidence flows automatically into the Evidence Board.
-2. Orient: Recognize patterns, frame the real problem. Evidence from Capture pre-populates the context.
+2. Orchestrate: Recognize patterns, frame the real problem. Evidence from Capture pre-populates the context.
    Build structured problem statements and use cases that carry forward.
-3. Refine: Test assumptions, match solutions to capabilities. The problem statement from Orient loads
+3. Refine: Test assumptions, match solutions to capabilities. The problem statement from Orchestrate loads
    automatically. Generate solution architecture blueprints. Assumptions and solution matches persist
    across sessions.
 4. Execute: Deliver quick wins, resolve blockers, prepare handoff. The validated problem statement and
@@ -35,9 +39,14 @@ Beyond the four phases, the platform includes:
   approve before it leaves the workspace.
 - An AI advisor that generates use case proposals and solution architecture blueprints from accumulated
   evidence.
-- Engagement workspaces that group multiple discoveries under one customer with attach/detach
-  controls, scoped review queues, and one-click export of all artifact families to a structured
-  markdown repo (skipping anything still pending or rejected in review).
+- Single-tenant customer instances: each customer scaffolds its own repo via
+  [`create-core-discovery-app`](https://www.npmjs.com/package/create-core-discovery-app) and runs
+  one Docker stack pinned to a framework version. The Dashboard owns the discovery list —
+  each discovery is a project, with its own evidence, artifacts, and review queue.
+- A Methodology workspace with fillable templates (Empathy Map, Persona, Journey Map, HMW Board,
+  Assumption Matrix, Champion Map) that accept multiple instances per discovery, can auto-generate
+  from the captured corpus, and feed every synthesis prompt so problem framing, use cases, narrative,
+  expert reviews, and blueprints all stay grounded in the team's structured framing.
 - Microsoft 365 read-only surfaces (Files, Messages, Meetings, Accounts) backed by Microsoft Graph
   and Dataverse providers, plus a Grounded Answers page that combines web search with the LLM and
   returns inline `[source:N]` citations.
@@ -557,7 +566,7 @@ when the backend is running. Generate a typed TypeScript client from the schema 
 Data flows forward through the CORE phases to build a connected narrative:
 
 ```text
-Capture ──▶ Orient ──▶ Refine ──▶ Execute
+Capture ──▶ Orchestrate ──▶ Refine ──▶ Execute
   │            │          │          │
   │ Evidence   │ Problem  │ Assump.  │ Handoff
   │ extracted  │ statement│ validated│ package
@@ -724,13 +733,13 @@ and register themselves in a central registry for discoverability.
 | Agent              | Phase   | Responsibility                                           |
 |--------------------|---------|----------------------------------------------------------|
 | Discovery Coach    | All     | Generates phase-appropriate interview questions           |
-| Problem Analyst    | Orient  | Synthesizes evidence into structured problem statements   |
+| Problem Analyst    | Orchestrate  | Synthesizes evidence into structured problem statements   |
 | Transcript Analyst | Capture | Extracts insights, evidence, themes from meeting notes    |
-| Use Case Analyst   | Orient  | Builds personas and use case proposals from evidence      |
+| Use Case Analyst   | Orchestrate  | Builds personas and use case proposals from evidence      |
 | Solution Architect | Refine  | Proposes architecture blueprints with service selections  |
 
 Each agent defines its own LLM system prompt with phase-specific guidance. The Discovery Coach, for
-example, uses different prompt strategies for Capture (listening and probing) versus Orient
+example, uses different prompt strategies for Capture (listening and probing) versus Orchestrate
 (sensemaking and pattern recognition) versus Refine (assumption testing).
 
 ## Engagement Repo Integration
