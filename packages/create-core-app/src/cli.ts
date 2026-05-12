@@ -37,6 +37,78 @@ function validateFrameworkVersion(value: string): string | undefined {
   return undefined;
 }
 
+/**
+ * In-place upgrade flow: invoked when the CLI is run from inside an
+ * existing customer repo (a `core-discovery.json` marker in the cwd
+ * and no customer-name arg). Mirrors the named-dir upgrade UX but
+ * skips the name prompt and operates on `cwd` directly.
+ */
+async function runUpgradeAtCwd(
+  cwd: string,
+  marker: Awaited<ReturnType<typeof readMarker>>,
+): Promise<number> {
+  if (marker === null) return 1;
+
+  const proceed = await prompt(confirm({
+    message: `Upgrade this CORE Discovery repo (last touched by CLI ${marker.cli_version_last_upgrade ?? marker.cli_version_created})?`,
+    initialValue: true,
+  }));
+  if (!proceed) {
+    cancel("Aborted.");
+    return 0;
+  }
+
+  const s = spinner();
+  let spinnerActive = true;
+  s.start("Planning upgrade…");
+  let result!: UpgradeResult;
+  try {
+    result = await runUpgradeMode({
+      repoPath: cwd,
+      confirm: async (preview) => {
+        s.stop("Plan ready.");
+        spinnerActive = false;
+        note(preview, "Pending changes");
+        return await prompt(confirm({
+          message: "Apply these changes?",
+          initialValue: true,
+        }));
+      },
+      onBeforeCommit: () => {
+        s.start("Applying changes…");
+        spinnerActive = true;
+      },
+    });
+  } catch (err) {
+    if (spinnerActive) s.stop("Failed");
+    cancel(err instanceof Error ? err.message : String(err));
+    return 1;
+  }
+
+  if (spinnerActive) {
+    s.stop(
+      result.applied.length === 0
+        ? "No changes needed."
+        : `Applied ${result.applied.length} file(s).`,
+    );
+  }
+  if (result.warnings.length > 0) note(result.warnings.join("\n"), "Warnings");
+  if (result.aborted) {
+    cancel("Upgrade aborted.");
+    return 0;
+  }
+  if (result.applied.length === 0) {
+    outro(pc.green("Already up to date."));
+    return 0;
+  }
+  note(
+    result.applied.map((p) => `- ${p}`).join("\n"),
+    `Updated ${result.applied.length} file(s)`,
+  );
+  outro(pc.green("Upgrade complete."));
+  return 0;
+}
+
 async function main(): Promise<void> {
   intro(pc.cyan("◆ create-core-discovery-app"));
 
@@ -93,6 +165,19 @@ async function main(): Promise<void> {
     if (err) {
       cancel(`Invalid customer name '${argName}': ${err}`);
       process.exit(1);
+    }
+  }
+
+  // In-place upgrade detection: if the user runs the CLI from inside
+  // an existing customer repo (a core-discovery.json marker in the
+  // cwd) and doesn't pass a customer name, treat that as "upgrade me"
+  // instead of prompting for a fresh scaffold.
+  if (argName === undefined) {
+    const cwd = process.cwd();
+    const cwdMarker = await readMarker(cwd);
+    if (cwdMarker !== null) {
+      const code = await runUpgradeAtCwd(cwd, cwdMarker);
+      process.exit(code);
     }
   }
   const name = argName ?? (await prompt(text({
