@@ -23,6 +23,8 @@ from app.utils.repo_source_normalize import (
     RepoSourceError,
     is_github_repo_url,
     normalize_github_repo_source,
+)
+from app.utils.repo_source_normalize import (
     parse_github_repo as _parse_github_repo,
 )
 

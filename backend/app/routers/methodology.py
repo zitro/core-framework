@@ -19,7 +19,6 @@ Routes (mounted at ``/api/methodology``):
 
 from __future__ import annotations
 
-import json
 import logging
 import uuid
 from datetime import UTC, datetime
