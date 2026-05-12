@@ -12,7 +12,8 @@ const nextConfig: NextConfig = {
       { source: "/m365", destination: "/capture?tab=discover", permanent: true },
       { source: "/company", destination: "/capture?tab=discover", permanent: true },
       { source: "/grounding", destination: "/orchestrate?tab=grounded", permanent: true },
-      { source: "/discoveries", destination: "/engagements", permanent: true },
+      { source: "/discoveries", destination: "/", permanent: true },
+      { source: "/engagements", destination: "/", permanent: true },
       { source: "/evidence", destination: "/insights?tab=evidence", permanent: true },
     ];
   },
