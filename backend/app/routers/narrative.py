@@ -21,6 +21,7 @@ from app.dependencies import get_current_user
 from app.providers.llm import get_llm_provider
 from app.utils.ai_feedback import render_feedback_block
 from app.utils.context import gather_context
+from app.utils.methodology import render_methodology_block
 
 logger = logging.getLogger(__name__)
 
@@ -111,6 +112,9 @@ async def generate_narrative(request: NarrativeRequest) -> NarrativeResponse:
     feedback_block = await render_feedback_block(request.discovery_id, "narrative")
     if feedback_block:
         user_prompt = f"{user_prompt}\n\n{feedback_block}"
+    methodology_block = await render_methodology_block(request.discovery_id)
+    if methodology_block:
+        user_prompt = f"{user_prompt}\n\n{methodology_block}"
 
     llm = get_llm_provider()
     try:

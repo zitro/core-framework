@@ -12,6 +12,7 @@ from app.providers.storage import get_storage_provider
 from app.utils.ai_feedback import render_feedback_block
 from app.utils.audit import stamp_create
 from app.utils.context import gather_context, get_solution_providers
+from app.utils.methodology import render_methodology_block
 from app.utils.review_gate import auto_request_review
 
 logger = logging.getLogger(__name__)
@@ -99,6 +100,9 @@ async def generate_blueprint(request: BlueprintRequest):
     feedback_block = await render_feedback_block(request.discovery_id, "blueprint")
     if feedback_block:
         user_block += f"\n\n{feedback_block}"
+    methodology_block = await render_methodology_block(request.discovery_id)
+    if methodology_block:
+        user_block += f"\n\n{methodology_block}"
 
     user_prompt = (
         f"Discovery context:\n\n{context}{user_block}\n\n"

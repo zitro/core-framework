@@ -4,105 +4,41 @@ from __future__ import annotations
 
 import hashlib
 import json
-import os
-import re
 import shutil
 import tempfile
 import time
 from pathlib import Path
 from urllib.error import HTTPError
-from urllib.parse import urlparse
-from urllib.request import Request, urlopen
 from zipfile import BadZipFile, ZipFile, is_zipfile
 
 from app.config import settings
+from app.utils.repo_source_archive import (
+    _download_archive,
+    _get_default_branch,
+    _get_default_branch_from_html,
+    _github_request,
+    _safe_extractall,
+)
+from app.utils.repo_source_normalize import (
+    RepoSourceError,
+    is_github_repo_url,
+    normalize_github_repo_source,
+    parse_github_repo as _parse_github_repo,
+)
 
-
-class RepoSourceError(RuntimeError):
-    """Raised when a remote repository source cannot be materialized."""
-
-
-_GITHUB_WEB_HOSTS = {"github.com", "www.github.com"}
-
-
-def _safe_extractall(zf: ZipFile, extract_dir: Path) -> None:
-    """Extract every zip member, refusing any whose resolved path would
-    escape ``extract_dir``. Closes the zip-slip vulnerability that
-    ``ZipFile.extractall`` exposes when archives come from external
-    sources (here: GitHub repository archives, which a malicious or
-    compromised repo can poison).
-    """
-    base = extract_dir.resolve()
-    for member in zf.infolist():
-        member_path = (base / member.filename).resolve()
-        try:
-            member_path.relative_to(base)
-        except ValueError as exc:
-            raise RepoSourceError(
-                f"Refused to extract zip entry outside target directory: {member.filename!r}"
-            ) from exc
-        # Refuse symlinks too — extractall doesn't honor them by default,
-        # but if the member type advertises one we don't want to follow.
-        # 0xA000 is the symlink flag in zip external_attr.
-        if (member.external_attr >> 16) & 0xF000 == 0xA000:
-            raise RepoSourceError(f"Refused to extract symlink zip entry: {member.filename!r}")
-    zf.extractall(base)
-
-
-def normalize_github_repo_source(value: str) -> str:
-    """Normalize common GitHub input formats to https://github.com/owner/repo.
-
-    Supported forms:
-    - https://github.com/owner/repo
-    - github.com/owner/repo
-    - git@github.com:owner/repo.git
-    - ssh://git@github.com/owner/repo.git
-    """
-    raw = str(value or "").strip()
-    if not raw:
-        return ""
-
-    ssh_match = re.match(r"^git@github\.com:(?P<owner>[^/]+)/(?P<repo>[^\s]+?)(?:\.git)?/?$", raw)
-    if ssh_match:
-        owner = ssh_match.group("owner")
-        repo = ssh_match.group("repo")
-        return f"https://github.com/{owner}/{repo}"
-
-    if raw.startswith("ssh://git@github.com/"):
-        tail = raw[len("ssh://git@github.com/") :].strip("/")
-        parts = [p for p in tail.split("/") if p]
-        if len(parts) >= 2:
-            owner = parts[0]
-            repo = parts[1][:-4] if parts[1].endswith(".git") else parts[1]
-            return f"https://github.com/{owner}/{repo}"
-
-    if raw.startswith("github.com/"):
-        return f"https://{raw}"
-
-    try:
-        parsed = urlparse(raw)
-    except ValueError:
-        return raw
-
-    if parsed.scheme in {"http", "https"} and parsed.netloc.lower() in _GITHUB_WEB_HOSTS:
-        parts = [p for p in parsed.path.strip("/").split("/") if p]
-        if len(parts) >= 2:
-            owner = parts[0]
-            repo = parts[1][:-4] if parts[1].endswith(".git") else parts[1]
-            return f"https://github.com/{owner}/{repo}"
-    return raw
-
-
-def is_github_repo_url(value: str) -> bool:
-    """Return True when value looks like a GitHub repository source."""
-    normalized = normalize_github_repo_source(value)
-    try:
-        parsed = urlparse((normalized or "").strip())
-    except ValueError:
-        return False
-    if parsed.scheme not in {"http", "https"}:
-        return False
-    return parsed.netloc.lower() in _GITHUB_WEB_HOSTS
+__all__ = [
+    "RepoSourceError",
+    "delete_github_repo_source_cache",
+    "ensure_github_repo_source",
+    "is_github_repo_url",
+    "normalize_github_repo_source",
+    "_safe_extractall",
+    "_github_request",
+    "_get_default_branch",
+    "_get_default_branch_from_html",
+    "_download_archive",
+    "_parse_github_repo",
+]
 
 
 def ensure_github_repo_source(
@@ -214,94 +150,3 @@ def delete_github_repo_source_cache(repo_url: str) -> bool:
         return False
     shutil.rmtree(base, ignore_errors=True)
     return True
-
-
-def _parse_github_repo(repo_url: str) -> tuple[str, str]:
-    parsed = urlparse(normalize_github_repo_source(repo_url))
-    if parsed.netloc.lower() not in _GITHUB_WEB_HOSTS:
-        raise RepoSourceError("Only github.com repository URLs are supported")
-    parts = [p for p in parsed.path.strip("/").split("/") if p]
-    if len(parts) < 2:
-        raise RepoSourceError("Invalid GitHub repository URL")
-    owner = parts[0]
-    repo = parts[1]
-    if repo.endswith(".git"):
-        repo = repo[:-4]
-    if not owner or not repo:
-        raise RepoSourceError("Invalid GitHub repository URL")
-    return owner, repo
-
-
-def _github_request(url: str, oauth_token: str | None = None) -> Request:
-    token = str(oauth_token or "").strip() or os.getenv("GITHUB_TOKEN", "").strip()
-    headers = {
-        "Accept": "application/vnd.github+json",
-        "User-Agent": "core-discovery-api",
-    }
-    if token:
-        headers["Authorization"] = f"Bearer {token}"
-    return Request(url, headers=headers)
-
-
-def _get_default_branch(owner: str, repo: str, oauth_token: str | None = None) -> str:
-    url = f"https://api.github.com/repos/{owner}/{repo}"
-    try:
-        with urlopen(_github_request(url, oauth_token), timeout=20) as resp:  # noqa: S310
-            payload = json.loads(resp.read().decode("utf-8"))
-        return str(payload.get("default_branch") or "").strip()
-    except Exception:
-        return ""
-
-
-def _get_default_branch_from_html(owner: str, repo: str) -> str:
-    url = f"https://github.com/{owner}/{repo}"
-    try:
-        req = Request(url, headers={"User-Agent": "core-discovery-api"})
-        with urlopen(req, timeout=20) as resp:  # noqa: S310
-            html = resp.read().decode("utf-8", errors="ignore")
-        # Works with current GitHub page payload format.
-        match = re.search(r'"defaultBranch"\s*:\s*"([^"]+)"', html)
-        return (match.group(1) if match else "").strip()
-    except Exception:
-        return ""
-
-
-def _download_archive(
-    owner: str,
-    repo: str,
-    branch: str,
-    destination: Path,
-    oauth_token: str | None = None,
-) -> None:
-    # Prefer API zipball (supports private repos with GITHUB_TOKEN), then
-    # fallback to public archive URL for unauthenticated access.
-    candidates = [
-        (
-            f"https://api.github.com/repos/{owner}/{repo}/zipball/{branch}"
-            if branch
-            else f"https://api.github.com/repos/{owner}/{repo}/zipball",
-            True,
-        ),
-        (f"https://github.com/{owner}/{repo}/archive/refs/heads/{branch}.zip", False)
-        if branch
-        else ("", False),
-        (f"https://codeload.github.com/{owner}/{repo}/zip/refs/heads/{branch}", False)
-        if branch
-        else ("", False),
-    ]
-
-    last_error: Exception | None = None
-    for url, use_api_headers in candidates:
-        if not url:
-            continue
-        try:
-            req = _github_request(url, oauth_token) if use_api_headers else Request(url)
-            with urlopen(req, timeout=60) as resp, destination.open("wb") as out:  # noqa: S310
-                shutil.copyfileobj(resp, out)
-            return
-        except Exception as exc:  # pragma: no cover - network edge path
-            last_error = exc
-            destination.unlink(missing_ok=True)
-
-    if last_error is not None:
-        raise last_error

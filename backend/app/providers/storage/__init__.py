@@ -24,6 +24,7 @@ KNOWN_COLLECTIONS: list[str] = [
     "reviews",
     "audit",
     "ai_feedback",
+    "methodology_artifacts",
     "artifacts",
     "artifact_threads",
     "artifact_comments",
@@ -59,6 +60,7 @@ PARTITIONED_COLLECTIONS: frozenset[str] = frozenset(
         "company_profiles",
         "reviews",
         "ai_feedback",
+        "methodology_artifacts",
     }
 )
 

@@ -85,6 +85,7 @@ def create_app() -> FastAPI:
         health_schema,
         insights,
         me,
+        methodology,
         narrative,
         problem_statements,
         projects,
@@ -205,6 +206,7 @@ def create_app() -> FastAPI:
     )
     app.include_router(v2.router, prefix="/api/v2", tags=["v2"])
     app.include_router(ai_feedback.router, prefix="/api/ai-feedback", tags=["ai-feedback"])
+    app.include_router(methodology.router, prefix="/api/methodology", tags=["methodology"])
     app.include_router(version.router, prefix="/api", tags=["version"])
     app.include_router(insights.router, prefix="/api/insights", tags=["insights"])
     app.include_router(

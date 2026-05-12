@@ -11,6 +11,7 @@ from app.providers.llm import get_llm_provider
 from app.providers.storage import get_storage_provider
 from app.utils.ai_feedback import render_feedback_block
 from app.utils.audit import stamp_create
+from app.utils.methodology import render_methodology_block
 from app.utils.context import gather_context
 from app.utils.review_gate import auto_request_review
 
@@ -81,6 +82,9 @@ async def generate_use_case(request: UseCaseRequest):
     feedback_block = await render_feedback_block(request.discovery_id, "usecase")
     if feedback_block:
         user_block += f"\n\n{feedback_block}"
+    methodology_block = await render_methodology_block(request.discovery_id)
+    if methodology_block:
+        user_block += f"\n\n{methodology_block}"
 
     user_prompt = (
         f"Here is everything we know about this discovery:\n\n"

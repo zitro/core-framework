@@ -11,6 +11,7 @@ from app.dependencies import get_current_user
 from app.providers.llm import get_llm_provider
 from app.providers.search import get_search_provider
 from app.utils.ai_feedback import render_feedback_block
+from app.utils.methodology import render_methodology_block
 
 logger = logging.getLogger(__name__)
 
@@ -70,6 +71,9 @@ async def answer(req: GroundingRequest) -> dict:
         feedback_block = await render_feedback_block(req.discovery_id, "grounded")
         if feedback_block:
             user_prompt = f"{user_prompt}\n\n{feedback_block}"
+        methodology_block = await render_methodology_block(req.discovery_id)
+        if methodology_block:
+            user_prompt = f"{user_prompt}\n\n{methodology_block}"
 
     try:
         result = await get_llm_provider().complete_json(SYSTEM, user_prompt, max_tokens=1200)

@@ -53,3 +53,10 @@ __pycache__/
 dist/
 backend/.venv/
 backend/data/
+
+# local tooling / agent artifacts — not tracked
+.claude/
+.claude-flow/
+.playwright-mcp/
+.mcp.json
+docs/internal/

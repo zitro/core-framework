@@ -1,23 +1,26 @@
 "use client";
 
-import { Briefcase, Check, ChevronsUpDown } from "lucide-react";
+import { Briefcase, Check, ChevronsUpDown, Plus } from "lucide-react";
+import { useRouter } from "next/navigation";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { useProject } from "@/stores/project-store";
 
-/** Sidebar header dropdown for switching the active project (engagement). */
+/** Sidebar header dropdown for switching the active discovery. */
 export function ProjectSwitcher() {
   const { projects, activeProject, setActiveProject, loading } = useProject();
+  const router = useRouter();
 
-  const label = activeProject?.name ?? (loading ? "Loading projects…" : "No project selected");
-  const sub = activeProject?.customer || activeProject?.slug || "Select a project";
+  const label = activeProject?.name ?? (loading ? "Loading discoveries…" : "No discovery selected");
+  const sub = activeProject?.customer || activeProject?.slug || "Select a discovery";
 
   return (
     <DropdownMenu>
@@ -43,12 +46,12 @@ export function ProjectSwitcher() {
       <DropdownMenuContent align="start" className="w-64">
         <DropdownMenuGroup>
           <DropdownMenuLabel className="text-[10px] uppercase tracking-wide text-muted-foreground">
-            Projects
+            Discoveries
           </DropdownMenuLabel>
           {projects.length === 0 ? (
             <DropdownMenuItem disabled>
               <span className="text-xs text-muted-foreground">
-                {loading ? "Loading…" : "No projects yet"}
+                {loading ? "Loading…" : "No discoveries yet"}
               </span>
             </DropdownMenuItem>
           ) : (
@@ -74,6 +77,19 @@ export function ProjectSwitcher() {
             })
           )}
         </DropdownMenuGroup>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem
+          onClick={() => {
+            if (typeof window !== "undefined") {
+              window.dispatchEvent(new CustomEvent("core:start-new-discovery"));
+            }
+            router.push("/?newDiscovery=1");
+          }}
+          className="gap-2"
+        >
+          <Plus className="h-3.5 w-3.5" aria-hidden />
+          <span className="text-xs font-medium">Start new discovery</span>
+        </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
   );
