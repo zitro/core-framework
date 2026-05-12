@@ -6,13 +6,7 @@ import { Command } from "cmdk";
 import { useTheme } from "next-themes";
 import {
   BookMarked,
-  BookOpen,
-  Briefcase,
-  Building2,
-  Cloud,
   Compass,
-  FolderGit2,
-  Globe,
   Home,
   Lightbulb,
   Moon,
@@ -23,7 +17,6 @@ import {
   ShieldCheck,
   Sparkles,
   Sun,
-  Wand2,
 } from "lucide-react";
 import { Dialog as DialogPrimitive } from "@base-ui/react/dialog";
 import { cn } from "@/lib/utils";
@@ -45,19 +38,10 @@ const PHASES: NavItem[] = [
 
 const TOOLS: NavItem[] = [
   { label: "Dashboard", href: "/", icon: Home },
-  { label: "All Evidence", href: "/evidence", icon: BookOpen },
-  { label: "Engagement Context", href: "/context", icon: FolderGit2 },
-  { label: "Web Search", href: "/search", icon: Globe },
+  { label: "Insights", href: "/insights", icon: Compass, keywords: ["coverage", "search", "activity", "inbox", "decisions", "stakeholders", "evidence"] },
   { label: "Methodology", href: "/methodology", icon: BookMarked },
-  { label: "Settings", href: "/settings", icon: Settings, keywords: ["sources", "config"] },
-];
-
-const FDE: NavItem[] = [
-  { label: "Engagements", href: "/engagements", icon: Briefcase },
-  { label: "Company Research", href: "/company", icon: Building2 },
   { label: "Reviews", href: "/reviews", icon: ShieldCheck },
-  { label: "Microsoft 365", href: "/m365", icon: Cloud, keywords: ["m365", "microsoft"] },
-  { label: "Grounded Answers", href: "/grounding", icon: Wand2 },
+  { label: "Settings", href: "/settings", icon: Settings, keywords: ["sources", "config"] },
 ];
 
 export function CommandPalette() {
@@ -166,21 +150,6 @@ export function CommandPalette() {
                 className="px-2 py-1 text-[10px] font-medium uppercase tracking-wider text-muted-foreground [&_[cmdk-group-items]]:mt-1"
               >
                 {TOOLS.map((item) => (
-                  <PaletteItem
-                    key={item.href}
-                    value={`${item.label} ${(item.keywords ?? []).join(" ")}`}
-                    onSelect={() => navigate(item.href)}
-                    icon={item.icon}
-                    label={item.label}
-                  />
-                ))}
-              </Command.Group>
-
-              <Command.Group
-                heading="FDE"
-                className="px-2 py-1 text-[10px] font-medium uppercase tracking-wider text-muted-foreground [&_[cmdk-group-items]]:mt-1"
-              >
-                {FDE.map((item) => (
                   <PaletteItem
                     key={item.href}
                     value={`${item.label} ${(item.keywords ?? []).join(" ")}`}

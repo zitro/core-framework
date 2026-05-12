@@ -1,14 +1,12 @@
 "use client";
 
-import Link from "next/link";
-import { Briefcase, Check, ChevronsUpDown, Plus } from "lucide-react";
+import { Briefcase, Check, ChevronsUpDown } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
@@ -76,14 +74,6 @@ export function ProjectSwitcher() {
             })
           )}
         </DropdownMenuGroup>
-        <DropdownMenuSeparator />
-        <DropdownMenuItem
-          render={<Link href="/engagements" />}
-          className="gap-2"
-        >
-          <Plus className="h-3.5 w-3.5" />
-          <span className="text-xs">Manage projects</span>
-        </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
   );
