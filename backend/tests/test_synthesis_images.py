@@ -73,7 +73,9 @@ async def test_noop_provider_returns_empty_url() -> None:
 # ── /api/v2/.../images endpoint ────────────────────────────────────────
 
 
-async def _seed(project_id: str, artifact_id: str, body: dict, *, type_id: str = "storyboard") -> None:
+async def _seed(
+    project_id: str, artifact_id: str, body: dict, *, type_id: str = "storyboard"
+) -> None:
     storage = get_storage_provider()
     await storage.create(
         "engagements",
@@ -131,9 +133,7 @@ async def test_generate_is_idempotent_on_second_call(client: AsyncClient) -> Non
 
 
 async def test_generate_422_for_non_storyboard(client: AsyncClient) -> None:
-    await _seed(
-        "proj-nope", "art-nope", {"statement": "x"}, type_id="problem-statement"
-    )
+    await _seed("proj-nope", "art-nope", {"statement": "x"}, type_id="problem-statement")
     resp = await client.post("/api/v2/proj-nope/artifacts/art-nope/images")
     assert resp.status_code == 422
 

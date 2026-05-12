@@ -19,9 +19,7 @@ class AzureOpenAIImageProvider(ImageProvider):
 
     def __init__(self) -> None:
         if not settings.azure_openai_endpoint:
-            raise RuntimeError(
-                "AZURE_OPENAI_ENDPOINT must be set when IMAGE_PROVIDER=azure_openai"
-            )
+            raise RuntimeError("AZURE_OPENAI_ENDPOINT must be set when IMAGE_PROVIDER=azure_openai")
         self._client = AsyncAzureOpenAI(
             azure_endpoint=settings.azure_openai_endpoint,
             api_key=settings.azure_openai_api_key,

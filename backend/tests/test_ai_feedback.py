@@ -53,11 +53,21 @@ async def test_list_scoped_by_item_key(client: AsyncClient) -> None:
     """item_key filter narrows the list to one item's feedback."""
     await client.post(
         "/api/ai-feedback",
-        json={"discovery_id": "d-3", "surface": "usecase", "item_key": "uc-1", "feedback": "case A"},
+        json={
+            "discovery_id": "d-3",
+            "surface": "usecase",
+            "item_key": "uc-1",
+            "feedback": "case A",
+        },
     )
     await client.post(
         "/api/ai-feedback",
-        json={"discovery_id": "d-3", "surface": "usecase", "item_key": "uc-2", "feedback": "case B"},
+        json={
+            "discovery_id": "d-3",
+            "surface": "usecase",
+            "item_key": "uc-2",
+            "feedback": "case B",
+        },
     )
 
     listed_a = await client.get(

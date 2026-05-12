@@ -49,9 +49,7 @@ def _parse_frontmatter(text: str) -> tuple[dict[str, Any], str]:
             val = val.strip().strip('"').strip("'")
             if val.startswith("["):
                 val = [
-                    v.strip().strip('"').strip("'")
-                    for v in val.strip("[]").split(",")
-                    if v.strip()
+                    v.strip().strip('"').strip("'") for v in val.strip("[]").split(",") if v.strip()
                 ]
             fm[key] = val
         body = text[match.end() :]

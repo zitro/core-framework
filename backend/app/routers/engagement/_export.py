@@ -166,9 +166,7 @@ async def _ai_placement(
                 "directory": str(candidate.get("directory") or placement["directory"]),
                 "filename": str(candidate.get("filename") or placement["filename"]),
                 "action": str(candidate.get("action") or placement["action"]),
-                "append_target": str(
-                    candidate.get("append_target") or placement["append_target"]
-                ),
+                "append_target": str(candidate.get("append_target") or placement["append_target"]),
             }
             confidence = str(
                 (classification.get("classification") or {}).get("confidence") or "medium"

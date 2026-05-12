@@ -32,9 +32,7 @@ async def render_methodology_block(discovery_id: str) -> str:
     try:
         rows = await storage.list("methodology_artifacts", {"discovery_id": discovery_id})
     except Exception:
-        logger.warning(
-            "methodology_artifacts: failed to list for %s", discovery_id, exc_info=True
-        )
+        logger.warning("methodology_artifacts: failed to list for %s", discovery_id, exc_info=True)
         return ""
     if not rows:
         return ""
@@ -42,7 +40,9 @@ async def render_methodology_block(discovery_id: str) -> str:
     rows.sort(key=lambda r: (r.get("method_id", ""), r.get("created_at", "")))
     by_method: dict[str, list[dict]] = {}
     for r in rows:
-        non_empty = {k: (v or "").strip() for k, v in (r.get("fields") or {}).items() if (v or "").strip()}
+        non_empty = {
+            k: (v or "").strip() for k, v in (r.get("fields") or {}).items() if (v or "").strip()
+        }
         if not non_empty and not (r.get("title") or "").strip():
             continue
         by_method.setdefault(r.get("method_id", ""), []).append(r)
@@ -56,7 +56,11 @@ async def render_methodology_block(discovery_id: str) -> str:
         method_lines = [f"- {label}:"]
         for inst in instances:
             title = (inst.get("title") or "Untitled").strip()
-            fields = {k: (v or "").strip() for k, v in (inst.get("fields") or {}).items() if (v or "").strip()}
+            fields = {
+                k: (v or "").strip()
+                for k, v in (inst.get("fields") or {}).items()
+                if (v or "").strip()
+            }
             method_lines.append(f"  · {title}")
             for k, v in fields.items():
                 method_lines.append(f"      - {k}: {v}")

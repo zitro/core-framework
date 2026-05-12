@@ -28,9 +28,7 @@ async def _seed_discovery(discovery_id: str, *, engagement_id: str = "") -> None
 
 
 async def test_search_404_missing_discovery(client: AsyncClient) -> None:
-    resp = await client.get(
-        "/api/insights/search", params={"discovery_id": "nope", "q": "hi"}
-    )
+    resp = await client.get("/api/insights/search", params={"discovery_id": "nope", "q": "hi"})
     assert resp.status_code == 404
 
 
@@ -69,9 +67,7 @@ async def test_search_finds_evidence_match(client: AsyncClient) -> None:
             "confidence": "unknown",
         },
     )
-    resp = await client.get(
-        "/api/insights/search", params={"discovery_id": "d-1", "q": "claims"}
-    )
+    resp = await client.get("/api/insights/search", params={"discovery_id": "d-1", "q": "claims"})
     body = resp.json()
     assert body["total"] == 1
     assert body["hits"][0]["kind"] == "evidence"
@@ -108,9 +104,7 @@ async def test_search_ranks_higher_scores_first(client: AsyncClient) -> None:
             "confidence": "unknown",
         },
     )
-    resp = await client.get(
-        "/api/insights/search", params={"discovery_id": "d-2", "q": "claims"}
-    )
+    resp = await client.get("/api/insights/search", params={"discovery_id": "d-2", "q": "claims"})
     body = resp.json()
     assert body["hits"][0]["score"] > body["hits"][1]["score"]
 

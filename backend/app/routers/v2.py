@@ -78,9 +78,7 @@ async def generate_storyboard_images(project_id: str, artifact_id: str) -> dict:
             image = await provider.generate(prompt)
         except Exception as exc:
             logger.exception("v2.images: generate failed for artifact=%s", artifact_id)
-            raise HTTPException(
-                status_code=502, detail=f"Image provider error: {exc}"
-            ) from exc
+            raise HTTPException(status_code=502, detail=f"Image provider error: {exc}") from exc
         updated = dict(frame)
         updated["image_url"] = image.url
         updated["image_alt"] = image.alt_text

@@ -155,9 +155,7 @@ async def test_push_404_when_artifact_missing(client: AsyncClient, tmp_path: Pat
 # ── settings ───────────────────────────────────────────────────────────
 
 
-async def test_update_settings_persists_write_enabled(
-    client: AsyncClient, tmp_path: Path
-) -> None:
+async def test_update_settings_persists_write_enabled(client: AsyncClient, tmp_path: Path) -> None:
     await _seed_project("proj-set", repo_path=str(tmp_path))
     resp = await client.put(
         "/api/synthesis/proj-set/settings/engagement-repo",

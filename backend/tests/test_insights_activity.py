@@ -113,7 +113,5 @@ async def test_activity_respects_limit(client: AsyncClient) -> None:
                 "created_at": f"2026-05-11T00:{i:02d}:00Z",
             },
         )
-    resp = await client.get(
-        "/api/insights/activity", params={"discovery_id": "d-2", "limit": 3}
-    )
+    resp = await client.get("/api/insights/activity", params={"discovery_id": "d-2", "limit": 3})
     assert len(resp.json()["events"]) == 3

@@ -38,7 +38,9 @@ async def render_feedback_block(
     try:
         rows = await storage.list("ai_feedback", query)
     except Exception:
-        logger.warning("ai_feedback: failed to list for %s/%s", discovery_id, surface, exc_info=True)
+        logger.warning(
+            "ai_feedback: failed to list for %s/%s", discovery_id, surface, exc_info=True
+        )
         return ""
     if not rows:
         return ""

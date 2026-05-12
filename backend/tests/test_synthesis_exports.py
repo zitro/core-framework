@@ -125,9 +125,7 @@ async def test_export_pptx_uses_deck_outline_when_present(client: AsyncClient) -
     from pptx import Presentation
 
     prs = Presentation(BytesIO(resp.content))
-    titles = [
-        s.shapes.title.text for s in prs.slides if s.shapes.title and s.shapes.title.text
-    ]
+    titles = [s.shapes.title.text for s in prs.slides if s.shapes.title and s.shapes.title.text]
     assert "Why we're here" in titles
     assert "What we'll do" in titles
 
